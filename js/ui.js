@@ -54,6 +54,9 @@ const UI = {
       <div class="carta-inner">
         <div class="carta-fronte ${usaImmagine ? 'fronte-immagine' : ''}" style="--accento:${carta.seme.colore}">
           ${this._fronteHtml(carta, confMazzo, usaImmagine)}
+          ${(carta.eJolly || carta.ePinella)
+            ? `<span class="badge-wild ${carta.eJolly ? 'b-jolly' : 'b-pinella'}">${carta.eJolly ? 'JOLLY' : 'PIN'}</span>`
+            : ''}
         </div>
         <div class="carta-retro ${retroClass} ${usaImmagine ? 'retro-immagine' : ''}">
           ${usaImmagine
@@ -177,6 +180,142 @@ const UI = {
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   },
 
+  /* Organizza la mano del Burraco in gruppi visivi: SCALE (sequenze dello
+     stesso seme, con jolly/pinelle che colmano i buchi) e TRIS (stesso
+     valore), il resto come singole. Usata solo per la disposizione a
+     schermo: l'ordine della mano reale nell'engine resta invariato. */
+  organizzaManoBurraco(mano) {
+    const gruppi = [];
+    const usati = new Set();
+    const jolly = mano.filter(c => c.eJolly);
+    const pinelle = mano.filter(c => c.ePinella);
+    const natura = mano.filter(c => !c.eJolly && !c.ePinella);
+    const scalaValida = (window.Burraco && window.Burraco.validaScalaConJolly) || (() => false);
+    const prendiSelvatica = (sj, sp) => (sp.length ? sp.shift() : sj.shift());
+
+    // 1) SCALE pulite: per ogni seme la sequenza consecutiva più lunga,
+    //    ripetuta finché esistono run di 3+ carte
+    const perSeme = new Map();
+    for (const c of natura) {
+      if (!perSeme.has(c.seme.nome)) perSeme.set(c.seme.nome, []);
+      perSeme.get(c.seme.nome).push(c);
+    }
+    let cambiate = true;
+    while (cambiate) {
+      cambiate = false;
+      let migliore = null;
+      for (const lista of perSeme.values()) {
+        const disp = lista.filter(c => !usati.has(c.id)).sort((a, b) => a.valore - b.valore);
+        let inizio = 0;
+        for (let i = 1; i <= disp.length; i++) {
+          if (i === disp.length || disp[i].valore !== disp[i - 1].valore + 1) {
+            const len = i - inizio;
+            if (len >= 3 && (!migliore || len > migliore.carte.length)) {
+              migliore = { carte: disp.slice(inizio, i) };
+            }
+            inizio = i;
+          }
+        }
+      }
+      if (migliore) {
+        migliore.carte.forEach(c => usati.add(c.id));
+        gruppi.push({ tipo: 'scala', carte: migliore.carte });
+        cambiate = true;
+      }
+    }
+
+    // 2) TRIS puliti (al più 3 carte per valore)
+    const rimNatura = natura.filter(c => !usati.has(c.id));
+    const perValore = new Map();
+    for (const c of rimNatura) {
+      if (!perValore.has(c.valore)) perValore.set(c.valore, []);
+      perValore.get(c.valore).push(c);
+    }
+    for (const valore of [...perValore.keys()].sort((a, b) => a - b)) {
+      const lista = perValore.get(valore);
+      if (lista.length >= 3) {
+        const tris = lista.slice(0, 3);
+        tris.forEach(c => usati.add(c.id));
+        gruppi.push({ tipo: 'tris', carte: tris.sort((a, b) => a.seme.nome.localeCompare(b.seme.nome)) });
+      }
+    }
+
+    // 3) TRIS con jolly/pinella: 2 naturali + 1 selvatica
+    const nJolly = jolly.filter(c => !usati.has(c.id));
+    const nPinelle = pinelle.filter(c => !usati.has(c.id));
+    const rim = mano.filter(c => !usati.has(c.id) && !c.eJolly && !c.ePinella);
+    const rValori = new Map();
+    for (const c of rim) {
+      if (!rValori.has(c.valore)) rValori.set(c.valore, []);
+      rValori.get(c.valore).push(c);
+    }
+    for (const valore of [...rValori.keys()].sort((a, b) => a - b)) {
+      const lista = rValori.get(valore);
+      if (lista.length === 2 && (nJolly.length + nPinelle.length) >= 1) {
+        const j = prendiSelvatica(nJolly, nPinelle);
+        gruppi.push({ tipo: 'tris', carte: [...lista, j] });
+        lista.forEach(c => usati.add(c.id)); usati.add(j.id);
+      }
+    }
+
+    // 4) SCALE con jolly/pinella: buchi colmabili sulle carte rimaste
+    const sJolly = jolly.filter(c => !usati.has(c.id));
+    const sPinelle = pinelle.filter(c => !usati.has(c.id));
+    const rNatura = mano.filter(c => !usati.has(c.id) && !c.eJolly && !c.ePinella);
+    const rPerSeme = new Map();
+    for (const c of rNatura) {
+      if (!rPerSeme.has(c.seme.nome)) rPerSeme.set(c.seme.nome, []);
+      rPerSeme.get(c.seme.nome).push(c);
+    }
+    const wildDisp = () => sJolly.length + sPinelle.length;
+    for (const lista of rPerSeme.values()) {
+      const ord = lista.slice().sort((a, b) => a.valore - b.valore);
+      let i = 0;
+      while (i < ord.length) {
+        let bestLen = 0, bestK = 0, bestWindow = null;
+        for (let j = ord.length - 1; j >= i; j--) {
+          const window = ord.slice(i, j + 1);
+          const n = window.length;
+          const gaps = (window[n - 1].valore - window[0].valore + 1) - n;
+          if (gaps < 1 || gaps > 2 || n + gaps < 3 || gaps > wildDisp()) continue;
+          if (n + gaps > bestLen && scalaValida(window, gaps)) { bestLen = n + gaps; bestK = gaps; bestWindow = window; }
+        }
+        if (bestWindow) {
+          const wilds = [];
+          for (let w = 0; w < bestK; w++) {
+            const j = prendiSelvatica(sJolly, sPinelle);
+            if (j) wilds.push(j);
+          }
+          if (wilds.length === bestK) {
+            const carte = [...bestWindow, ...wilds].sort((a, b) => a.valore - b.valore);
+            gruppi.push({ tipo: 'scala', carte });
+            bestWindow.forEach(c => usati.add(c.id));
+            wilds.forEach(c => usati.add(c.id));
+            i = ord.indexOf(bestWindow[bestWindow.length - 1]) + 1;
+            continue;
+          }
+          sJolly.unshift(...wilds.filter(c => c.eJolly));
+          sPinelle.unshift(...wilds.filter(c => c.ePinella));
+        }
+        i++;
+      }
+    }
+
+    // 5) SINGOLE rimaste (jolly/pinelle in evidenza)
+    const singole = mano.filter(c => !usati.has(c.id));
+    if (singole.length) {
+      singole.sort((a, b) => {
+        const wa = a.eJolly ? 0 : a.ePinella ? 1 : 2;
+        const wb = b.eJolly ? 0 : b.ePinella ? 1 : 2;
+        if (wa !== wb) return wa - wb;
+        return a.valore - b.valore;
+      });
+      gruppi.push({ tipo: 'singole', carte: singole });
+    }
+
+    return gruppi;
+  },
+
   /** Coordinate centro (viewport) di un elemento o di un contenitore. */
   coordinateDi(el) {
     const r = el.getBoundingClientRect();
@@ -260,6 +399,8 @@ class Controller {
     this.occupato = false;                   // evita doppie mosse
     this.selezione = new Set();              // id carte selezionate (burraco)
     this.comboSelezionata = null;            // indice combinazione per legare
+    this._manoKeyBurraco = null;             // ordine mano burraco (stabile)
+    this._manoGruppi = null;
     this.inPresa = null;                     // scopa: { carta, combinazioni }
     this.attesaBot = false;
     this.game = document.getElementById('gioco');
@@ -592,16 +733,34 @@ class Controller {
       });
     }
 
-    // mano giocatore
+    // mano giocatore: organizzata in TRIS/SCALE (ordine stabile finché la
+    // composizione della mano non cambia, per non far saltare le carte
+    // durante la selezione)
     const zonaMan = document.getElementById('zona-giocatore');
     const mano = s.mani[this.umano] || s.mani[0];
+    const chiaveMano = mano.map(c => c.id).sort().join('|');
+    if (this._manoKeyBurraco !== chiaveMano) {
+      this._manoKeyBurraco = chiaveMano;
+      this._manoGruppi = UI.organizzaManoBurraco(mano);
+    }
     const mioTurno = s.turno === this.umano && s.fase === 'gioco';
-    mano.forEach(c => zonaMan.appendChild(this._carta({
-      carta: c, coperta: false,
-      selezionabile: mioTurno, cliccabile: mioTurno,
-      selezionata: this.selezione.has(c.id),
-      onClic: () => this._clickSelezioneBurraco(c)
-    })));
+    for (const gruppo of (this._manoGruppi || [{ tipo: 'singole', carte: mano }])) {
+      const wrap = document.createElement('div');
+      wrap.className = 'gruppo-mano';
+      if (gruppo.tipo !== 'singole') {
+        const label = document.createElement('span');
+        label.className = 'gruppo-label';
+        label.textContent = gruppo.tipo === 'scala' ? 'Scala' : 'Tris';
+        wrap.appendChild(label);
+      }
+      gruppo.carte.forEach(c => wrap.appendChild(this._carta({
+        carta: c, coperta: false,
+        selezionabile: mioTurno, cliccabile: mioTurno,
+        selezionata: this.selezione.has(c.id),
+        onClic: () => this._clickSelezioneBurraco(c)
+      })));
+      zonaMan.appendChild(wrap);
+    }
 
     this._infoBurraco(s);
   }

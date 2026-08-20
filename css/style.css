@@ -253,6 +253,30 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 }
 .combinazione.burraco { border-color: var(--oro); box-shadow: 0 0 8px rgba(212, 160, 23, 0.45); }
 
+/* mano del Burraco raggruppata in TRIS/SCALE */
+.gruppo-mano {
+  display: inline-flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 3px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+}
+.gruppo-mano .carta { width: calc(var(--carta-w) * 0.94); height: calc(var(--carta-h) * 0.94); }
+.gruppo-label {
+  font-size: 0.52rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--oro);
+  background: rgba(0, 0, 0, 0.4); padding: 1px 7px; border-radius: 999px;
+}
+
+/* badge jolly/pinella sulle carte scoperte (sempre, anche con le foto) */
+.badge-wild {
+  position: absolute; top: 3%; right: 3%; z-index: 3;
+  font-size: calc(var(--carta-w) * 0.13); font-weight: 800; letter-spacing: 0.5px;
+  padding: 1px 5px; border-radius: 999px; color: #fff;
+  pointer-events: none; line-height: 1.2;
+}
+.badge-wild.b-jolly { background: #7b1fa2; box-shadow: 0 0 6px rgba(123, 31, 162, 0.85); }
+.badge-wild.b-pinella { background: #b8860b; box-shadow: 0 0 6px rgba(184, 134, 11, 0.85); }
+
 /* =====================================================================
  * LE CARTE
  * ===================================================================== */

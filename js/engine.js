@@ -707,14 +707,54 @@ class Burraco extends GiocoBase {
     return this.stato;
   }
 
+  /* Verifica se delle carte naturali (stesso seme, valori distinti) unite a
+   * k jolly/pinelle formano una scala valida (valori consecutivi).
+   * Regola: al più 2 jolly/pinelle e mai adiacenti tra loro.
+   * @param {Carta[]} naturali  carte naturali (già filtrate, stesso seme)
+   * @param {number} k          numero di jolly/pinelle a disposizione
+   * @returns {boolean}
+   */
+  static validaScalaConJolly(naturali, k) {
+    const n = naturali.length;
+    if (n < 2) return false;         // serve almeno una coppia di naturali
+    if (k < 1 || k > 2) return false; // al più 2 jolly/pinelle
+    const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
+    for (let i = 1; i < n; i++) {
+      if (valori[i] === valori[i - 1]) return false; // valori duplicati
+    }
+    const min = valori[0], max = valori[n - 1];
+    const gaps = (max - min + 1) - n; // buchi interni da colmare
+    if (gaps < 0 || k < gaps) return false; // non bastano i jolly per i buchi
+    const extra = k - gaps;           // jolly oltre le estremità (al più 2, uno per lato)
+    if (extra < 0 || extra > 2) return false;
+    if (n + k < 3) return false;
+    // verifica che i jolly non finiscano adiacenti provando tutte le
+    // disposizioni possibili: a jolly sotto il minimo, b sopra il massimo
+    for (let a = 0; a <= extra; a++) {
+      const b = extra - a;
+      const occupate = new Set();
+      for (let v = min - a; v <= max + b; v++) {
+        if (!valori.includes(v)) occupate.add(v);
+      }
+      const pos = [...occupate].sort((x, y) => x - y);
+      let adiacenti = false;
+      for (let i = 1; i < pos.length; i++) {
+        if (pos[i] === pos[i - 1] + 1) { adiacenti = true; break; }
+      }
+      if (!adiacenti) return true;
+    }
+    return false;
+  }
+
   /* ------------------------- validazioni ------------------------- */
 
   /**
    * Valida una combinazione calata.
-   * - GRUPPO: 3+ carte dello stesso valore, con al più UN jolly O UNA
-   *   pinella, almeno 2 carte naturali e, essendoci un doppio mazzo,
-   *   al massimo 2 carte per ogni seme.
-   * - SEQUENZA: 3+ carte consecutive dello stesso seme, SENZA jolly/pinelle.
+   * - GRUPPO: 3+ carte dello stesso valore, con al più 2 jolly/pinelle e
+   *   almeno 2 carte naturali; essendoci un doppio mazzo, al massimo
+   *   2 carte per ogni seme.
+   * - SEQUENZA: 3+ carte consecutive dello stesso seme; i jolly/pinelle
+   *   colmano i buchi (al più 2, mai adiacenti tra loro).
    * @returns {{valida: boolean, tipo: 'gruppo'|'sequenza'|null, punti: number, burraco: boolean, pulito: boolean, motivo?: string}}
    */
   validaCombinazione(arrayCarte) {
@@ -727,8 +767,8 @@ class Burraco extends GiocoBase {
     const pinelle = carte.filter(c => c.ePinella);
     const selvatiche = jolly.length + pinelle.length;
 
-    if (selvatiche > 1) {
-      return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Max 1 jolly o 1 pinella per combinazione' };
+    if (selvatiche > 2) {
+      return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Max 2 jolly/pinelle per combinazione' };
     }
     if (naturali.length < 2) {
       return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Servono almeno 2 carte naturali' };
@@ -747,15 +787,19 @@ class Burraco extends GiocoBase {
       return this._esitoCombinazione(carte, 'gruppo');
     }
 
-    if (stessoSeme && selvatiche === 0) {
-      // sequenza: valori consecutivi, senza jolly/pinelle
-      const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
-      for (let i = 1; i < valori.length; i++) {
-        if (valori[i] !== valori[i - 1] + 1) {
-          return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'La sequenza non è consecutiva' };
+    if (stessoSeme) {
+      // sequenza: valori consecutivi, con jolly/pinelle che colmano i buchi
+      const consecutiva = (() => {
+        const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
+        for (let i = 1; i < valori.length; i++) {
+          if (valori[i] !== valori[i - 1] + 1) return false;
         }
+        return true;
+      })();
+      if (selvatiche === 0 ? consecutiva : Burraco.validaScalaConJolly(naturali, selvatiche)) {
+        return this._esitoCombinazione(carte, 'sequenza');
       }
-      return this._esitoCombinazione(carte, 'sequenza');
+      return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'La sequenza non è consecutiva o i jolly/pinelle sono troppi o adiacenti' };
     }
 
     return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Combinazione non riconosciuta' };
@@ -782,7 +826,7 @@ class Burraco extends GiocoBase {
       const naturali = esistente.filter(c => !c.eJolly && !c.ePinella);
       const selvatiche = esistente.filter(c => c.eJolly || c.ePinella);
       if (carta.eJolly || carta.ePinella) {
-        if (selvatiche.length >= 1) return { valida: false, motivo: 'Gruppo già completo di jolly/pinella' };
+        if (selvatiche.length >= 2) return { valida: false, motivo: 'Gruppo già completo di jolly/pinelle (max 2)' };
         return { valida: true };
       }
       if (carta.valore !== naturali[0].valore) return { valida: false, motivo: 'Valore diverso dal gruppo' };
@@ -792,12 +836,22 @@ class Burraco extends GiocoBase {
     }
 
     if (tipo === 'sequenza') {
-      if (carta.eJolly || carta.ePinella) return { valida: false, motivo: 'Nelle sequenze niente jolly/pinelle' };
-      if (carta.seme.nome !== esistente[0].seme.nome) return { valida: false, motivo: 'Seme diverso' };
-      const valori = esistente.map(c => c.valore).sort((a, b) => a - b);
-      const min = valori[0], max = valori[valori.length - 1];
-      if (carta.valore === min - 1 || carta.valore === max + 1) return { valida: true };
-      return { valida: false, motivo: 'La carta non estende la sequenza' };
+      const candidate = [...esistente, carta];
+      const naturali = candidate.filter(c => !c.eJolly && !c.ePinella);
+      const selvatiche = candidate.length - naturali.length;
+      if (naturali.length < 2) return { valida: false, motivo: 'Nella sequenza servono almeno 2 carte naturali' };
+      const stessoSeme = naturali.every(c => c.seme.nome === naturali[0].seme.nome);
+      if (!stessoSeme) return { valida: false, motivo: 'Seme diverso' };
+      const consecutiva = (() => {
+        const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
+        for (let i = 1; i < valori.length; i++) {
+          if (valori[i] !== valori[i - 1] + 1) return false;
+        }
+        return true;
+      })();
+      const ok = selvatiche === 0 ? consecutiva : Burraco.validaScalaConJolly(naturali, selvatiche);
+      if (!ok) return { valida: false, motivo: 'La carta non estende la sequenza' };
+      return { valida: true };
     }
     return { valida: false, motivo: 'Tipo sconosciuto' };
   }

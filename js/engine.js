@@ -30,7 +30,8 @@ const SEME_JOLLY = { nome: 'jolly', simbolo: '★', colore: '#7b1fa2', classe: '
 const MAZZI_ITALIANI = {
   napoletane: {
     nome: 'Napoletane', regione: 'Campania', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-napoletane', accento: '#c9971a'
+    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-napoletane', accento: '#c9971a',
+    immagini: true // le facce sono immagini reali in img/napoletane/
   },
   piacentine: {
     nome: 'Piacentine', regione: 'Emilia-Romagna', semi: ['denari', 'coppe', 'spade', 'bastoni'],

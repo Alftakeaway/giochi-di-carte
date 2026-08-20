@@ -36,9 +36,19 @@ const UI = {
     const confMazzo = MAZZI_ITALIANI[carta.tipoMazzo] || {};
     const retroClass = carta.tipoMazzo === 'francese' ? 'pattern-francese' : (confMazzo.retro || 'pattern-napoletane');
 
+    // Facce reali: per i mazzi con immagini si usa la foto ritagliata
+    // (es. img/napoletane/denari_07.jpg) al posto del rendering CSS/SVG.
+    const usaImmagine = !carta.jolly && !!confMazzo.immagini;
+    const percorsoImmagine = usaImmagine
+      ? `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.jpg`
+      : '';
+
     node.innerHTML = `
       <div class="carta-inner">
-        <div class="carta-fronte" style="--accento:${carta.seme.colore}">
+        <div class="carta-fronte ${usaImmagine ? 'fronte-immagine' : ''}" style="--accento:${carta.seme.colore}">
+          ${usaImmagine
+            ? `<img class="faccia-img" src="${percorsoImmagine}" alt="${carta.nome} di ${carta.seme.nome}" draggable="false">`
+            : `
           <div class="angolo alto">
             <span class="valore">${carta.nome}</span>
             <span class="seme">${carta.seme.simbolo}</span>
@@ -55,7 +65,7 @@ const UI = {
           <div class="angolo basso">
             <span class="seme">${carta.seme.simbolo}</span>
             <span class="valore">${carta.nome}</span>
-          </div>
+          </div>`}
         </div>
         <div class="carta-retro ${retroClass}">
           ${this._emblemaRetro()}

@@ -494,6 +494,25 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .carta.cliccabile { cursor: pointer; }
 .carta.selezionabile:hover, .carta.cliccabile:hover { transform: translateY(-6px); }
 .carta.selezionata { box-shadow: 0 0 0 3px var(--oro), 0 6px 10px var(--carta-ombra); transform: translateY(-8px); }
+
+/* ---- drag & drop delle carte della mano (burraco) ---- */
+.carta.draggabile { cursor: grab; touch-action: none; }
+.carta.draggabile:active { cursor: grabbing; }
+.carta.drag-ghost {
+  position: fixed; z-index: 2000; pointer-events: none; margin: 0;
+  opacity: 0.92; left: 0; top: 0;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55));
+}
+.carta.dragging { opacity: 0.35; }
+.combinazione.impilata.drop-target-lega {
+  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.65), 0 0 22px rgba(212, 160, 23, 0.45) !important;
+}
+#zona-tavolo.drop-target-cala,
+#zona-combinazioni-0.drop-target-cala {
+  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.45), 0 0 26px rgba(212, 160, 23, 0.4);
+  border-color: rgba(212, 160, 23, 0.9) !important;
+  background: rgba(212, 160, 23, 0.10);
+}
 .carta.stack { box-shadow: 0 0 0 1px rgba(0,0,0,.2), 0 3px 4px var(--carta-ombra); }
 
 /* carta volante per le animazioni di spostamento */

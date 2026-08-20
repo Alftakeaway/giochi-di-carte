@@ -415,6 +415,7 @@ class Controller {
     this.nome = config.nome || 'Giocatore';
     this.occupato = false;                   // evita doppie mosse
     this.selezione = new Set();              // id carte selezionate (burraco)
+    this._sopprimiClick = false;             // sopprime il click dopo un drag
     this.comboSelezionata = null;            // indice combinazione per legare
     this._manoKeyBurraco = null;             // ordine mano burraco (stabile)
     this._manoGruppi = null;
@@ -819,12 +820,17 @@ class Controller {
         label.textContent = gruppo.tipo === 'scala' ? 'Scala' : 'Tris';
         wrap.appendChild(label);
       }
-      gruppo.carte.forEach(c => wrap.appendChild(this._carta({
-        carta: c, coperta: false,
-        selezionabile: mioTurno, cliccabile: mioTurno,
-        selezionata: this.selezione.has(c.id),
-        onClic: () => this._clickSelezioneBurraco(c)
-      })));
+      gruppo.carte.forEach(c => {
+        const node = this._carta({
+          carta: c, coperta: false,
+          selezionabile: mioTurno, cliccabile: mioTurno,
+          selezionata: this.selezione.has(c.id),
+          onClic: () => this._clickSelezioneBurraco(c)
+        });
+        // drag & drop: il giocatore decide lui come comporre le combinazioni
+        if (mioTurno) this._abilitaDragMano(node, c);
+        wrap.appendChild(node);
+      });
       zonaMan.appendChild(wrap);
     }
 
@@ -856,6 +862,119 @@ class Controller {
   _selezionaComboPerLega(idx) {
     this.comboSelezionata = this.comboSelezionata === idx ? null : idx;
     this.render();
+  }
+
+  /* --- drag & drop (burraco): il giocatore sceglie lui come formare le
+   * combinazioni. Trascinando una carta della mano:
+   *   - su una combinazione già calata  -> la LEGA a quella combinazione;
+   *   - sulla zona del tavolo           -> CALA la selezione corrente
+   *     (la carta trascinata + le altre già selezionate) come nuovo gruppo.
+   * Funziona con mouse e touch (pointer events). --- */
+
+  _abilitaDragMano(node, carta) {
+    node.classList.add('draggabile');
+    // click in cattura: dopo un drag vero il click non deve togglare la selezione
+    node.addEventListener('click', (ev) => {
+      if (this._sopprimiClick) { ev.preventDefault(); ev.stopPropagation(); }
+    }, true);
+    node.addEventListener('pointerdown', (ev) => this._dragPressione(node, carta, ev));
+  }
+
+  _dragPressione(node, carta, ev) {
+    if (this.occupato || this.gioco.stato.turno !== this.umano || this.gioco.stato.fase !== 'gioco') return;
+    if (ev.button !== undefined && ev.button !== 0) return;
+    // blocca lo scroll del touch per questo gesto e cattura il puntatore
+    try { node.style.touchAction = 'none'; node.setPointerCapture(ev.pointerId); } catch (e) { /* noop */ }
+    const d = { node, carta, startX: ev.clientX, startY: ev.clientY, attivo: false, ghost: null };
+
+    const muovi = (e) => {
+      if (!d.attivo) {
+        const dist = Math.hypot(e.clientX - d.startX, e.clientY - d.startY);
+        if (dist < 8) return;
+        d.attivo = true;
+        const ghost = d.node.cloneNode(true);
+        ghost.classList.add('drag-ghost');
+        ghost.style.pointerEvents = 'none';
+        ghost.style.width = getComputedStyle(d.node).width + 'px';
+        ghost.style.transform = 'rotate(4deg)';
+        document.body.appendChild(ghost);
+        d.ghost = ghost;
+        d.node.classList.add('dragging');
+      }
+      const w = d.ghost.offsetWidth, h = d.ghost.offsetHeight;
+      d.ghost.style.left = (e.clientX - w / 2) + 'px';
+      d.ghost.style.top = (e.clientY - h / 2) + 'px';
+      this._evidenziaDrop(e.clientX, e.clientY);
+    };
+
+    const fine = (e) => {
+      window.removeEventListener('pointermove', muovi);
+      window.removeEventListener('pointerup', fine);
+      window.removeEventListener('pointercancel', annulla);
+      d.node.style.touchAction = '';
+      if (d.ghost) d.ghost.remove();
+      d.node.classList.remove('dragging');
+      this._pulisciDrop();
+      if (!d.attivo) return; // click semplice: lo gestisce il click normale
+      this._sopprimiClick = true;
+      setTimeout(() => { this._sopprimiClick = false; }, 60);
+      const target = this._trovaDropTarget(e.clientX, e.clientY);
+      if (target && target.tipo === 'lega') this._dropLega(d.carta, target.el);
+      else if (target && target.tipo === 'cala') this._dropCala(d.carta);
+    };
+
+    const annulla = () => {
+      window.removeEventListener('pointermove', muovi);
+      window.removeEventListener('pointerup', fine);
+      window.removeEventListener('pointercancel', annulla);
+      d.node.style.touchAction = '';
+      if (d.ghost) d.ghost.remove();
+      d.node.classList.remove('dragging');
+      this._pulisciDrop();
+    };
+
+    window.addEventListener('pointermove', muovi);
+    window.addEventListener('pointerup', fine);
+    window.addEventListener('pointercancel', annulla);
+  }
+
+  _trovaDropTarget(x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (!el || !this.game || !this.game.contains(el)) return null;
+    const combo = el.closest('.combinazione.impilata');
+    if (combo) return { tipo: 'lega', el: combo };
+    const zona = el.closest('#zona-tavolo, #zona-combinazioni-0');
+    if (zona) return { tipo: 'cala', el: zona };
+    return null;
+  }
+
+  _evidenziaDrop(x, y) {
+    this._pulisciDrop();
+    const t = this._trovaDropTarget(x, y);
+    if (!t) return;
+    t.el.classList.add(t.tipo === 'lega' ? 'drop-target-lega' : 'drop-target-cala');
+  }
+
+  _pulisciDrop() {
+    document.querySelectorAll('.drop-target-lega, .drop-target-cala').forEach(el => el.classList.remove('drop-target-lega', 'drop-target-cala'));
+  }
+
+  _dropLega(carta, comboEl) {
+    const zona0 = document.getElementById('zona-combinazioni-0');
+    const boxes = zona0 ? [...zona0.querySelectorAll('.combinazione.impilata')] : [];
+    const idx = boxes.indexOf(comboEl);
+    if (idx === -1) return;
+    this._azioneBurraco({ tipo: 'lega', cartaId: carta.id, indice: idx });
+  }
+
+  _dropCala(carta) {
+    const ids = new Set(this.selezione);
+    ids.add(carta.id);
+    if (ids.size < 3) {
+      UI.notifica('Servono almeno 3 carte: selezionale cliccandole e trascina una di esse sul tavolo', 'errore', 2800);
+      return;
+    }
+    this._azioneBurraco({ tipo: 'cala', idCarte: [...ids] });
   }
 
   _renderPulsanti() {

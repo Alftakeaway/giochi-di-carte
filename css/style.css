@@ -20,7 +20,7 @@
   --nero: #222222;
   --verde-acido: #7ccf8a;
   --radice: 16px;
-  --carta-w: clamp(50px, 15vw, 76px);
+  --carta-w: clamp(65px, 19.5vw, 99px);
   --carta-h: calc(var(--carta-w) * 1.42);
   --raggio: calc(var(--carta-w) * 0.1);
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -437,7 +437,7 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
  * RESPONSIVE
  * ===================================================================== */
 @media (max-width: 640px) {
-  :root { --carta-w: clamp(44px, 16.5vw, 60px); }
+  :root { --carta-w: clamp(57px, 21.5vw, 78px); }
 
   .centro { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; gap: 0.3rem; }
   .zona-mazzi { flex-direction: row; }
@@ -448,7 +448,7 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
-  :root { --carta-w: clamp(38px, 11vh, 58px); }
+  :root { --carta-w: clamp(49px, 14.3vh, 75px); }
   .zona-combinazioni { display: none; }
 }
 

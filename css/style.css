@@ -280,15 +280,36 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   height: calc(var(--n-carte, 3) * var(--peek-combo, 18px));
   overflow: hidden; border-radius: 10px;
 }
-.combinazione.impilata .carta {
+.combinazione.impilata .carta,
+.combinazione.impilata .pila .carta {
   flex: 0 0 auto;
   margin: 0 0 calc(var(--peek-combo, 18px) - var(--carta-h)) 0;
 }
 .combinazione.impilata .carta:first-child { margin-top: 0; }
+
+/* burraco (7+ carte): la pila resta compatta, l'ultima carta (o le ultime
+ * due se pulito) è messa DI TRAVERSO in cima, come si fa al tavolo */
 .combinazione.impilata.burraco {
+  position: relative; overflow: visible;
+  height: auto;
   border: 1px solid var(--oro);
   box-shadow: 0 0 8px rgba(212, 160, 23, 0.45);
   border-radius: 10px;
+  padding-top: 30px;
+}
+.combinazione.impilata.burraco .pila {
+  display: flex; flex-direction: column; align-items: center;
+  overflow: hidden; border-radius: 8px;
+}
+.combinazione.impilata .di-traverso {
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; justify-content: center;
+  gap: calc(var(--carta-h) * -0.30);
+}
+.combinazione.impilata .di-traverso .carta {
+  transform: rotate(90deg) scale(0.62);
+  margin: 0;
 }
 
 /* mano del Burraco raggruppata in TRIS/SCALE: le carte sono disposte in

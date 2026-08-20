@@ -772,16 +772,33 @@ class Controller {
         // intravedere solo la striscia in alto con seme e numero
         box.classList.add('impilata');
         const peekCombo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-combo')) || 18;
-        box.style.setProperty('--n-carte', combo.carte.length);
-        box.style.height = (combo.carte.length * peekCombo) + 'px';
-        combo.carte.forEach(c => {
-          box.appendChild(this._carta({
-            carta: c,
-            coperta: false,
-            cliccabile: isMio && s.turno === this.umano && s.fase === 'gioco',
-            onClic: isMio ? () => this._selezionaComboPerLega(idx) : undefined
-          }));
+        const nCarte = combo.carte.length;
+        const sporco = combo.carte.some(c => c.eJolly || c.ePinella);
+        const nDiTraverso = nCarte >= 7 ? (sporco ? 1 : 2) : 0;
+        const mkCarta = c => this._carta({
+          carta: c,
+          coperta: false,
+          cliccabile: isMio && s.turno === this.umano && s.fase === 'gioco',
+          onClic: isMio ? () => this._selezionaComboPerLega(idx) : undefined
         });
+        if (nDiTraverso > 0) {
+          // burraco: la pila resta compatta, l'ultima carta (o le ultime
+          // due se pulito) è messa DI TRAVERSO in cima alla pila
+          box.classList.add('burraco');
+          const pila = document.createElement('div');
+          pila.className = 'pila';
+          pila.style.height = ((nCarte - nDiTraverso) * peekCombo) + 'px';
+          combo.carte.slice(0, nCarte - nDiTraverso).forEach(c => pila.appendChild(mkCarta(c)));
+          box.appendChild(pila);
+          const traverso = document.createElement('div');
+          traverso.className = 'di-traverso';
+          combo.carte.slice(nCarte - nDiTraverso).forEach(c => traverso.appendChild(mkCarta(c)));
+          box.appendChild(traverso);
+        } else {
+          box.style.setProperty('--n-carte', nCarte);
+          box.style.height = (nCarte * peekCombo) + 'px';
+          combo.carte.forEach(c => box.appendChild(mkCarta(c)));
+        }
         zona.appendChild(box);
       });
     }

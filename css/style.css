@@ -258,7 +258,6 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   height: var(--carta-h);
   border-radius: var(--raggio);
   position: relative;
-  perspective: 900px;
   flex: 0 0 auto;
   cursor: default;
   user-select: none;
@@ -270,17 +269,16 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 
 .carta-inner {
   position: absolute; inset: 0;
-  transform-style: preserve-3d;
-  transition: transform 0.55s cubic-bezier(0.4, 0.1, 0.2, 1);
 }
 
-/* facce: hidden sul retro per il flip 3D */
+/* Due facce impilate: il fronte copre il retro finché la carta è scoperta.
+   (Niente flip 3D: filter/overflow sugli antenati appiattiscono il 3D
+   e farebbero comparire entrambe le facce.) */
 .carta-fronte, .carta-retro {
   position: absolute; inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
   border-radius: var(--raggio);
   overflow: hidden;
+  transition: opacity .18s ease;
 }
 
 .carta-fronte {
@@ -292,7 +290,7 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 }
 
 .carta-retro {
-  transform: rotateY(180deg);
+  opacity: 0;
   border: 2px solid #fdf6e4;
   box-shadow:
     inset 0 0 0 3px var(--retro-a, #8a1f2b),
@@ -309,7 +307,12 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .retro-emblema rect,
 .retro-emblema path { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18)); }
 
-.carta.coperta .carta-inner { transform: rotateY(180deg); }
+.carta.coperta .carta-fronte { opacity: 0; }
+.carta.coperta .carta-retro { opacity: 1; }
+
+/* carta volante (animazioni): mostra il retro mentre vola */
+.carta.volante .carta-fronte { opacity: 0; }
+.carta.volante .carta-retro { opacity: 1; }
 
 /* retro regionali: palette ispirate ai mazzi tradizionali Dal Negro */
 .pattern-napoletane { --retro-a: #8a1f2b; --retro-b: #6d1520; --retro-c: #c9971a; }

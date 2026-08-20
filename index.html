@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b5d2e">
+  <title>Giochi di Carte Italiani — Burraco · Briscola · Scopa</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dashboard-body">
+  <main class="dashboard">
+    <header class="dashboard-header">
+      <div class="logo">🃏</div>
+      <h1>Giochi di Carte Italiani</h1>
+      <p class="sottotitolo">Burraco · Briscola · Scopa — in modalità single player o multiplayer P2P</p>
+    </header>
+
+    <!-- 1. SCELTA GIOCO -->
+    <section class="pannello" id="passo-gioco">
+      <h2>Scegli il gioco</h2>
+      <div class="griglia-giochi" id="griglia-giochi">
+        <button class="carta-gioco" data-gioco="scopa">
+          <span class="icona">🥇</span>
+          <span class="nome">Scopa</span>
+          <span class="desc">Prendi le carte dal tavolo e conquista i 4 punti (Settebello, Denari, Carte, Primiera)</span>
+        </button>
+        <button class="carta-gioco" data-gioco="briscola">
+          <span class="icona">⚔️</span>
+          <span class="nome">Briscola</span>
+          <span class="desc">Conquista il maggior numero di punti con le prese (120 punti in gioco)</span>
+        </button>
+        <button class="carta-gioco" data-gioco="burraco">
+          <span class="icona">🃏</span>
+          <span class="nome">Burraco</span>
+          <span class="desc">Forma combinazioni e sequenze, fai almeno un Burraco e chiudi a 2000 punti</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. SCELTA MAZZO -->
+    <section class="pannello" id="passo-mazzo" hidden>
+      <h2>Mazzo regionale <small>(carte di tutta Italia)</small></h2>
+      <div class="griglia-mazzi" id="griglia-mazzi"></div>
+    </section>
+
+    <!-- 3. SCELTA MODALITÀ -->
+    <section class="pannello" id="passo-modalita" hidden>
+      <h2>Modalità di gioco</h2>
+      <div class="griglia-modalita">
+        <button class="carta-modalita" data-modalita="bot" id="btn-bot">
+          <span class="icona">🤖</span>
+          <span class="nome">Single Player</span>
+          <span class="desc">Gioca contro il computer: IA locale nel tuo browser, nessun server</span>
+        </button>
+        <button class="carta-modalita" data-modalita="p2p" id="btn-p2p">
+          <span class="icona">🌐</span>
+          <span class="nome">Multiplayer P2P</span>
+          <span class="desc">Gioca contro un amico: connessione diretta WebRTC, costo zero</span>
+        </button>
+      </div>
+
+      <!-- sottopannello multiplayer -->
+      <div class="sottopannello" id="pannello-p2p" hidden>
+        <div class="p2p-opzioni">
+          <button class="btn btn-primario" id="btn-crea-stanza">➕ Crea una stanza</button>
+          <div class="separatore">oppure</div>
+          <label for="input-stanza">Codice stanza avversario</label>
+          <div class="riga-input">
+            <input type="text" id="input-stanza" placeholder="carte-xxxxxxxxxx" autocomplete="off">
+            <button class="btn" id="btn-connetti">🔗 Connetti</button>
+          </div>
+          <div class="nota">La connessione è P2P: il codice stanza è solo l'ID di signaling gratuito (PeerJS).</div>
+        </div>
+      </div>
+
+      <div class="riga-azione">
+        <button class="btn btn-primario btn-grande" id="btn-inizia" disabled>▶ Avvia partita</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    'use strict';
+    const stato = { gioco: null, mazzo: null, modalita: null };
+
+    const $ = (sel) => document.querySelector(sel);
+    const mostra = (sel, visibile) => { $(sel).hidden = !visibile; };
+
+    /* Scelta gioco */
+    document.querySelectorAll('.carta-gioco').forEach(btn => {
+      btn.addEventListener('click', () => {
+        stato.gioco = btn.dataset.gioco;
+        document.querySelectorAll('.carta-gioco').forEach(b => b.classList.toggle('attiva', b === btn));
+        mostra('#passo-mazzo', true);
+        window.scrollTo({ top: $('#passo-mazzo').offsetTop - 10, behavior: 'smooth' });
+      });
+    });
+
+    /* Scelta mazzo regionale (da engine.js) */
+    const grigliaMazzi = $('#griglia-mazzi');
+    MAZZI_ITALIANI && Object.keys(MAZZI_ITALIANI).forEach(chiave => {
+      const conf = MAZZI_ITALIANI[chiave];
+      const btn = document.createElement('button');
+      btn.className = 'carta-mazzo';
+      btn.dataset.mazzo = chiave;
+      btn.innerHTML = `
+        <span class="retro-preview ${conf.retro}"></span>
+        <span class="nome">${conf.nome}</span>
+        <span class="desc">${conf.regione}</span>`;
+      btn.addEventListener('click', () => {
+        stato.mazzo = chiave;
+        document.querySelectorAll('.carta-mazzo').forEach(b => b.classList.toggle('attiva', b === btn));
+        mostra('#passo-modalita', true);
+        window.scrollTo({ top: $('#passo-modalita').offsetTop - 10, behavior: 'smooth' });
+      });
+      grigliaMazzi.appendChild(btn);
+    });
+
+    /* Scelta modalità */
+    document.querySelectorAll('.carta-modalita').forEach(btn => {
+      btn.addEventListener('click', () => {
+        stato.modalita = btn.dataset.modalita;
+        document.querySelectorAll('.carta-modalita').forEach(b => b.classList.toggle('attiva', b === btn));
+        mostra('#pannello-p2p', stato.modalita === 'p2p');
+        $('#btn-inizia').disabled = false;
+      });
+    });
+
+    /* Multiplayer: crea stanza (host) */
+    $('#btn-crea-stanza').addEventListener('click', () => {
+      stato.modalita = 'p2p';
+      stato.ruolo = 'host';
+      $('#btn-inizia').disabled = false;
+      UI.notifica('Quando premi "Avvia partita" ti verrà mostrato il codice stanza da condividere.', 'info', 4000);
+    });
+
+    /* Multiplayer: connetti (guest) */
+    $('#btn-connetti').addEventListener('click', () => {
+      const stanza = $('#input-stanza').value.trim();
+      if (!stanza) { UI.notifica('Inserisci un codice stanza.', 'errore', 2500); return; }
+      stato.modalita = 'p2p';
+      stato.ruolo = 'guest';
+      stato.stanza = stanza;
+      $('#btn-inizia').disabled = false;
+      UI.notifica('Inserisci il nome e premi "Avvia partita".', 'info', 3000);
+    });
+
+    /* Nome giocatore: chiesto solo all'avvio */
+    let nome = 'Giocatore';
+
+    /* Avvio */
+    $('#btn-inizia').addEventListener('click', () => {
+      if (!stato.gioco || !stato.mazzo || !stato.modalita) {
+        UI.notifica('Completa tutti i passaggi.', 'errore', 2500);
+        return;
+      }
+      nome = prompt('Il tuo nome:') || nome;
+      const query = new URLSearchParams({
+        gioco: stato.gioco,
+        mazzo: stato.mazzo,
+        modalita: stato.modalita,
+        ruolo: stato.ruolo || 'bot',
+        stanza: stato.stanza || '',
+        nome
+      });
+      location.href = 'game.html?' + query.toString();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b5d2e">
+  <title>Tavolo da gioco</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="game-body">
+  <!-- PeerJS: libreria gratuita per il signaling WebRTC (cloud pubblico) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <div id="gioco" class="gioco">
+    <header class="barra-superiore">
+      <a class="btn-indietro" href="index.html" title="Torna alla dashboard">←</a>
+      <div class="titolo" id="titolo-gioco">Gioco</div>
+      <div class="punteggio" id="punteggio"></div>
+      <div class="indicatore-turno" id="indicatore-turno"></div>
+    </header>
+
+    <div class="rete-bar" id="rete-bar" hidden>
+      <span id="stato-rete">Rete</span>
+      <code id="peer-id"></code>
+    </div>
+
+    <div class="tavolo">
+      <!-- Zona avversario (mano coperta / meld avversario) -->
+      <div class="zona zona-avversario" id="zona-avversario"></div>
+
+      <div class="zona zona-combinazioni zona-combinazioni-0" id="zona-combinazioni-0"></div>
+
+      <div class="centro">
+        <div class="zona zona-mazzi" id="zona-mazzi"></div>
+        <div class="zona zona-tavolo" id="zona-tavolo"></div>
+        <div class="zona zona-info" id="zona-info"></div>
+      </div>
+
+      <div class="zona zona-combinazioni zona-combinazioni-1" id="zona-combinazioni-1"></div>
+
+      <!-- Zona giocatore (mano locale) -->
+      <div class="zona zona-giocatore" id="zona-giocatore"></div>
+    </div>
+
+    <div class="barra-pulsanti" id="pulsanti"></div>
+  </div>
+
+  <!-- Notifiche fluttuanti -->
+  <div id="notifica" class="notifica"></div>
+
+  <!-- Overlay fine partita -->
+  <div id="fine-gioco" class="fine-gioco">
+    <div class="fine-box">
+      <div class="fine-titolo"></div>
+      <div class="fine-dettagli"></div>
+      <a class="btn btn-primario" href="index.html">Torna alla dashboard</a>
+      <button class="btn" id="btn-rigioca">Rigioca</button>
+    </div>
+  </div>
+
+  <script src="js/engine.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    'use strict';
+    (async () => {
+      const qs = new URLSearchParams(location.search);
+      const config = {
+        gioco: qs.get('gioco') || 'scopa',
+        mazzo: qs.get('mazzo') || 'napoletane',
+        modalita: qs.get('modalita') || 'bot',
+        ruolo: qs.get('ruolo') || 'bot',
+        stanza: qs.get('stanza') || '',
+        nome: qs.get('nome') || 'Giocatore'
+      };
+
+      // L'host genera un codice stanza univoco se non ne ha uno
+      if (config.modalita === 'p2p' && config.ruolo === 'host' && !config.stanza) {
+        config.stanza = `carte-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+      }
+
+      document.title = config.gioco.toUpperCase() + ' — Tavolo';
+
+      const controller = new Controller(config);
+      window.controller = controller; // debug / accesso console
+
+      if (config.modalita === 'p2p') {
+        const reteBar = document.getElementById('rete-bar');
+        reteBar.hidden = false;
+        await controller.agganciaRete();
+      }
+
+      await controller.avvia();
+
+      // Rigioca: ricarica la stessa configurazione
+      document.getElementById('btn-rigioca').addEventListener('click', () => location.reload());
+    })();
+  </script>
+</body>
+</html>

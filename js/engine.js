@@ -71,6 +71,14 @@ const MAZZI_ITALIANI = {
   }
 };
 
+/* Configurazione del mazzo francese (usato dal Burraco): stile da poker
+ * internazionale con foto reali delle carte (English pattern, CC0). */
+const CONF_FRANCESE = {
+  nome: 'Carte Francesi', regione: 'Internazionale', semi: ['cuori', 'quadri', 'fiori', 'picche'],
+  figure: { 11: 'Fante', 12: 'Donna', 13: 'Re' }, retro: 'pattern-francese', accento: '#1f4e9c',
+  immagini: true // le facce sono immagini reali in img/francese/
+};
+
 const ELENCO_MAZZI = Object.keys(MAZZI_ITALIANI);
 
 /* ---------------------------------------------------------------------
@@ -1033,8 +1041,8 @@ if (typeof window !== 'undefined') {
   window.Briscola = Briscola;
   window.Burraco = Burraco;
   window.creaGioco = creaGioco;
-  window.MAZZI_ITALIANI = MAZZI_ITALIANI;
-  window.ELENCO_MAZZI = ELENCO_MAZZI;
+  window.MAZZI_ITALIANI = MAZZI_ITALIANI;  window.ELENCO_MAZZI = ELENCO_MAZZI;
+  window.CONF_FRANCESE = CONF_FRANCESE;
   window.SEMI_ITALIANI = SEMI_ITALIANI;
   window.SEMI_FRANCESI = SEMI_FRANCESI;
   window.SEME_JOLLY = SEME_JOLLY;

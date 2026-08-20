@@ -12,6 +12,15 @@ const UI = {
   CARTA_W: 64,
   CARTA_H: 90,
 
+  /* Configurazione di un mazzo: quelli regionali in MAZZI_ITALIANI,
+     il francese (Burraco) in CONF_FRANCESE. */
+  _confMazzo(tipo) {
+    if (tipo === 'francese') {
+      return window.CONF_FRANCESE || { retro: 'pattern-francese', accento: '#1f4e9c', immagini: true };
+    }
+    return MAZZI_ITALIANI[tipo] || {};
+  },
+
   /**
    * Crea il nodo DOM di una carta.
    * @param {Carta} carta
@@ -33,12 +42,13 @@ const UI = {
     const coperta = opts.coperta !== undefined ? opts.coperta : false;
     if (coperta) node.classList.add('coperta');
 
-    const confMazzo = MAZZI_ITALIANI[carta.tipoMazzo] || {};
+        const confMazzo = UI._confMazzo(carta.tipoMazzo);
     const retroClass = carta.tipoMazzo === 'francese' ? 'pattern-francese' : (confMazzo.retro || 'pattern-napoletane');
 
     // Facce reali: per i mazzi con immagini si usa la foto ritagliata
-    // (es. img/napoletane/denari_07.jpg) al posto del rendering CSS/SVG.
-    const usaImmagine = !carta.jolly && !!confMazzo.immagini;
+    // (es. img/napoletane/denari_07.jpg, img/francese/picche_11.jpg)
+    // al posto del rendering CSS/SVG. Anche i jolly hanno la loro foto.
+    const usaImmagine = !!confMazzo.immagini;
 
     node.innerHTML = `
       <div class="carta-inner">
@@ -63,7 +73,9 @@ const UI = {
      oppure rendering CSS/SVG (valori, figure, asso). */
   _fronteHtml(carta, confMazzo, usaImmagine) {
     if (usaImmagine) {
-      const percorso = `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.jpg`;
+      const percorso = carta.jolly
+        ? `img/${carta.tipoMazzo}/jolly.jpg`
+        : `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.jpg`;
       return `<img class="faccia-img" src="${percorso}" alt="${carta.nome} di ${carta.seme.nome}" draggable="false">`;
     }
     return `
@@ -182,8 +194,8 @@ const UI = {
     return new Promise((resolve) => {
       const w = UI.CARTA_W, h = UI.CARTA_H;
       const carta = opts.carta || null;
-      const confVolante = (carta && MAZZI_ITALIANI[carta.tipoMazzo]) || {};
-      const usaRetroFoto = !!(carta && confVolante.immagini);
+      const confVolante = carta ? UI._confMazzo(carta.tipoMazzo) : {};
+      const usaRetroFoto = !!confVolante.immagini;
       const retroVolanteClass = carta && carta.tipoMazzo === 'francese' ? 'pattern-francese' : (confVolante.retro || 'pattern-napoletane');
       // la carta volante mostra la FACCIA, così si vede sempre quale carta
       // l'avversario sta giocando (e quale esce quindi dal gioco)

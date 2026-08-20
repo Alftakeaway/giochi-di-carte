@@ -254,6 +254,23 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 }
 .combinazione.burraco { border-color: var(--oro); box-shadow: 0 0 8px rgba(212, 160, 23, 0.45); }
 
+/* combinazione dell'AVVERSARIO: colonna compatta verticale (solo seme+valore),
+ * così le sue scale/tris non invadono il campo con carte intere orizzontali */
+.combinazione.mini {
+  flex-direction: column; align-items: stretch; gap: 2px;
+  padding: 3px 4px; min-width: 0; max-height: 100%;
+}
+.carta-mini {
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  min-width: 32px; padding: 1px 5px; border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.10);
+  font-size: 0.68rem; line-height: 1.2;
+}
+.carta-mini .cm-valore { font-weight: 800; color: var(--accento, #fff); }
+.carta-mini .cm-seme { color: var(--accento, #fff); font-size: 0.8rem; }
+.carta-mini.matta { border-color: var(--oro); background: rgba(212, 160, 23, 0.16); }
+.carta-mini.matta .cm-valore { color: var(--oro); }
+
 /* mano del Burraco raggruppata in TRIS/SCALE: le carte sono disposte in
  * orizzontale (come le combinazioni sul tavolo) e vanno a capo se servono
  * più righe, così ogni carta resta sempre visibile. */

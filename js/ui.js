@@ -389,6 +389,17 @@ const UI = {
   formattaPuntiBriscola(punti) {
     const nomi = { 11: 'Asso', 10: 'Tre', 4: 'Re', 3: 'Cavallo', 2: 'Fante', 0: 'zero' };
     return punti;
+  },
+
+  /* Etichetta compatta per la vista mini dell'avversario (es. A, 7, J, Q, K). */
+  _valoreCompatto(carta) {
+    if (carta.eJolly) return 'J';
+    if (carta.tipoMazzo === 'francese') {
+      const m = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
+      return m[carta.valore] || String(carta.valore);
+    }
+    const m = { 1: 'A', 8: 'F', 9: 'C', 10: 'R' };
+    return m[carta.valore] || String(carta.valore);
   }
 };
 
@@ -737,11 +748,26 @@ class Controller {
     for (const giocatore of [0, 1]) {
       const zona = document.getElementById(`zona-combinazioni-${giocatore}`);
       if (!zona) continue;
+      const isMio = giocatore === this.umano;
       s.combinazioni[giocatore].forEach((combo, idx) => {
         const box = document.createElement('div');
         box.className = 'combinazione' + (combo.burraco ? ' burraco' : '');
         box.title = `${combo.tipo} — ${combo.punti} pt${combo.burraco ? (combo.pulito ? ' (burraco pulito)' : ' (burraco sporco)') : ''}`;
-        const isMio = giocatore === this.umano;
+        if (!isMio) {
+          // vista avversario: colonna compatta verticale (solo seme+valore),
+          // così non invade il campo come le carte intere orizzontali
+          box.classList.add('mini');
+          combo.carte.forEach(c => {
+            const chip = document.createElement('div');
+            chip.className = 'carta-mini' + (c.eJolly || c.ePinella ? ' matta' : '');
+            chip.style.setProperty('--accento', c.seme.colore);
+            chip.title = `${c.nome} di ${c.seme.nome}`;
+            chip.innerHTML = `<span class="cm-valore">${UI._valoreCompatto(c)}</span><span class="cm-seme">${c.seme.simbolo}</span>`;
+            box.appendChild(chip);
+          });
+          zona.appendChild(box);
+          return;
+        }
         combo.carte.forEach(c => {
           box.appendChild(this._carta({
             carta: c,

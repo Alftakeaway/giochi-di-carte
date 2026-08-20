@@ -768,6 +768,12 @@ class Controller {
           zona.appendChild(box);
           return;
         }
+        // vista giocatore: carte impilate in verticale, ogni carta fa
+        // intravedere solo la striscia in alto con seme e numero
+        box.classList.add('impilata');
+        const peekCombo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-combo')) || 18;
+        box.style.setProperty('--n-carte', combo.carte.length);
+        box.style.height = (combo.carte.length * peekCombo) + 'px';
         combo.carte.forEach(c => {
           box.appendChild(this._carta({
             carta: c,

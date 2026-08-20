@@ -23,6 +23,7 @@
   --carta-w: clamp(65px, 19.5vw, 99px);
   --carta-h: calc(var(--carta-w) * 1.42);
   --raggio: calc(var(--carta-w) * 0.1);
+  --peek-combo: 18px; /* striscia visibile in cima alle combinazioni impilate */
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -270,6 +271,25 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .carta-mini .cm-seme { color: var(--accento, #fff); font-size: 0.8rem; }
 .carta-mini.matta { border-color: var(--oro); background: rgba(212, 160, 23, 0.16); }
 .carta-mini.matta .cm-valore { color: var(--oro); }
+
+/* combinazione del GIOCATORE: impilata in verticale, ogni carta è sovrapposta
+ * alla precedente e fa intravedere solo la striscia in alto (seme + numero) */
+.combinazione.impilata {
+  flex-direction: column; align-items: center;
+  gap: 0; padding: 0; border: none; background: transparent;
+  height: calc(var(--n-carte, 3) * var(--peek-combo, 18px));
+  overflow: hidden; border-radius: 10px;
+}
+.combinazione.impilata .carta {
+  flex: 0 0 auto;
+  margin: 0 0 calc(var(--peek-combo, 18px) - var(--carta-h)) 0;
+}
+.combinazione.impilata .carta:first-child { margin-top: 0; }
+.combinazione.impilata.burraco {
+  border: 1px solid var(--oro);
+  box-shadow: 0 0 8px rgba(212, 160, 23, 0.45);
+  border-radius: 10px;
+}
 
 /* mano del Burraco raggruppata in TRIS/SCALE: le carte sono disposte in
  * orizzontale (come le combinazioni sul tavolo) e vanno a capo se servono

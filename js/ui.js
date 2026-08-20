@@ -25,7 +25,12 @@ const UI = {
     node.dataset.valore = carta.valore;
     node.dataset.seme = carta.seme.nome;
 
-    const coperta = opts.coperta !== undefined ? opts.coperta : carta.coperta;
+    // Di default la carta si mostra scoperta (fronte); il retro solo se
+    // viene richiesto esplicitamente con coperta:true. (engine.js marca
+    // ogni carta come coperta=TRUE per default, quindi NON bisogna
+    // ripiegare su carta.coperta qui, altrimenti tutte le carte
+    // risulterebbero coperte.)
+    const coperta = opts.coperta !== undefined ? opts.coperta : false;
     if (coperta) node.classList.add('coperta');
 
     const confMazzo = MAZZI_ITALIANI[carta.tipoMazzo] || {};

@@ -273,12 +273,18 @@ const UI = {
       let i = 0;
       while (i < ord.length) {
         let bestLen = 0, bestK = 0, bestWindow = null;
+        // validaScalaConJolly copre sia i buchi interni (es. 5-7+J) sia
+        // l'estensione alle estremità (es. 5-6+J = 5-6-7); con le regole
+        // ufficiali è ammessa al più 1 matta per gioco.
         for (let j = ord.length - 1; j >= i; j--) {
           const window = ord.slice(i, j + 1);
           const n = window.length;
-          const gaps = (window[n - 1].valore - window[0].valore + 1) - n;
-          if (gaps < 1 || gaps > 2 || n + gaps < 3 || gaps > wildDisp()) continue;
-          if (n + gaps > bestLen && scalaValida(window, gaps)) { bestLen = n + gaps; bestK = gaps; bestWindow = window; }
+          const k = 1;
+          if (k > wildDisp()) continue;
+          if (n + k < 3) continue;
+          if (scalaValida(window, k) && n + k > bestLen) {
+            bestLen = n + k; bestK = k; bestWindow = window;
+          }
         }
         if (bestWindow) {
           const wilds = [];
@@ -711,6 +717,21 @@ class Controller {
       const top = s.monte[s.monte.length - 1];
       zonaMazzi.appendChild(this._carta({ carta: top }));
     }
+    // i 2 pozzetti (mazzetti da 11 carte coperti)
+    for (const giocatore of [0, 1]) {
+      const stack = s.pozzetti && s.pozzetti[giocatore] ? s.pozzetti[giocatore] : [];
+      if (stack.length === 0) continue;
+      const pozzettoNode = this._carta({ carta: stack[stack.length - 1], coperta: true });
+      pozzettoNode.classList.add('stack');
+      pozzettoNode.title = `Pozzetto del giocatore ${giocatore + 1} (${stack.length} carte)`;
+      const wrap = document.createElement('div');
+      wrap.className = 'pozzetto-wrap';
+      const label = document.createElement('span');
+      label.className = 'gruppo-label';
+      label.textContent = `Pozzetto ${giocatore + 1}`;
+      wrap.append(label, pozzettoNode);
+      zonaMazzi.appendChild(wrap);
+    }
 
     // combinazioni calate dei due giocatori
     for (const giocatore of [0, 1]) {
@@ -767,13 +788,17 @@ class Controller {
 
   _infoBurraco(s) {
     const zonaInfo = document.getElementById('zona-info');
+    const pozz1 = s.pozzettoPreso[0] ? '✓' : '✗';
+    const pozz2 = s.pozzettoPreso[1] ? '✓' : '✗';
     zonaInfo.innerHTML = `
       <div class="info-blocco"><span class="info-label">Punti</span>
         <span class="info-valore">${s.punti[0]} : ${s.punti[1]}</span></div>
       <div class="info-blocco"><span class="info-label">Burrachi</span>
         <span class="info-valore">${s.burrachi[0]} : ${s.burrachi[1]}</span></div>
       <div class="info-blocco"><span class="info-label">Mazzo</span>
-        <span class="info-valore">${s.mazzo.lunghezza}</span></div>`;
+        <span class="info-valore">${s.mazzo.lunghezza}</span></div>
+      <div class="info-blocco"><span class="info-label">Pozzetti</span>
+        <span class="info-valore">${pozz1} : ${pozz2}</span></div>`;
   }
 
   _clickSelezioneBurraco(carta) {
@@ -800,18 +825,20 @@ class Controller {
       bar.classList.remove('vuota');
 
       const mano = s.mani[this.umano] || s.mani[0];
-      // mano vuota: l'unica azione possibile è prendere l'intero pozzetto
+      // mano vuota: l'unica azione possibile è prendere il proprio pozzetto
       if (mano.length === 0) {
         const pozzetto = document.createElement('button');
         pozzetto.className = 'btn btn-primario';
-        pozzetto.textContent = '♻ Prendi il pozzetto';
-        pozzetto.disabled = s.monte.length === 0;
+        pozzetto.textContent = '🃏 Prendi il pozzetto';
+        pozzetto.disabled = (s.pozzetti[this.umano] || []).length === 0 || s.pozzettoPreso[this.umano];
         pozzetto.addEventListener('click', () => this._azioneBurraco({ tipo: 'pozzetto' }));
         bar.append(pozzetto);
-        if (s.monte.length === 0) {
+        if (pozzetto.disabled) {
           const info = document.createElement('div');
           info.className = 'info-pozzetto';
-          info.textContent = 'Mano vuota e pozzetto esaurito: non puoi proseguire.';
+          info.textContent = s.pozzettoPreso[this.umano]
+            ? 'Pozzetto già preso: per chiudere scarta l\'ultima carta (non matta) con un Burraco fatto.'
+            : 'Pozzetto esaurito: non puoi proseguire.';
           bar.append(info);
         }
         return;
@@ -824,7 +851,8 @@ class Controller {
 
       const pescaMonte = document.createElement('button');
       pescaMonte.className = 'btn';
-      pescaMonte.textContent = '♻ Pesca dal monte';
+      pescaMonte.textContent = s.monte.length > 1 ? `♻ Raccogli monte (${s.monte.length})` : '♻ Raccogli monte';
+      pescaMonte.title = 'Prendi TUTTE le carte del monte degli scarti';
       pescaMonte.disabled = s.monte.length === 0;
       pescaMonte.addEventListener('click', () => this._azioneBurraco({ tipo: 'pesca', sorgente: 'monte' }));
 
@@ -889,7 +917,7 @@ class Controller {
           break;
         case 'pesca':
           if (mossa.sorgente === 'mazzo') this.gioco.pescaDaMazzo(giocatore);
-          else this.gioco.pescaDalMonte(giocatore);
+          else this.gioco.raccogliMonte(giocatore);
           break;
         case 'pozzetto':
           this.gioco.prendiPozzetto(giocatore);
@@ -949,7 +977,7 @@ class Controller {
         break;
       case 'pesca':
         if (mossa.sorgente === 'mazzo') this.gioco.pescaDaMazzo(g);
-        else this.gioco.pescaDalMonte(g);
+        else this.gioco.raccogliMonte(g);
         break;
       case 'pozzetto': this.gioco.prendiPozzetto(g); break;
       case 'cala': this.gioco.calaCombinazione(g, mossa.idCarte); break;
@@ -997,8 +1025,8 @@ class Controller {
       if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta });
       this.gioco.eseguiMossa(this.botIdx, carta.id);
     } else if (this.config.gioco === 'burraco') {
-      // mano vuota: il bot prende l'intero pozzetto per continuare
-      if (s.mani[this.botIdx].length === 0 && s.monte.length > 0) {
+      // mano vuota: il bot prende il proprio pozzetto per continuare
+      if (s.mani[this.botIdx].length === 0 && !s.pozzettoPreso[this.botIdx]) {
         this.gioco.prendiPozzetto(this.botIdx);
         this.render();
         await this._pausa(300);
@@ -1011,7 +1039,7 @@ class Controller {
         await this._sveglia();
         return;
       }
-      if (decisione.pescaDaMonte) this.gioco.pescaDalMonte(this.botIdx);
+      if (decisione.pescaDaMonte) this.gioco.raccogliMonte(this.botIdx);
       else this.gioco.pescaDaMazzo(this.botIdx);
       this.render();
       await this._pausa(300);
@@ -1022,11 +1050,6 @@ class Controller {
       await this._pausa(300);
       if (this.gioco.stato.fase !== 'gioco') { await this._sveglia(); return; }
       if (decisione.scartoId) this.gioco.scarta(this.botIdx, decisione.scartoId);
-      // il bot tenta la chiusura quando può
-      const chiusura = this.gioco.verificaChiusura(s.mani[this.botIdx], false);
-      if (chiusura.puoChiudere && this.gioco.stato.fase === 'gioco') {
-        this.gioco._chiudi(this.botIdx);
-      }
     }
 
     await this._sveglia();

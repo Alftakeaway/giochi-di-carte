@@ -146,16 +146,17 @@ class Carta {
     }
   }
 
-  /* Punti Burraco: A=11, K/Q/J/10/9/8=10, 7..3=5, 2(pinella)=20, jolly=30 */
+  /* Punti Burraco (regole ufficiali): A=15, K/Q/J/10/9/8=10, 7..3=5,
+   * 2 (pinella)=20, jolly=30 */
   get puntiBurraco() {
     if (this.jolly) return 30;
     if (this.tipoMazzo === 'francese') {
-      if (this.valore === 1) return 11;
+      if (this.valore === 1) return 15;
       if (this.valore === 2) return 20;
       if (this.valore >= 3 && this.valore <= 7) return 5;
       return 10;
     }
-    if (this.valore === 1) return 11;
+    if (this.valore === 1) return 15;
     if (this.valore === 2) return 20;
     if (this.valore >= 3 && this.valore <= 7) return 5;
     return 10;
@@ -691,15 +692,18 @@ class Burraco extends GiocoBase {
   inizializza() {
     const mazzo = this.creaMazzo('francese', true); // 108 carte
     const mani = mazzo.distribuisciCarte(2, 11);
+    // 2 pozzetti da 11 carte (regole ufficiali), presi quando la mano si svuota
+    const pozzetti = [mazzo.distribuisciCarte(1, 11)[0], mazzo.distribuisciCarte(1, 11)[0]];
     this.stato = {
       gioco: 'burraco', tipoMazzo: 'francese',
       mazzo, mani,
-      monte: [],            // scarti (coperti, visibile solo l'ultima)
+      monte: [],            // monte degli scarti (carta scoperta in cima)
+      pozzetti,             // 2 mazzetti da 11 carte ciascuno
+      pozzettoPreso: [false, false],
       combinazioni: [[], []], // liste di combinazioni per giocatore
       burrachi: [0, 0],     // conteggio burrachi (puliti+sporchi)
       punti: [0, 0],        // punti accumulati dalle combinazioni
       turno: 0,
-      pozzettoDisponibile: false,
       fase: 'gioco', vincitore: null, punteggi: null
     };
     const prima = mazzo.pesca();
@@ -709,7 +713,7 @@ class Burraco extends GiocoBase {
 
   /* Verifica se delle carte naturali (stesso seme, valori distinti) unite a
    * k jolly/pinelle formano una scala valida (valori consecutivi).
-   * Regola: al più 2 jolly/pinelle e mai adiacenti tra loro.
+   * Regola ufficiale: al più 1 matta per gioco.
    * @param {Carta[]} naturali  carte naturali (già filtrate, stesso seme)
    * @param {number} k          numero di jolly/pinelle a disposizione
    * @returns {boolean}
@@ -717,44 +721,32 @@ class Burraco extends GiocoBase {
   static validaScalaConJolly(naturali, k) {
     const n = naturali.length;
     if (n < 2) return false;         // serve almeno una coppia di naturali
-    if (k < 1 || k > 2) return false; // al più 2 jolly/pinelle
+    if (k !== 1) return false;       // al più 1 matta per gioco
     const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
     for (let i = 1; i < n; i++) {
       if (valori[i] === valori[i - 1]) return false; // valori duplicati
     }
     const min = valori[0], max = valori[n - 1];
     const gaps = (max - min + 1) - n; // buchi interni da colmare
-    if (gaps < 0 || k < gaps) return false; // non bastano i jolly per i buchi
-    const extra = k - gaps;           // jolly oltre le estremità (al più 2, uno per lato)
-    if (extra < 0 || extra > 2) return false;
+    if (gaps < 0 || k < gaps) return false; // non basta la matta per i buchi
+    const extra = k - gaps;           // matta oltre le estremità (al più 1)
+    if (extra < 0 || extra > 1) return false;
     if (n + k < 3) return false;
-    // verifica che i jolly non finiscano adiacenti provando tutte le
-    // disposizioni possibili: a jolly sotto il minimo, b sopra il massimo
-    for (let a = 0; a <= extra; a++) {
-      const b = extra - a;
-      const occupate = new Set();
-      for (let v = min - a; v <= max + b; v++) {
-        if (!valori.includes(v)) occupate.add(v);
-      }
-      const pos = [...occupate].sort((x, y) => x - y);
-      let adiacenti = false;
-      for (let i = 1; i < pos.length; i++) {
-        if (pos[i] === pos[i - 1] + 1) { adiacenti = true; break; }
-      }
-      if (!adiacenti) return true;
-    }
-    return false;
+    // verifica che la matta non sia adiacente (caso impossibile con k=1)
+    return true;
   }
 
   /* ------------------------- validazioni ------------------------- */
 
   /**
-   * Valida una combinazione calata.
-   * - GRUPPO: 3+ carte dello stesso valore, con al più 2 jolly/pinelle e
+   * Valida una combinazione calata (regole ufficiali FIBUR):
+   * al più 1 matta per gioco; il 2 è pinella (matta) tranne quando compare
+   * nella sua posizione naturale dentro una scala; niente giochi di sole matte.
+   * - GRUPPO: 3+ carte dello stesso valore, con al più 1 jolly/pinella e
    *   almeno 2 carte naturali; essendoci un doppio mazzo, al massimo
    *   2 carte per ogni seme.
    * - SEQUENZA: 3+ carte consecutive dello stesso seme; i jolly/pinelle
-   *   colmano i buchi (al più 2, mai adiacenti tra loro).
+   *   colmano i buchi (al più 1).
    * @returns {{valida: boolean, tipo: 'gruppo'|'sequenza'|null, punti: number, burraco: boolean, pulito: boolean, motivo?: string}}
    */
   validaCombinazione(arrayCarte) {
@@ -765,50 +757,69 @@ class Burraco extends GiocoBase {
     const naturali = carte.filter(c => !c.eJolly && !c.ePinella);
     const jolly = carte.filter(c => c.eJolly);
     const pinelle = carte.filter(c => c.ePinella);
-    const selvatiche = jolly.length + pinelle.length;
-
-    if (selvatiche > 2) {
-      return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Max 2 jolly/pinelle per combinazione' };
-    }
-    if (naturali.length < 2) {
-      return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Servono almeno 2 carte naturali' };
-    }
 
     const stessoValore = naturali.every(c => c.valore === naturali[0].valore);
     const stessoSeme = naturali.every(c => c.seme.nome === naturali[0].seme.nome);
 
     if (stessoValore) {
-      // gruppo: con il doppio mazzo ogni seme può comparire al più 2 volte
+      // gruppo: le 2 sono sempre matte; al più 1 matta in totale
+      const matte = jolly.length + pinelle.length;
+      if (matte > 1) {
+        return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Max 1 jolly/pinella per gioco' };
+      }
+      if (naturali.length < 2) {
+        return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Servono almeno 2 carte naturali' };
+      }
+      // con il doppio mazzo ogni seme può comparire al più 2 volte
       const contSemi = {};
       for (const c of naturali) contSemi[c.seme.nome] = (contSemi[c.seme.nome] || 0) + 1;
       if (Object.values(contSemi).some(n => n > 2)) {
         return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Al massimo 2 carte dello stesso seme nel gruppo' };
       }
-      return this._esitoCombinazione(carte, 'gruppo');
+      return this._esitoCombinazione(carte, 'gruppo', matte);
     }
 
     if (stessoSeme) {
-      // sequenza: valori consecutivi, con jolly/pinelle che colmano i buchi
-      const consecutiva = (() => {
-        const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
-        for (let i = 1; i < valori.length; i++) {
-          if (valori[i] !== valori[i - 1] + 1) return false;
-        }
-        return true;
-      })();
-      if (selvatiche === 0 ? consecutiva : Burraco.validaScalaConJolly(naturali, selvatiche)) {
-        return this._esitoCombinazione(carte, 'sequenza');
+      const esito = this._analizzaSequenza(carte);
+      if (!esito) {
+        return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'La sequenza non è consecutiva o ha più di 1 matta' };
       }
-      return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'La sequenza non è consecutiva o i jolly/pinelle sono troppi o adiacenti' };
+      return this._esitoCombinazione(carte, 'sequenza', esito.matte);
     }
 
     return { valida: false, tipo: null, punti: 0, burraco: false, pulito: false, motivo: 'Combinazione non riconosciuta' };
   }
 
-  _esitoCombinazione(carte, tipo) {
+  /* Analizza una sequenza candidata: decide se i 2 sono naturali o matte.
+   * @returns {{matte: number}|null}  null se non valida */
+  _analizzaSequenza(carte) {
+    const jolly = carte.filter(c => c.eJolly).length;
+    const due = carte.filter(c => c.ePinella);
+    const nat = carte.filter(c => !c.eJolly && !c.ePinella);
+    const valoriTutti = [...nat, ...due].map(c => c.valore).sort((a, b) => a - b);
+    const consecutivi = (() => {
+      for (let i = 1; i < valoriTutti.length; i++) {
+        if (valoriTutti[i] !== valoriTutti[i - 1] + 1) return false;
+      }
+      return true;
+    })();
+    if (consecutivi) {
+      // i 2 sono nella loro posizione naturale: contano solo i jolly come matte
+      if (jolly > 1) return null; // max 1 matta
+      return { matte: jolly };
+    }
+    // i 2 non sono naturali: contano come matte (al più 1 in totale)
+    const matte = jolly + due.length;
+    if (matte > 1) return null;
+    if (nat.length < 2) return null;
+    if (!Burraco.validaScalaConJolly(nat, matte)) return null;
+    return { matte };
+  }
+
+  _esitoCombinazione(carte, tipo, matte = 0) {
     const punti = carte.reduce((acc, c) => acc + c.puntiBurraco, 0);
     const burraco = carte.length >= 7;
-    const pulito = burraco && carte.every(c => !c.eJolly && !c.ePinella);
+    const pulito = burraco && matte === 0;
     return { valida: true, tipo, punti, burraco, pulito };
   }
 
@@ -821,39 +832,11 @@ class Burraco extends GiocoBase {
     const esistente = combinazioneEsistente.carte || combinazioneEsistente;
     const tipo = combinazioneEsistente.tipo || this._tipoDi(esistente);
     if (!tipo) return { valida: false, motivo: 'Combinazione non valida' };
-
-    if (tipo === 'gruppo') {
-      const naturali = esistente.filter(c => !c.eJolly && !c.ePinella);
-      const selvatiche = esistente.filter(c => c.eJolly || c.ePinella);
-      if (carta.eJolly || carta.ePinella) {
-        if (selvatiche.length >= 2) return { valida: false, motivo: 'Gruppo già completo di jolly/pinelle (max 2)' };
-        return { valida: true };
-      }
-      if (carta.valore !== naturali[0].valore) return { valida: false, motivo: 'Valore diverso dal gruppo' };
-      const doppioni = esistente.filter(c => c.seme.nome === carta.seme.nome).length;
-      if (doppioni >= 2) return { valida: false, motivo: 'Già 2 carte dello stesso seme nel gruppo' };
-      return { valida: true };
+    const esito = this.validaCombinazione([...esistente, carta]);
+    if (!esito.valida || esito.tipo !== tipo) {
+      return { valida: false, motivo: esito.motivo || 'La carta non si può legare a questa combinazione' };
     }
-
-    if (tipo === 'sequenza') {
-      const candidate = [...esistente, carta];
-      const naturali = candidate.filter(c => !c.eJolly && !c.ePinella);
-      const selvatiche = candidate.length - naturali.length;
-      if (naturali.length < 2) return { valida: false, motivo: 'Nella sequenza servono almeno 2 carte naturali' };
-      const stessoSeme = naturali.every(c => c.seme.nome === naturali[0].seme.nome);
-      if (!stessoSeme) return { valida: false, motivo: 'Seme diverso' };
-      const consecutiva = (() => {
-        const valori = naturali.map(c => c.valore).sort((a, b) => a - b);
-        for (let i = 1; i < valori.length; i++) {
-          if (valori[i] !== valori[i - 1] + 1) return false;
-        }
-        return true;
-      })();
-      const ok = selvatiche === 0 ? consecutiva : Burraco.validaScalaConJolly(naturali, selvatiche);
-      if (!ok) return { valida: false, motivo: 'La carta non estende la sequenza' };
-      return { valida: true };
-    }
-    return { valida: false, motivo: 'Tipo sconosciuto' };
+    return { valida: true };
   }
 
   _tipoDi(carte) {
@@ -862,9 +845,10 @@ class Burraco extends GiocoBase {
   }
 
   /**
-   * Gestisce il passaggio al pozzetto e la chiusura finale.
+   * Verifica la chiusura (regole ufficiali): serve aver preso il pozzetto,
+   * aver fatto almeno un Burraco e restare senza carte scartando l'ultima
+   * carta (che non può essere un jolly o una pinella).
    * @param {Carta[]} manoGiocatore
-   * @param {boolean} pozzettoPreso ha appena preso il pozzetto
    * @returns {{puoChiudere: boolean, motivo?: string, puoPrenderePozzetto: boolean}}
    */
   verificaChiusura(manoGiocatore, pozzettoPreso) {
@@ -872,33 +856,30 @@ class Burraco extends GiocoBase {
     const giocatore = s.turno;
     const burracoFatto = s.burrachi[giocatore] >= 1;
     const manoVuota = manoGiocatore.length === 0;
-    const pozzettoDisponibile = s.pozzettoDisponibile && s.monte.length > 0;
+    const mioPozzetto = s.pozzetti && s.pozzetti[giocatore] ? s.pozzetti[giocatore].length : 0;
 
-    if (manoVuota && burracoFatto) {
-      // Mano vuota con almeno un Burraco: la partita si può chiudere subito.
-      return { puoChiudere: true, puoPrenderePozzetto: false, motivo: 'Mano vuota e Burraco fatto: puoi chiudere' };
+    // con la mano vuota e senza pozzetto preso si DEVE prendere il pozzetto
+    if (manoVuota && !pozzettoPreso) {
+      if (mioPozzetto > 0) {
+        return { puoChiudere: false, puoPrenderePozzetto: true, motivo: 'Mano vuota: prendi il tuo pozzetto per continuare' };
+      }
+      return { puoChiudere: false, puoPrenderePozzetto: false, motivo: 'Pozzetto non disponibile' };
     }
+
     if (manoVuota) {
-      // mano vuota senza Burraco: per continuare devi prendere il pozzetto
-      if (pozzettoDisponibile && !pozzettoPreso) {
-        return { puoChiudere: false, puoPrenderePozzetto: true, motivo: 'Mano vuota: prendi il pozzetto per continuare' };
+      if (burracoFatto) {
+        return { puoChiudere: true, puoPrenderePozzetto: false, motivo: 'Puoi chiudere scartando l\'ultima carta (non matta)' };
       }
-      if (!pozzettoDisponibile) {
-        return { puoChiudere: false, puoPrenderePozzetto: false, motivo: 'Mano vuota e pozzetto non disponibile' };
-      }
+      return { puoChiudere: false, puoPrenderePozzetto: false, motivo: 'Devi fare almeno un Burraco per chiudere' };
     }
 
     if (!burracoFatto) {
-      return { puoChiudere: false, puoPrenderePozzetto: pozzettoDisponibile && !pozzettoPreso, motivo: 'Devi fare almeno un Burraco per chiudere' };
+      return { puoChiudere: false, puoPrenderePozzetto: false, motivo: 'Devi fare almeno un Burraco per chiudere' };
     }
     if (manoGiocatore.length > 1) {
-      return { puoChiudere: false, puoPrenderePozzetto: false, motivo: 'Devi avere 0 carte in mano (dopo lo scarto) per chiudere' };
+      return { puoChiudere: false, puoPrenderePozzetto: false, motivo: 'Devi avere 1 carta in mano da scartare per chiudere' };
     }
-    if (manoGiocatore.length === 1) {
-      // puoi chiudere scartando l'ultima carta
-      return { puoChiudere: true, puoPrenderePozzetto: false, motivo: 'Puoi chiudere scartando l\'ultima carta' };
-    }
-    return { puoChiudere: true, puoPrenderePozzetto: false, motivo: 'Puoi chiudere' };
+    return { puoChiudere: true, puoPrenderePozzetto: false, motivo: 'Puoi chiudere scartando l\'ultima carta (non matta)' };
   }
 
   /* ------------------------- esecuzione ------------------------- */
@@ -923,37 +904,30 @@ class Burraco extends GiocoBase {
 
   pescaDaMazzo(giocatore) {
     const s = this.stato;
-    // Pozzetto: quando il mazzo è esaurito, il monte (tranne la carta in
-    // cima, che resta come primo scarto) viene girato e diventa il mazzo.
-    if (s.mazzo.lunghezza === 0 && s.monte.length > 1) {
-      const nuovoMazzo = s.monte.splice(0, s.monte.length - 1).reverse();
-      nuovoMazzo.forEach(c => { c.coperta = true; });
-      s.mazzo.carte = nuovoMazzo;
-    }
     const c = s.mazzo.pesca();
     if (c) { c.coperta = true; s.mani[giocatore].push(c); }
-    s.pozzettoDisponibile = false;
     return c;
   }
 
-  pescaDalMonte(giocatore) {
-    const s = this.stato;
-    if (s.monte.length === 0) return null;
-    const c = s.monte.pop();
-    c.coperta = false;
-    s.mani[giocatore].push(c);
-    s.pozzettoDisponibile = false;
-    return c;
-  }
-
-  /** Prende l'intero pozzetto (monte) quando la mano è vuota. */
-  prendiPozzetto(giocatore) {
+  /** Raccolta del monte degli scarti: si prendono TUTTE le carte (regola ufficiale). */
+  raccogliMonte(giocatore) {
     const s = this.stato;
     if (s.monte.length === 0) return null;
     const prese = s.monte.splice(0, s.monte.length);
     prese.forEach(c => { c.coperta = true; s.mani[giocatore].push(c); });
-    s.pozzettoDisponibile = false;
     return prese;
+  }
+
+  /** Prende il proprio pozzetto (mazzetto da 11 carte) quando la mano è vuota. */
+  prendiPozzetto(giocatore) {
+    const s = this.stato;
+    if (s.pozzettoPreso[giocatore]) return null;
+    const stack = s.pozzetti[giocatore] || [];
+    if (stack.length === 0) return null;
+    s.pozzetti[giocatore] = [];
+    stack.forEach(c => { c.coperta = true; s.mani[giocatore].push(c); });
+    s.pozzettoPreso[giocatore] = true;
+    return stack;
   }
 
   calaCombinazione(giocatore, idCarte) {
@@ -966,23 +940,26 @@ class Burraco extends GiocoBase {
     s.punti[giocatore] += esito.punti + (esito.burraco ? (esito.pulito ? 200 : 100) : 0);
     const ids = new Set(carte.map(c => c.id));
     s.mani[giocatore] = s.mani[giocatore].filter(c => !ids.has(c.id));
-    // Mano svuotata dalla calata: con un Burraco si chiude subito la partita,
-    // altrimenti si prende il pozzetto per continuare. Se il pozzetto è
-    // esaurito la calata viene annullata (rollback) con un messaggio chiaro.
+    // Mano svuotata dalla calata: la chiusura avviene SOLO con lo scarto,
+    // quindi se il pozzetto non è stato preso lo si prende "al volo" per
+    // continuare; se è già stato preso la calata viene annullata (rollback).
     if (s.mani[giocatore].length === 0) {
-      if (s.burrachi[giocatore] >= 1) {
-        this._chiudi(giocatore);
-        return { ok: true, esito, chiusura: true };
-      }
-      if (s.monte.length > 0) {
-        this.prendiPozzetto(giocatore);
-        return { ok: true, esito, pozzetto: true };
+      if (!s.pozzettoPreso[giocatore]) {
+        if ((s.pozzetti[giocatore] || []).length > 0) {
+          this.prendiPozzetto(giocatore);
+          return { ok: true, esito, pozzetto: true };
+        }
+        s.combinazioni[giocatore].pop();
+        if (esito.burraco) s.burrachi[giocatore]--;
+        s.punti[giocatore] -= esito.punti + (esito.burraco ? (esito.pulito ? 200 : 100) : 0);
+        s.mani[giocatore].push(...carte);
+        return { ok: false, motivo: 'Pozzetto non disponibile: non puoi restare senza carte' };
       }
       s.combinazioni[giocatore].pop();
       if (esito.burraco) s.burrachi[giocatore]--;
       s.punti[giocatore] -= esito.punti + (esito.burraco ? (esito.pulito ? 200 : 100) : 0);
       s.mani[giocatore].push(...carte);
-      return { ok: false, motivo: 'Non puoi restare senza carte: ti serve un Burraco per chiudere o un pozzetto per continuare' };
+      return { ok: false, motivo: 'Per chiudere devi scartare l\'ultima carta: non puoi calare tutte le carte' };
     }
     return { ok: true, esito };
   }
@@ -999,21 +976,32 @@ class Burraco extends GiocoBase {
     combo.punti += carta.puntiBurraco;
     s.punti[giocatore] += carta.puntiBurraco;
     if (combo.carte.length >= 7 && !combo.burraco) {
+      const esitoPulito = this.validaCombinazione(combo.carte);
+      combo.pulito = esitoPulito.valida ? esitoPulito.pulito : combo.carte.every(c => !c.eJolly && !c.ePinella);
       combo.burraco = true;
       s.burrachi[giocatore]++;
       s.punti[giocatore] += combo.pulito ? 200 : 100;
     }
     s.mani[giocatore] = s.mani[giocatore].filter(c => c.id !== cartaId);
-    // Mano svuotata dalla lega: con un Burraco si chiude subito la partita,
-    // altrimenti si prende il pozzetto per continuare (rollback se esaurito).
+    // Mano svuotata dalla lega: la chiusura avviene SOLO con lo scarto,
+    // quindi se il pozzetto non è stato preso lo si prende "al volo" per
+    // continuare; se è già stato preso la lega viene annullata (rollback).
     if (s.mani[giocatore].length === 0) {
-      if (s.burrachi[giocatore] >= 1) {
-        this._chiudi(giocatore);
-        return { ok: true, chiusura: true };
-      }
-      if (s.monte.length > 0) {
-        this.prendiPozzetto(giocatore);
-        return { ok: true, pozzetto: true };
+      if (!s.pozzettoPreso[giocatore]) {
+        if ((s.pozzetti[giocatore] || []).length > 0) {
+          this.prendiPozzetto(giocatore);
+          return { ok: true, pozzetto: true };
+        }
+        combo.carte.pop();
+        combo.punti -= carta.puntiBurraco;
+        s.punti[giocatore] -= carta.puntiBurraco;
+        if (combo.carte.length < 7 && combo.burraco) {
+          combo.burraco = false;
+          s.burrachi[giocatore]--;
+          s.punti[giocatore] -= combo.pulito ? 200 : 100;
+        }
+        s.mani[giocatore].push(carta);
+        return { ok: false, motivo: 'Pozzetto non disponibile: non puoi restare senza carte' };
       }
       combo.carte.pop();
       combo.punti -= carta.puntiBurraco;
@@ -1024,7 +1012,7 @@ class Burraco extends GiocoBase {
         s.punti[giocatore] -= combo.pulito ? 200 : 100;
       }
       s.mani[giocatore].push(carta);
-      return { ok: false, motivo: 'Non puoi restare senza carte: ti serve un Burraco per chiudere o un pozzetto per continuare' };
+      return { ok: false, motivo: 'Per chiudere devi scartare l\'ultima carta: non puoi legare tutte le carte' };
     }
     return { ok: true };
   }
@@ -1036,25 +1024,63 @@ class Burraco extends GiocoBase {
     carta.coperta = false;
     s.mani[giocatore] = s.mani[giocatore].filter(c => c.id !== cartaId);
     s.monte.push(carta);
-    s.pozzettoDisponibile = true;
 
-    // chiusura
-    const chiusura = this.verificaChiusura(s.mani[giocatore], false);
-    if (s.fase === 'gioco' && s.mani[giocatore].length === 0 && s.burrachi[giocatore] >= 1) {
-      this._chiudi(giocatore);
+    if (s.mani[giocatore].length === 0) {
+      // prima volta che la mano si svuota con lo scarto: si prende il pozzetto
+      if (!s.pozzettoPreso[giocatore]) {
+        if ((s.pozzetti[giocatore] || []).length > 0) {
+          this.prendiPozzetto(giocatore);
+          s.turno = 1 - giocatore;
+          return { ok: true, pozzetto: true };
+        }
+        s.monte.pop();
+        s.mani[giocatore].push(carta);
+        carta.coperta = false;
+        return { ok: false, motivo: 'Pozzetto non disponibile: non puoi restare senza carte' };
+      }
+      // seconda volta: possibile chiusura ufficiale
+      const burracoFatto = s.burrachi[giocatore] >= 1;
+      const ultimaMatta = carta.eJolly || carta.ePinella;
+      if (burracoFatto && !ultimaMatta && s.fase === 'gioco') {
+        this._chiudi(giocatore);
+        return { ok: true, chiusura: true };
+      }
+      s.monte.pop();
+      s.mani[giocatore].push(carta);
+      carta.coperta = false;
+      return { ok: false, motivo: !burracoFatto
+        ? 'Per chiudere ti serve almeno un Burraco (7+ carte)'
+        : 'Per chiudere l\'ultima carta scartata non può essere un jolly o una pinella' };
+    }
+
+    // fine per esaurimento del tallone: le ultime 2 carte non sono giocabili
+    if (s.fase === 'gioco' && s.mazzo.lunghezza <= 2) {
+      this._concludiSenzaChiusura();
     }
     s.turno = 1 - giocatore;
-    return { ok: true, chiusura };
+    return { ok: true, chiusura: false };
+  }
+
+  /** Termina la smazzata senza chiusura (tallone esaurito): nessun bonus. */
+  _concludiSenzaChiusura() {
+    const s = this.stato;
+    const p1 = s.punti[0] - s.mani[0].reduce((a, c) => a + c.puntiBurraco, 0) - (s.pozzettoPreso[0] ? 0 : 100);
+    const p2 = s.punti[1] - s.mani[1].reduce((a, c) => a + c.puntiBurraco, 0) - (s.pozzettoPreso[1] ? 0 : 100);
+    s.punti = [p1, p2];
+    s.punteggi = { p1, p2, senzaChiusura: true };
+    s.fase = 'fine';
+    s.vincitore = p1 === p2 ? null : (p1 > p2 ? 0 : 1);
   }
 
   _chiudi(giocatore) {
     const s = this.stato;
     const avversario = 1 - giocatore;
-    // penalità: carte in mano dell'avversario
+    // penalità: carte in mano dell'avversario + 100 se non ha preso il pozzetto
     const penalita = s.mani[avversario].reduce((acc, c) => acc + c.puntiBurraco, 0);
+    const pozzettoNonPreso = s.pozzettoPreso[avversario] ? 0 : 100;
     s.punti[giocatore] += 100; // bonus chiusura
-    s.punti[avversario] -= penalita;
-    s.punteggi = { p1: s.punti[0], p2: s.punti[1], penalita };
+    s.punti[avversario] -= (penalita + pozzettoNonPreso);
+    s.punteggi = { p1: s.punti[0], p2: s.punti[1], penalita, pozzettoNonPreso };
     s.fase = 'fine';
     s.vincitore = s.punti[giocatore] >= this.punteggioTarget
       ? giocatore : (s.punti[0] > s.punti[1] ? 0 : 1);
@@ -1067,7 +1093,8 @@ class Burraco extends GiocoBase {
     return {
       gioco: s.gioco, tipoMazzo: s.tipoMazzo, turno: s.turno,
       fase: s.fase, vincitore: s.vincitore, punteggi: s.punteggi,
-      punti: s.punti, burrachi: s.burrachi, pozzettoDisponibile: s.pozzettoDisponibile,
+      punti: s.punti, burrachi: s.burrachi, pozzettoPreso: s.pozzettoPreso,
+      pozzetti: [this._serieMano(s.pozzetti[0]), this._serieMano(s.pozzetti[1])],
       mani: [this._serieMano(s.mani[0]), this._serieMano(s.mani[1])],
       monte: this._serieMano(s.monte),
       combinazioni: s.combinazioni.map(lista => lista.map(combo => ({
@@ -1084,12 +1111,13 @@ class Burraco extends GiocoBase {
       mazzo: (this.stato && this.stato.mazzo) ? this.stato.mazzo : new Mazzo('francese', true),
       mani: [this._deserMano(data.mani[0]), this._deserMano(data.mani[1])],
       monte: this._deserMano(data.monte),
+      pozzetti: [this._deserMano(data.pozzetti ? data.pozzetti[0] : []), this._deserMano(data.pozzetti ? data.pozzetti[1] : [])],
+      pozzettoPreso: data.pozzettoPreso || [false, false],
       combinazioni: data.combinazioni.map(lista => lista.map(combo => ({
         tipo: combo.tipo, punti: combo.punti, burraco: combo.burraco, pulito: combo.pulito,
         carte: this._deserMano(combo.carte)
       }))),
       burrachi: data.burrachi, punti: data.punti, turno: data.turno,
-      pozzettoDisponibile: data.pozzettoDisponibile,
       fase: data.fase, vincitore: data.vincitore, punteggi: data.punteggi
     };
   }

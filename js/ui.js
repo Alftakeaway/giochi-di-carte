@@ -39,33 +39,11 @@ const UI = {
     // Facce reali: per i mazzi con immagini si usa la foto ritagliata
     // (es. img/napoletane/denari_07.jpg) al posto del rendering CSS/SVG.
     const usaImmagine = !carta.jolly && !!confMazzo.immagini;
-    const percorsoImmagine = usaImmagine
-      ? `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.jpg`
-      : '';
 
     node.innerHTML = `
       <div class="carta-inner">
         <div class="carta-fronte ${usaImmagine ? 'fronte-immagine' : ''}" style="--accento:${carta.seme.colore}">
-          ${usaImmagine
-            ? `<img class="faccia-img" src="${percorsoImmagine}" alt="${carta.nome} di ${carta.seme.nome}" draggable="false">`
-            : `
-          <div class="angolo alto">
-            <span class="valore">${carta.nome}</span>
-            <span class="seme">${carta.seme.simbolo}</span>
-          </div>
-          <div class="centro">
-            ${carta.eFigura
-              ? `<div class="figura-container">${this._figuraSvg(carta.nome, confMazzo.accento)}</div><span class="figura-nome">${carta.nome}</span>`
-              : carta.eJolly
-                ? `<span class="figura jolly">JOLLY</span><span class="seme-grande">${carta.seme.simbolo}</span>`
-                : carta.valore === 1
-                  ? this._assoCentro(carta)
-                  : this._puntiCentro(carta)}
-          </div>
-          <div class="angolo basso">
-            <span class="seme">${carta.seme.simbolo}</span>
-            <span class="valore">${carta.nome}</span>
-          </div>`}
+          ${this._fronteHtml(carta, confMazzo, usaImmagine)}
         </div>
         <div class="carta-retro ${retroClass} ${usaImmagine ? 'retro-immagine' : ''}">
           ${usaImmagine
@@ -79,6 +57,33 @@ const UI = {
     if (opts.cliccabile) node.classList.add('cliccabile');
     if (opts.onClic) node.addEventListener('click', (ev) => { ev.stopPropagation(); opts.onClic(carta, node, ev); });
     return node;
+  },
+
+  /* Contenuto del fronte di una carta: foto reale (mazzi con immagini)
+     oppure rendering CSS/SVG (valori, figure, asso). */
+  _fronteHtml(carta, confMazzo, usaImmagine) {
+    if (usaImmagine) {
+      const percorso = `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.jpg`;
+      return `<img class="faccia-img" src="${percorso}" alt="${carta.nome} di ${carta.seme.nome}" draggable="false">`;
+    }
+    return `
+      <div class="angolo alto">
+        <span class="valore">${carta.nome}</span>
+        <span class="seme">${carta.seme.simbolo}</span>
+      </div>
+      <div class="centro">
+        ${carta.eFigura
+          ? `<div class="figura-container">${this._figuraSvg(carta.nome, confMazzo.accento)}</div><span class="figura-nome">${carta.nome}</span>`
+          : carta.eJolly
+            ? `<span class="figura jolly">JOLLY</span><span class="seme-grande">${carta.seme.simbolo}</span>`
+            : carta.valore === 1
+              ? this._assoCentro(carta)
+              : this._puntiCentro(carta)}
+      </div>
+      <div class="angolo basso">
+        <span class="seme">${carta.seme.simbolo}</span>
+        <span class="valore">${carta.nome}</span>
+      </div>`;
   },
 
   /* Riproduce i "semi" centrali delle carte numeriche (1..10) nella
@@ -176,15 +181,22 @@ const UI = {
     const { durata = 450, angolo = 8 } = opts;
     return new Promise((resolve) => {
       const w = UI.CARTA_W, h = UI.CARTA_H;
+      const carta = opts.carta || null;
+      const confVolante = (carta && MAZZI_ITALIANI[carta.tipoMazzo]) || {};
+      const usaRetroFoto = !!(carta && confVolante.immagini);
+      const retroVolanteClass = carta && carta.tipoMazzo === 'francese' ? 'pattern-francese' : (confVolante.retro || 'pattern-napoletane');
+      // la carta volante mostra la FACCIA, così si vede sempre quale carta
+      // l'avversario sta giocando (e quale esce quindi dal gioco)
+      const fronte = carta
+        ? `<div class="carta-fronte ${usaRetroFoto ? 'fronte-immagine' : ''}" style="--accento:${carta.seme.colore}">${UI._fronteHtml(carta, confVolante, usaRetroFoto)}</div>`
+        : `<div class="carta-fronte volante-fronte"></div>`;
+      const retro = usaRetroFoto
+        ? `<div class="carta-retro ${retroVolanteClass} retro-immagine"><img class="retro-img" src="img/${carta.tipoMazzo}/retro.jpg" alt=""></div>`
+        : `<div class="carta-retro ${retroVolanteClass}"></div>`;
       const volante = document.createElement('div');
       volante.className = 'carta volante';
       volante.dataset.id = cartaId;
-      const confVolante = MAZZI_ITALIANI[opts.tipoMazzo] || {};
-      const usaRetroFoto = !!confVolante.immagini;
-      const retroVolanteClass = opts.tipoMazzo === 'francese' ? 'pattern-francese' : (confVolante.retro || 'pattern-napoletane');
-      volante.innerHTML = usaRetroFoto
-        ? `<div class="carta-inner"><div class="carta-fronte volante-fronte"></div><div class="carta-retro ${retroVolanteClass} retro-immagine"><img class="retro-img" src="img/${opts.tipoMazzo}/retro.jpg" alt=""></div></div>`
-        : `<div class="carta-inner"><div class="carta-fronte volante-fronte"></div><div class="carta-retro ${retroVolanteClass}"></div></div>`;
+      volante.innerHTML = `<div class="carta-inner">${fronte}${retro}</div>`;
       volante.style.width = w + 'px';
       volante.style.height = h + 'px';
       volante.style.left = (coordInizio.x - w / 2) + 'px';
@@ -437,7 +449,7 @@ class Controller {
     const src = document.querySelector(`#zona-giocatore .carta[data-id="${CSS.escape(carta.id)}"]`);
     const dst = document.getElementById('zona-tavolo');
     if (src && dst) {
-      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
+      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta });
     }
   }
 
@@ -445,13 +457,13 @@ class Controller {
     const src = document.querySelector(`#zona-giocatore .carta[data-id="${CSS.escape(carta.id)}"]`);
     const dst = document.getElementById('zona-tavolo');
     if (src && dst) {
-      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
+      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta });
     }
     if (combo.length > 0) {
       const dstPrese = document.getElementById('zona-info');
       for (const c of combo) {
         const node = document.querySelector(`#zona-tavolo .carta[data-id="${CSS.escape(c.id)}"]`);
-        if (node) await UI.animaSpostamento(c.id, UI.coordinateDi(node), UI.coordinateDi(dstPrese), { durata: 320, tipoMazzo: c.tipoMazzo });
+        if (node) await UI.animaSpostamento(c.id, UI.coordinateDi(node), UI.coordinateDi(dstPrese), { durata: 320, carta: c });
       }
     }
     if (this.gioco.controllaScopa(this.gioco.stato.tavolo.filter(t => !combo.some(p => p.id === t.id)))) {
@@ -519,7 +531,7 @@ class Controller {
     this.occupato = true;
     const src = document.querySelector(`#zona-giocatore .carta[data-id="${CSS.escape(carta.id)}"]`);
     const dst = document.getElementById('zona-tavolo');
-    if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
+    if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta });
     const mossa = { tipo: 'gioca', cartaId: carta.id };
     await this._applicaMossa(mossa, this.umano);
     this.occupato = false;
@@ -776,7 +788,7 @@ class Controller {
       // anima la carta del bot verso il tavolo
       const src = document.querySelector(`#zona-avversario .carta[data-id="${CSS.escape(scelta.carta.id)}"]`);
       const dst = document.getElementById('zona-tavolo');
-      if (src && dst) await UI.animaSpostamento(scelta.carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: scelta.carta.tipoMazzo });
+      if (src && dst) await UI.animaSpostamento(scelta.carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta: scelta.carta });
       this.gioco.eseguiMossa(this.botIdx, scelta.carta.id, scelta.prese.map(c => c.id));
       if (this.gioco.controllaScopa(this.gioco.stato.tavolo) && scelta.prese.length > 0) {
         UI.notifica('Il bot fa SCOPA!', 'avversario');
@@ -785,7 +797,7 @@ class Controller {
       const carta = Bot.mossaBotBriscola(s.mani[this.botIdx], s.tavolo[this.umano], s.briscola.seme, []);
       const src = document.querySelector(`#zona-avversario .carta[data-id="${CSS.escape(carta.id)}"]`);
       const dst = document.getElementById('zona-tavolo');
-      if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
+      if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta });
       this.gioco.eseguiMossa(this.botIdx, carta.id);
     } else if (this.config.gioco === 'burraco') {
       const decisione = Bot.mossaBotBurraco(

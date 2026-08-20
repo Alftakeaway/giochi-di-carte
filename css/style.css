@@ -326,9 +326,10 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .carta.coperta .carta-fronte { opacity: 0; }
 .carta.coperta .carta-retro { opacity: 1; }
 
-/* carta volante (animazioni): mostra il retro mentre vola */
-.carta.volante .carta-fronte { opacity: 0; }
-.carta.volante .carta-retro { opacity: 1; }
+/* carta volante (animazioni): mostra la FACCIA mentre vola, così si vede
+   sempre quale carta l'avversario sta giocando */
+.carta.volante .carta-fronte { opacity: 1; }
+.carta.volante .carta-retro { opacity: 0; }
 
 /* retro regionali: palette ispirate ai mazzi tradizionali Dal Negro */
 .pattern-napoletane { --retro-a: #8a1f2b; --retro-b: #6d1520; --retro-c: #c9971a; }

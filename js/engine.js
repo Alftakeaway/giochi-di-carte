@@ -34,7 +34,7 @@ const MAZZI_ITALIANI = {
   },
   piacentine: {
     nome: 'Piacentine', regione: 'Emilia-Romagna', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-piacentine', accento: '#b8860b'
+    figure: { 8: 'Donna', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-piacentine', accento: '#b8860b'
   },
   sarde: {
     nome: 'Sarde', regione: 'Sardegna', semi: ['denari', 'coppe', 'spade', 'bastoni'],
@@ -46,23 +46,23 @@ const MAZZI_ITALIANI = {
   },
   trevisane: {
     nome: 'Trevisane', regione: 'Veneto', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-trevisane', accento: '#16a085'
+    figure: { 8: 'Donna', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-trevisane', accento: '#16a085'
   },
   bergamasche: {
     nome: 'Bergamasche', regione: 'Lombardia', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-bergamasche', accento: '#2980b9'
+    figure: { 8: 'Donna', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-bergamasche', accento: '#2980b9'
   },
   bresciane: {
     nome: 'Bresciane', regione: 'Lombardia', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-bresciane', accento: '#27ae60'
+    figure: { 8: 'Donna', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-bresciane', accento: '#27ae60'
   },
   bolognesi: {
     nome: 'Bolognesi', regione: 'Emilia-Romagna', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-bolognesi', accento: '#d35400'
+    figure: { 8: 'Donna', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-bolognesi', accento: '#d35400'
   },
   genovesi: {
     nome: 'Genovesi', regione: 'Liguria', semi: ['denari', 'coppe', 'spade', 'bastoni'],
-    figure: { 8: 'Fante', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-genovesi', accento: '#2c3e50'
+    figure: { 8: 'Donna', 9: 'Cavallo', 10: 'Re' }, retro: 'pattern-genovesi', accento: '#2c3e50'
   },
   toscane: {
     nome: 'Toscane', regione: 'Toscana', semi: ['denari', 'coppe', 'spade', 'bastoni'],
@@ -91,7 +91,10 @@ class Carta {
     this.id = opts.id || `${tipoMazzo}-${seme.nome}-${valore}`;
   }
 
-  get eFigura() { return !this.jolly && this.valore >= 8; }
+  get eFigura() {
+    if (this.jolly) return false;
+    return this.tipoMazzo === 'francese' ? this.valore >= 11 : this.valore >= 8;
+  }
   get eJolly() { return this.jolly; }
   get ePinella() { return !this.jolly && this.valore === 2; }
 
@@ -298,8 +301,8 @@ class Scopa extends GiocoBase {
 
   /**
    * Verifica quali carte sul tavolo la carta giocata può prendere.
-   * Regole ufficiali: se esiste una carta di pari valore si può/DEVE
-   * prendere solo quella (mai la somma). Se non esiste, si valuta la
+   * Regole ufficiali: se sul tavolo ci sono carte dello stesso valore si
+   * prendono TUTTE (mai la somma). Se non esistono, si valuta la
    * combinazione di 2+ carte la cui somma eguaglia il valore.
    * @returns {{ combinazioni: Array<Array<Carta>>, scopa: boolean }}
    */
@@ -311,10 +314,11 @@ class Scopa extends GiocoBase {
       return esiti;
     }
 
-    // 1) presa singola obbligatoria
+    // 1) presa singola obbligatoria: con più carte dello stesso valore
+    //    si prendono TUTTE (mai la somma con altre carte)
     const singola = carteSulTavolo.filter(c => c.valore === v);
     if (singola.length > 0) {
-      esiti.combinazioni.push([singola[0]]);
+      esiti.combinazioni.push(singola);
       return esiti;
     }
 

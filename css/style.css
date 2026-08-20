@@ -93,14 +93,12 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .carta-mazzo { align-items: center; text-align: center; padding: 0.9rem 0.6rem; }
 .carta-mazzo .retro-preview {
   width: 42px; height: 60px; border-radius: 6px; display: block; margin-bottom: 0.3rem;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid #fdf6e4;
+  box-shadow: inset 0 0 0 3px var(--retro-a, #8a1f2b), inset 0 0 0 5px #fdf6e4;
   background:
-    radial-gradient(circle at 50% 45%, rgba(255,255,255,0.18) 0 6%, transparent 7%),
-    linear-gradient(45deg, var(--retro-a, #7a1f1f) 25%, transparent 25%, transparent 75%, var(--retro-a, #7a1f1f) 75%),
-    linear-gradient(45deg, var(--retro-b, #5c1818) 25%, var(--retro-c, #8a2626) 25%, var(--retro-c, #8a2626) 75%, var(--retro-b, #5c1818) 75%);
-  background-size: 14px 14px, 14px 14px, 14px 14px;
-  background-position: 0 0, 7px 7px, 7px 7px;
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35);
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.03) 0 2px, transparent 2px 7px),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.4), transparent 60%),
+    linear-gradient(160deg, #fdf6e4, #efe1bd);
 }
 
 .sottopannello {
@@ -295,32 +293,36 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 
 .carta-retro {
   transform: rotateY(180deg);
+  border: 2px solid #fdf6e4;
+  box-shadow:
+    inset 0 0 0 3px var(--retro-a, #8a1f2b),
+    inset 0 0 0 5px #fdf6e4,
+    inset 0 0 0 6px color-mix(in srgb, var(--retro-a, #8a1f2b) 35%, transparent);
   background:
-    radial-gradient(circle at 50% 45%, rgba(255,255,255,0.18) 0 6%, transparent 7%),
-    linear-gradient(45deg, var(--retro-a, #7a1f1f) 25%, transparent 25%, transparent 75%, var(--retro-a, #7a1f1f) 75%),
-    linear-gradient(45deg, var(--retro-b, #5c1818) 25%, var(--retro-c, #8a2626) 25%, var(--retro-c, #8a2626) 75%, var(--retro-b, #5c1818) 75%);
-  background-size: 14px 14px, 14px 14px, 14px 14px;
-  background-position: 0 0, 7px 7px, 7px 7px;
-  border: 3px solid #fff8e6;
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35);
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.028) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--retro-b, #6d1520) 16%, transparent) 0 1px, transparent 1px 6px),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.4), transparent 60%),
+    linear-gradient(160deg, #fdf6e4, #efe1bd);
   display: flex; align-items: center; justify-content: center;
 }
-.retro-motivo { color: rgba(255, 255, 255, 0.85); font-size: calc(var(--carta-w) * 0.4); text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.retro-emblema { width: 54%; height: 54%; }
+.retro-emblema rect,
+.retro-emblema path { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18)); }
 
 .carta.coperta .carta-inner { transform: rotateY(180deg); }
 
-/* pattern regionali: colori del retro per regione */
-.pattern-napoletane { --retro-a: #7a1f1f; --retro-b: #5c1818; --retro-c: #8a2626; }
-.pattern-piacentine { --retro-a: #1f4e9c; --retro-b: #173a75; --retro-c: #2a62bd; }
-.pattern-sarde { --retro-a: #5e2a86; --retro-b: #47206a; --retro-c: #70359c; }
-.pattern-siciliane { --retro-a: #b46a1f; --retro-b: #8a5217; --retro-c: #d07d26; }
-.pattern-trevisane { --retro-a: #145c4a; --retro-b: #0f4639; --retro-c: #1a705a; }
-.pattern-bergamasche { --retro-a: #1f4e9c; --retro-b: #173a75; --retro-c: #2a62bd; }
-.pattern-bresciane { --retro-a: #2e7d32; --retro-b: #1f5c23; --retro-c: #3a9440; }
-.pattern-bolognesi { --retro-a: #8a3a1f; --retro-b: #6b2d18; --retro-c: #a64626; }
-.pattern-genovesi { --retro-a: #2c3e50; --retro-b: #1f2c3a; --retro-c: #3a5268; }
-.pattern-toscane { --retro-a: #5a4026; --retro-b: #432f1c; --retro-c: #6c4e2e; }
-.pattern-francese { --retro-a: #1f4e9c; --retro-b: #173a75; --retro-c: #2a62bd; }
+/* retro regionali: palette ispirate ai mazzi tradizionali Dal Negro */
+.pattern-napoletane { --retro-a: #8a1f2b; --retro-b: #6d1520; --retro-c: #c9971a; }
+.pattern-piacentine { --retro-a: #274a8e; --retro-b: #1d3870; --retro-c: #b8860b; }
+.pattern-sarde { --retro-a: #7a5230; --retro-b: #5c3d24; --retro-c: #d4a94f; }
+.pattern-siciliane { --retro-a: #b3541e; --retro-b: #8a3f16; --retro-c: #e6a817; }
+.pattern-trevisane { --retro-a: #1d6b4c; --retro-b: #15503a; --retro-c: #c8a428; }
+.pattern-bergamasche { --retro-a: #2f4f8f; --retro-b: #243c6e; --retro-c: #b8860b; }
+.pattern-bresciane { --retro-a: #2c7a3f; --retro-b: #215c30; --retro-c: #d4a017; }
+.pattern-bolognesi { --retro-a: #7c2d1f; --retro-b: #5e2218; --retro-c: #d4a017; }
+.pattern-genovesi { --retro-a: #34495e; --retro-b: #273647; --retro-c: #c9a227; }
+.pattern-toscane { --retro-a: #6b4a24; --retro-b: #503a1c; --retro-c: #d4a017; }
+.pattern-francese { --retro-a: #1f4e9c; --retro-b: #173a75; --retro-c: #d4a017; }
 
 /* angoli e valori */
 .angolo { display: flex; flex-direction: column; align-items: center; line-height: 1; padding: 6% 8%; font-weight: 800; }
@@ -333,6 +335,29 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .figura { font-size: calc(var(--carta-w) * 0.17); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
 .figura.jolly { color: #7b1fa2; font-size: calc(var(--carta-w) * 0.2); }
 
+/* illustrazione delle figure (Fante/Donna/Cavallo/Re) */
+.figura-container { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.figura-illustrazione { width: 88%; height: 97%; overflow: visible; }
+.figura-nome {
+  font-size: calc(var(--carta-w) * 0.14); font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accento, #6d1520); line-height: 1;
+}
+
+/* Asso ornamentale */
+.asso { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.asso-anello {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 60%; height: 76%;
+  border: 2px solid var(--accento, #8a1f2b); border-radius: 50%;
+  font-size: calc(var(--carta-w) * 0.52); color: var(--accento, #8a1f2b);
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 72%);
+}
+.asso-anello::before {
+  content: ''; position: absolute; inset: 9%;
+  border: 1px solid var(--accento, #8a1f2b); border-radius: 50%; opacity: 0.5;
+}
+
 .punto { display: grid; gap: 4%; }
 .punto .seme-punto { font-size: calc(var(--carta-w) * 0.24); color: var(--accento, var(--nero)); line-height: 1; }
 .punto.singolo { grid-template-columns: 1fr; place-items: center; }
@@ -340,10 +365,12 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .punto.tre { grid-template-columns: 1fr; grid-template-rows: repeat(3, 1fr); }
 .punto.quattro { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 .punto.cinque { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-.punto.cinque .centro { grid-column: 1 / -1; grid-row: 1 / -1; }
 .punto.sei { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); }
 .punto.sette { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); }
-.punto.sette span:nth-child(7) { grid-column: 1 / -1; }
+.punto.otto { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); }
+.punto.nove { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, 1fr); }
+.punto.dieci { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, 1fr); }
+.punto .centro-punto { grid-column: 1 / -1; grid-row: 1 / -1; place-self: center; }
 
 /* stati interattivi */
 .carta.selezionabile { cursor: pointer; }

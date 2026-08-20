@@ -40,10 +40,12 @@ const UI = {
           </div>
           <div class="centro">
             ${carta.eFigura
-              ? `<span class="figura">${carta.nome}</span><span class="seme-grande">${carta.seme.simbolo}</span>`
+              ? `<div class="figura-container">${this._figuraSvg(carta.nome, confMazzo.accento)}</div><span class="figura-nome">${carta.nome}</span>`
               : carta.eJolly
                 ? `<span class="figura jolly">JOLLY</span><span class="seme-grande">${carta.seme.simbolo}</span>`
-                : this._puntiCentro(carta)}
+                : carta.valore === 1
+                  ? this._assoCentro(carta)
+                  : this._puntiCentro(carta)}
           </div>
           <div class="angolo basso">
             <span class="seme">${carta.seme.simbolo}</span>
@@ -51,7 +53,7 @@ const UI = {
           </div>
         </div>
         <div class="carta-retro ${retroClass}">
-          <span class="retro-motivo">${carta.seme.simbolo}</span>
+          ${this._emblemaRetro()}
         </div>
       </div>`;
 
@@ -62,19 +64,83 @@ const UI = {
     return node;
   },
 
-  /* Riproduce i "semi" centrali delle carte numeriche (1..7) */
+  /* Riproduce i "semi" centrali delle carte numeriche (1..10) nella
+     disposizione tradizionale (a colonne simmetriche). */
   _puntiCentro(carta) {
-    const n = Math.min(carta.valore, 7);
+    const n = carta.valore;
     const sim = `<span class="seme-punto">${carta.seme.simbolo}</span>`;
+    const ripeti = (k) => Array.from({ length: k }, () => sim).join('');
     let layout = '';
     if (n === 1) layout = `<div class="punto singolo">${sim}</div>`;
-    else if (n === 2) layout = `<div class="punto due"><span>${sim}</span><span>${sim}</span></div>`;
-    else if (n === 3) layout = `<div class="punto tre"><span>${sim}</span><span>${sim}</span><span>${sim}</span></div>`;
-    else if (n === 4) layout = `<div class="punto quattro"><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span></div>`;
-    else if (n === 5) layout = `<div class="punto cinque"><span>${sim}</span><span>${sim}</span><span class="centro">${sim}</span><span>${sim}</span><span>${sim}</span></div>`;
-    else if (n === 6) layout = `<div class="punto sei"><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span></div>`;
-    else if (n === 7) layout = `<div class="punto sette"><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span><span>${sim}</span></div>`;
+    else if (n === 2) layout = `<div class="punto due">${ripeti(2)}</div>`;
+    else if (n === 3) layout = `<div class="punto tre">${ripeti(3)}</div>`;
+    else if (n === 4) layout = `<div class="punto quattro">${ripeti(4)}</div>`;
+    else if (n === 5) layout = `<div class="punto cinque">${ripeti(4)}<span class="centro-punto">${sim}</span></div>`;
+    else if (n === 6) layout = `<div class="punto sei">${ripeti(6)}</div>`;
+    else if (n === 7) layout = `<div class="punto sette">${ripeti(6)}<span class="centro-punto">${sim}</span></div>`;
+    else if (n === 8) layout = `<div class="punto otto">${ripeti(8)}</div>`;
+    else if (n === 9) layout = `<div class="punto nove">${ripeti(8)}<span class="centro-punto">${sim}</span></div>`;
+    else layout = `<div class="punto dieci">${ripeti(10)}</div>`;
     return layout;
+  },
+
+  /* Asso ornamentale: simbolo grande dentro un anello decorativo. */
+  _assoCentro(carta) {
+    return `<div class="asso"><span class="asso-anello">${carta.seme.simbolo}</span></div>`;
+  },
+
+  /* Illustrazione SVG di una figura (Fante/Donna/Cavallo/Re) in stile
+     tradizionale, colorata con l'accento del mazzo regionale. */
+  _figuraSvg(nome, accento) {
+    const uid = 'fig' + (++UI._uid);
+    const col = accento || '#c9971a';
+    const scuro = UI._ombreggia(col, -0.35);
+    const chiaro = UI._ombreggia(col, 0.35);
+    const tipo = String(nome).toLowerCase();
+    let accessori = '';
+    if (tipo.includes('re')) {
+      accessori = `<path d="M19 34 L17 25 Q17 21 21 20 L22 27 L25 21 L28 27 L30 20 L32 27 L35 21 L38 27 L39 20 Q43 21 43 25 L41 34 Z" fill="#f4c74d" stroke="#a8781a" stroke-width="0.8"/>`;
+    } else if (tipo.includes('cavallo')) {
+      accessori = `<path d="M18 36 Q17 24 30 22 Q43 24 42 36 Q44 21 30 19 Q16 21 18 36 Z" fill="#8e99a6"/><path d="M30 20 V11" stroke="#8e99a6" stroke-width="3"/><path d="M30 14 L25 9 M30 14 L35 9" stroke="#8e99a6" stroke-width="2"/>`;
+    } else if (tipo.includes('donna')) {
+      accessori = `<path d="M18 42 Q16 24 30 22 Q44 24 42 42 Q40 27 30 29 Q20 27 18 42 Z" fill="#6d4421"/><circle cx="30" cy="26.5" r="2.3" fill="#e34b3f"/>`;
+    } else {
+      accessori = `<path d="M18 39 Q18 26 30 23 Q42 26 42 39 Q40 27 30 28 Q20 27 18 39 Z" fill="#3d2b1f"/>`;
+    }
+    return `<svg class="figura-illustrazione" viewBox="0 0 60 90" aria-hidden="true">
+      <defs>
+        <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="${chiaro}"/><stop offset="1" stop-color="${scuro}"/>
+        </linearGradient>
+      </defs>
+      <path d="M8 90 V42 Q8 16 30 16 Q52 16 52 42 V90 Z" fill="rgba(0,0,0,0.06)"/>
+      <path d="M12 90 Q12 58 30 56 Q48 58 48 90 Z" fill="url(#${uid})"/>
+      <path d="M21 61 Q30 70 39 61 Q35 74 25 74 Z" fill="#fffdf6" opacity="0.9"/>
+      <circle cx="30" cy="40" r="12.5" fill="#e8b48c"/>
+      ${accessori}
+    </svg>`;
+  },
+
+  /* Emblema centrale del retro: rombo + stella in tinte regionali. */
+  _emblemaRetro() {
+    return `<svg class="retro-emblema" viewBox="0 0 44 44" aria-hidden="true">
+      <rect x="9" y="9" width="26" height="26" transform="rotate(45 22 22)" fill="none" stroke="var(--retro-a, #8a1f2b)" stroke-width="2"/>
+      <rect x="12.5" y="12.5" width="19" height="19" transform="rotate(45 22 22)" fill="var(--retro-c, #c9971a)" opacity="0.30"/>
+      <path d="M22 13 L25 19 L31 20.5 L25 22 L22 28 L19 22 L13 20.5 L19 19 Z" fill="var(--retro-a, #8a1f2b)"/>
+    </svg>`;
+  },
+
+  /* Schiarisce/scurisce un colore esadecimale (-1..1). */
+  _ombreggia(hex, fattore) {
+    if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const t = fattore < 0 ? 0 : 255;
+    const p = Math.abs(fattore);
+    r = Math.round(r + (t - r) * p);
+    g = Math.round(g + (t - g) * p);
+    b = Math.round(b + (t - b) * p);
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   },
 
   /** Coordinate centro (viewport) di un elemento o di un contenitore. */

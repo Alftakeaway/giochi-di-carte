@@ -40,7 +40,7 @@ const UI = {
     // (es. img/napoletane/denari_07.jpg) al posto del rendering CSS/SVG.
     const usaImmagine = !carta.jolly && !!confMazzo.immagini;
     const percorsoImmagine = usaImmagine
-      ? `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.png`
+      ? `img/${carta.tipoMazzo}/${carta.seme.nome}_${String(carta.valore).padStart(2, '0')}.jpg`
       : '';
 
     node.innerHTML = `

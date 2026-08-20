@@ -272,26 +272,28 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .carta-mini.matta { border-color: var(--oro); background: rgba(212, 160, 23, 0.16); }
 .carta-mini.matta .cm-valore { color: var(--oro); }
 
-/* combinazione del GIOCATORE: impilata in verticale, ogni carta è sovrapposta
- * alla precedente e fa intravedere solo la striscia in alto (seme + numero) */
+/* combinazione del GIOCATORE: impilata in verticale, ogni carta fa
+ * intravedere la striscia in alto (seme + numero), l'ultima in basso
+ * resta per intero e di faccia (non clippata, non capovolta) */
 .combinazione.impilata {
   flex-direction: column; align-items: center;
   gap: 0; padding: 0; border: none; background: transparent;
-  height: calc(var(--n-carte, 3) * var(--peek-combo, 18px));
-  overflow: hidden; border-radius: 10px;
+  border-radius: 10px;
 }
 .combinazione.impilata .carta,
 .combinazione.impilata .pila .carta {
   flex: 0 0 auto;
   margin: 0 0 calc(var(--peek-combo, 18px) - var(--carta-h)) 0;
 }
-.combinazione.impilata .carta:first-child { margin-top: 0; }
+.combinazione.impilata .carta:first-child,
+.combinazione.impilata .pila .carta:first-child { margin-top: 0; }
+.combinazione.impilata .carta:last-child,
+.combinazione.impilata .pila .carta:last-child { margin-bottom: 0; }
 
 /* burraco (7+ carte): la pila resta compatta, l'ultima carta (o le ultime
  * due se pulito) è messa DI TRAVERSO in cima, come si fa al tavolo */
 .combinazione.impilata.burraco {
   position: relative; overflow: visible;
-  height: auto;
   border: 1px solid var(--oro);
   box-shadow: 0 0 8px rgba(212, 160, 23, 0.45);
   border-radius: 10px;
@@ -299,7 +301,6 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 }
 .combinazione.impilata.burraco .pila {
   display: flex; flex-direction: column; align-items: center;
-  overflow: hidden; border-radius: 8px;
 }
 .combinazione.impilata .di-traverso {
   position: absolute; top: 0; left: 50%;

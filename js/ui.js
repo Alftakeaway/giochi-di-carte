@@ -771,7 +771,6 @@ class Controller {
         // vista giocatore: carte impilate in verticale, ogni carta fa
         // intravedere solo la striscia in alto con seme e numero
         box.classList.add('impilata');
-        const peekCombo = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-combo')) || 18;
         const nCarte = combo.carte.length;
         const sporco = combo.carte.some(c => c.eJolly || c.ePinella);
         const nDiTraverso = nCarte >= 7 ? (sporco ? 1 : 2) : 0;
@@ -787,7 +786,6 @@ class Controller {
           box.classList.add('burraco');
           const pila = document.createElement('div');
           pila.className = 'pila';
-          pila.style.height = ((nCarte - nDiTraverso) * peekCombo) + 'px';
           combo.carte.slice(0, nCarte - nDiTraverso).forEach(c => pila.appendChild(mkCarta(c)));
           box.appendChild(pila);
           const traverso = document.createElement('div');
@@ -795,8 +793,6 @@ class Controller {
           combo.carte.slice(nCarte - nDiTraverso).forEach(c => traverso.appendChild(mkCarta(c)));
           box.appendChild(traverso);
         } else {
-          box.style.setProperty('--n-carte', nCarte);
-          box.style.height = (nCarte * peekCombo) + 'px';
           combo.carte.forEach(c => box.appendChild(mkCarta(c)));
         }
         zona.appendChild(box);

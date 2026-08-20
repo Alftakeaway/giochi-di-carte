@@ -237,6 +237,7 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .zona-giocatore {
   flex: 0 1 auto; min-height: calc(var(--carta-h) + 6px);
   padding: 0.4rem 0.2rem;
+  overflow-y: auto; /* se la mano raggruppata supera lo schermo, scorre */
 }
 
 .barra-pulsanti {
@@ -253,15 +254,20 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 }
 .combinazione.burraco { border-color: var(--oro); box-shadow: 0 0 8px rgba(212, 160, 23, 0.45); }
 
-/* mano del Burraco raggruppata in TRIS/SCALE */
+/* mano del Burraco raggruppata in TRIS/SCALE: le carte sono disposte in
+ * orizzontale (come le combinazioni sul tavolo) e vanno a capo se servono
+ * più righe, così ogni carta resta sempre visibile. */
 .gruppo-mano {
-  display: inline-flex; flex-direction: column; align-items: center;
+  display: inline-flex; flex-direction: row; flex-wrap: wrap;
+  align-items: center; justify-content: center;
   gap: 3px; padding: 3px; border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px dashed rgba(255, 255, 255, 0.16);
+  max-width: 100%;
 }
 .gruppo-mano .carta { width: calc(var(--carta-w) * 0.94); height: calc(var(--carta-h) * 0.94); }
 .gruppo-label {
+  width: 100%; text-align: center;
   font-size: 0.52rem; font-weight: 800; letter-spacing: 1.5px;
   text-transform: uppercase; color: var(--oro);
   background: rgba(0, 0, 0, 0.4); padding: 1px 7px; border-radius: 999px;

@@ -799,6 +799,24 @@ class Controller {
       if (!mioTurno) { bar.classList.add('vuota'); return; }
       bar.classList.remove('vuota');
 
+      const mano = s.mani[this.umano] || s.mani[0];
+      // mano vuota: l'unica azione possibile è prendere l'intero pozzetto
+      if (mano.length === 0) {
+        const pozzetto = document.createElement('button');
+        pozzetto.className = 'btn btn-primario';
+        pozzetto.textContent = '♻ Prendi il pozzetto';
+        pozzetto.disabled = s.monte.length === 0;
+        pozzetto.addEventListener('click', () => this._azioneBurraco({ tipo: 'pozzetto' }));
+        bar.append(pozzetto);
+        if (s.monte.length === 0) {
+          const info = document.createElement('div');
+          info.className = 'info-pozzetto';
+          info.textContent = 'Mano vuota e pozzetto esaurito: non puoi proseguire.';
+          bar.append(info);
+        }
+        return;
+      }
+
       const pescaMazzo = document.createElement('button');
       pescaMazzo.className = 'btn btn-primario';
       pescaMazzo.textContent = '🂠 Pesca dal mazzo';
@@ -873,14 +891,21 @@ class Controller {
           if (mossa.sorgente === 'mazzo') this.gioco.pescaDaMazzo(giocatore);
           else this.gioco.pescaDalMonte(giocatore);
           break;
+        case 'pozzetto':
+          this.gioco.prendiPozzetto(giocatore);
+          break;
         case 'cala': {
           const esito = this.gioco.calaCombinazione(giocatore, mossa.idCarte);
           if (!esito.ok) UI.notifica(esito.motivo, 'errore', 2000);
+          else if (esito.chiusura) UI.notifica('Chiusura! Mano vuota con un Burraco', 'successo', 2500);
+          else if (esito.pozzetto) UI.notifica('Mano vuota: hai preso il pozzetto per continuare', 'successo', 2500);
           break;
         }
         case 'lega': {
           const esito = this.gioco.legaATavolo(giocatore, mossa.cartaId, mossa.indice);
           if (!esito.ok) UI.notifica(esito.motivo, 'errore', 2000);
+          else if (esito.chiusura) UI.notifica('Chiusura! Mano vuota con un Burraco', 'successo', 2500);
+          else if (esito.pozzetto) UI.notifica('Mano vuota: hai preso il pozzetto per continuare', 'successo', 2500);
           break;
         }
         case 'scarta': {
@@ -926,6 +951,7 @@ class Controller {
         if (mossa.sorgente === 'mazzo') this.gioco.pescaDaMazzo(g);
         else this.gioco.pescaDalMonte(g);
         break;
+      case 'pozzetto': this.gioco.prendiPozzetto(g); break;
       case 'cala': this.gioco.calaCombinazione(g, mossa.idCarte); break;
       case 'lega': this.gioco.legaATavolo(g, mossa.cartaId, mossa.indice); break;
       case 'scarta': this.gioco.scarta(g, mossa.cartaId); break;
@@ -971,21 +997,34 @@ class Controller {
       if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { carta });
       this.gioco.eseguiMossa(this.botIdx, carta.id);
     } else if (this.config.gioco === 'burraco') {
+      // mano vuota: il bot prende l'intero pozzetto per continuare
+      if (s.mani[this.botIdx].length === 0 && s.monte.length > 0) {
+        this.gioco.prendiPozzetto(this.botIdx);
+        this.render();
+        await this._pausa(300);
+      }
       const decisione = Bot.mossaBotBurraco(
         s.mani[this.botIdx], s.combinazioni[this.botIdx], s.monte, this.gioco
       );
+      if (s.mani[this.botIdx].length === 0) {
+        // senza carte e senza pozzetto il bot non può muovere
+        await this._sveglia();
+        return;
+      }
       if (decisione.pescaDaMonte) this.gioco.pescaDalMonte(this.botIdx);
       else this.gioco.pescaDaMazzo(this.botIdx);
       this.render();
       await this._pausa(300);
       for (const ids of decisione.calate) this.gioco.calaCombinazione(this.botIdx, ids);
+      if (this.gioco.stato.fase !== 'gioco') { await this._sveglia(); return; }
       for (const leg of decisione.legate) this.gioco.legaATavolo(this.botIdx, leg.cartaId, leg.indice);
       this.render();
       await this._pausa(300);
+      if (this.gioco.stato.fase !== 'gioco') { await this._sveglia(); return; }
       if (decisione.scartoId) this.gioco.scarta(this.botIdx, decisione.scartoId);
       // il bot tenta la chiusura quando può
       const chiusura = this.gioco.verificaChiusura(s.mani[this.botIdx], false);
-      if (chiusura.puoChiudere) {
+      if (chiusura.puoChiudere && this.gioco.stato.fase === 'gioco') {
         this.gioco._chiudi(this.botIdx);
       }
     }

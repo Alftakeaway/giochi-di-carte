@@ -266,6 +266,11 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   text-transform: uppercase; color: var(--oro);
   background: rgba(0, 0, 0, 0.4); padding: 1px 7px; border-radius: 999px;
 }
+.info-pozzetto {
+  font-size: 0.72rem; color: var(--testo-debole, #ccc); text-align: center;
+  margin-top: 6px; padding: 4px 8px; border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+}
 
 /* badge jolly/pinella sulle carte scoperte (sempre, anche con le foto) */
 .badge-wild {

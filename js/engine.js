@@ -874,8 +874,12 @@ class Burraco extends GiocoBase {
     const manoVuota = manoGiocatore.length === 0;
     const pozzettoDisponibile = s.pozzettoDisponibile && s.monte.length > 0;
 
+    if (manoVuota && burracoFatto) {
+      // Mano vuota con almeno un Burraco: la partita si può chiudere subito.
+      return { puoChiudere: true, puoPrenderePozzetto: false, motivo: 'Mano vuota e Burraco fatto: puoi chiudere' };
+    }
     if (manoVuota) {
-      // mano vuota: per continuare devi prendere il pozzetto; non puoi chiudere
+      // mano vuota senza Burraco: per continuare devi prendere il pozzetto
       if (pozzettoDisponibile && !pozzettoPreso) {
         return { puoChiudere: false, puoPrenderePozzetto: true, motivo: 'Mano vuota: prendi il pozzetto per continuare' };
       }
@@ -962,16 +966,23 @@ class Burraco extends GiocoBase {
     s.punti[giocatore] += esito.punti + (esito.burraco ? (esito.pulito ? 200 : 100) : 0);
     const ids = new Set(carte.map(c => c.id));
     s.mani[giocatore] = s.mani[giocatore].filter(c => !ids.has(c.id));
-    // Regola: non si può rimanere senza carte in mano se non chiudendo
-    // (la calata stessa può creare il burraco necessario, quindi si valuta
-    // il conteggio burrachi DOPO l'aggiunta).
-    if (s.mani[giocatore].length === 0 && s.burrachi[giocatore] < 1) {
-      // rollback
+    // Mano svuotata dalla calata: con un Burraco si chiude subito la partita,
+    // altrimenti si prende il pozzetto per continuare. Se il pozzetto è
+    // esaurito la calata viene annullata (rollback) con un messaggio chiaro.
+    if (s.mani[giocatore].length === 0) {
+      if (s.burrachi[giocatore] >= 1) {
+        this._chiudi(giocatore);
+        return { ok: true, esito, chiusura: true };
+      }
+      if (s.monte.length > 0) {
+        this.prendiPozzetto(giocatore);
+        return { ok: true, esito, pozzetto: true };
+      }
       s.combinazioni[giocatore].pop();
       if (esito.burraco) s.burrachi[giocatore]--;
       s.punti[giocatore] -= esito.punti + (esito.burraco ? (esito.pulito ? 200 : 100) : 0);
       s.mani[giocatore].push(...carte);
-      return { ok: false, motivo: 'Non puoi rimanere senza carte in mano se non chiudi (serve un Burraco)' };
+      return { ok: false, motivo: 'Non puoi restare senza carte: ti serve un Burraco per chiudere o un pozzetto per continuare' };
     }
     return { ok: true, esito };
   }
@@ -986,24 +997,34 @@ class Burraco extends GiocoBase {
     if (!esito.valida) return { ok: false, motivo: esito.motivo };
     combo.carte.push(carta);
     combo.punti += carta.puntiBurraco;
+    s.punti[giocatore] += carta.puntiBurraco;
     if (combo.carte.length >= 7 && !combo.burraco) {
       combo.burraco = true;
       s.burrachi[giocatore]++;
       s.punti[giocatore] += combo.pulito ? 200 : 100;
     }
     s.mani[giocatore] = s.mani[giocatore].filter(c => c.id !== cartaId);
-    // Regola: non si può rimanere senza carte in mano se non chiudendo
-    if (s.mani[giocatore].length === 0 && s.burrachi[giocatore] < 1) {
+    // Mano svuotata dalla lega: con un Burraco si chiude subito la partita,
+    // altrimenti si prende il pozzetto per continuare (rollback se esaurito).
+    if (s.mani[giocatore].length === 0) {
+      if (s.burrachi[giocatore] >= 1) {
+        this._chiudi(giocatore);
+        return { ok: true, chiusura: true };
+      }
+      if (s.monte.length > 0) {
+        this.prendiPozzetto(giocatore);
+        return { ok: true, pozzetto: true };
+      }
       combo.carte.pop();
       combo.punti -= carta.puntiBurraco;
+      s.punti[giocatore] -= carta.puntiBurraco;
       if (combo.carte.length < 7 && combo.burraco) {
         combo.burraco = false;
         s.burrachi[giocatore]--;
         s.punti[giocatore] -= combo.pulito ? 200 : 100;
       }
-      s.punti[giocatore] -= carta.puntiBurraco;
       s.mani[giocatore].push(carta);
-      return { ok: false, motivo: 'Non puoi rimanere senza carte in mano se non chiudi (serve un Burraco)' };
+      return { ok: false, motivo: 'Non puoi restare senza carte: ti serve un Burraco per chiudere o un pozzetto per continuare' };
     }
     return { ok: true };
   }
@@ -1019,7 +1040,7 @@ class Burraco extends GiocoBase {
 
     // chiusura
     const chiusura = this.verificaChiusura(s.mani[giocatore], false);
-    if (s.mani[giocatore].length === 0 && s.burrachi[giocatore] >= 1) {
+    if (s.fase === 'gioco' && s.mani[giocatore].length === 0 && s.burrachi[giocatore] >= 1) {
       this._chiudi(giocatore);
     }
     s.turno = 1 - giocatore;

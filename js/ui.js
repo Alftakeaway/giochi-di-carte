@@ -883,8 +883,9 @@ class Controller {
   _dragPressione(node, carta, ev) {
     if (this.occupato || this.gioco.stato.turno !== this.umano || this.gioco.stato.fase !== 'gioco') return;
     if (ev.button !== undefined && ev.button !== 0) return;
-    // blocca lo scroll del touch per questo gesto e cattura il puntatore
-    try { node.style.touchAction = 'none'; node.setPointerCapture(ev.pointerId); } catch (e) { /* noop */ }
+    // blocca lo scroll del touch per questo gesto (touch-action è già none via CSS)
+    try { node.style.touchAction = 'none'; } catch (e) { /* noop */ }
+    this._dragTarget = null;
     const d = { node, carta, startX: ev.clientX, startY: ev.clientY, attivo: false, ghost: null };
 
     const muovi = (e) => {
@@ -914,11 +915,12 @@ class Controller {
       d.node.style.touchAction = '';
       if (d.ghost) d.ghost.remove();
       d.node.classList.remove('dragging');
+      const target = this._dragTarget || this._trovaDropTarget(e.clientX, e.clientY);
+      this._dragTarget = null;
       this._pulisciDrop();
       if (!d.attivo) return; // click semplice: lo gestisce il click normale
       this._sopprimiClick = true;
       setTimeout(() => { this._sopprimiClick = false; }, 60);
-      const target = this._trovaDropTarget(e.clientX, e.clientY);
       if (target && target.tipo === 'lega') this._dropLega(d.carta, target.el);
       else if (target && target.tipo === 'cala') this._dropCala(d.carta);
     };
@@ -930,6 +932,7 @@ class Controller {
       d.node.style.touchAction = '';
       if (d.ghost) d.ghost.remove();
       d.node.classList.remove('dragging');
+      this._dragTarget = null;
       this._pulisciDrop();
     };
 
@@ -939,20 +942,31 @@ class Controller {
   }
 
   _trovaDropTarget(x, y) {
-    const el = document.elementFromPoint(x, y);
-    if (!el || !this.game || !this.game.contains(el)) return null;
-    const combo = el.closest('.combinazione.impilata');
-    if (combo) return { tipo: 'lega', el: combo };
-    const zona = el.closest('#zona-tavolo, #zona-combinazioni-0');
-    if (zona) return { tipo: 'cala', el: zona };
+    const inRett = (el, x, y) => {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    };
+    // prima le combinazioni già calate del giocatore (target per legare):
+    // si controllano PRIMA le carte dentro ogni box, poi tutto il box
+    const boxes = [...document.querySelectorAll('#zona-combinazioni-0 .combinazione.impilata')];
+    for (const box of boxes) {
+      if (inRett(box, x, y)) return { tipo: 'lega', el: box };
+    }
+    // poi la zona del tavolo e lo spazio libero delle proprie combinazioni
+    // (target per calare una nuova combinazione)
+    const tavolo = document.getElementById('zona-tavolo');
+    if (inRett(tavolo, x, y)) return { tipo: 'cala', el: tavolo };
+    const zona0 = document.getElementById('zona-combinazioni-0');
+    if (inRett(zona0, x, y)) return { tipo: 'cala', el: zona0 };
     return null;
   }
 
   _evidenziaDrop(x, y) {
     this._pulisciDrop();
-    const t = this._trovaDropTarget(x, y);
-    if (!t) return;
-    t.el.classList.add(t.tipo === 'lega' ? 'drop-target-lega' : 'drop-target-cala');
+    this._dragTarget = this._trovaDropTarget(x, y);
+    if (!this._dragTarget) return;
+    this._dragTarget.el.classList.add(this._dragTarget.tipo === 'lega' ? 'drop-target-lega' : 'drop-target-cala');
   }
 
   _pulisciDrop() {
@@ -971,7 +985,7 @@ class Controller {
     const ids = new Set(this.selezione);
     ids.add(carta.id);
     if (ids.size < 3) {
-      UI.notifica('Servono almeno 3 carte: selezionale cliccandole e trascina una di esse sul tavolo', 'errore', 2800);
+      UI.notifica('Non bastano carte: seleziona (click) almeno 3 carte nella mano e trascina una di esse sul tavolo per calarle', 'errore', 4000);
       return;
     }
     this._azioneBurraco({ tipo: 'cala', idCarte: [...ids] });

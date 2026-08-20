@@ -100,6 +100,9 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
     radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.4), transparent 60%),
     linear-gradient(160deg, #fdf6e4, #efe1bd);
 }
+.carta-mazzo .retro-preview.retro-preview-immagine {
+  box-shadow: none; background: #fff center/cover no-repeat;
+}
 
 .sottopannello {
   margin-top: 1.2rem; padding: 1rem; border-radius: 14px;
@@ -313,6 +316,12 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .retro-emblema { width: 54%; height: 54%; }
 .retro-emblema rect,
 .retro-emblema path { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18)); }
+
+/* retro con foto reale (es. mazzi napoletani): l'immagine riempie il dorso */
+.carta-retro.retro-immagine { padding: 0; background: #fff; box-shadow: none; }
+.carta-retro.retro-immagine .retro-img {
+  width: 100%; height: 100%; display: block; object-fit: cover;
+}
 
 .carta.coperta .carta-fronte { opacity: 0; }
 .carta.coperta .carta-retro { opacity: 1; }

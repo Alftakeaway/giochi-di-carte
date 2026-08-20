@@ -67,8 +67,10 @@ const UI = {
             <span class="valore">${carta.nome}</span>
           </div>`}
         </div>
-        <div class="carta-retro ${retroClass}">
-          ${this._emblemaRetro()}
+        <div class="carta-retro ${retroClass} ${usaImmagine ? 'retro-immagine' : ''}">
+          ${usaImmagine
+            ? `<img class="retro-img" src="img/${carta.tipoMazzo}/retro.jpg" alt="" draggable="false">`
+            : this._emblemaRetro()}
         </div>
       </div>`;
 
@@ -177,7 +179,12 @@ const UI = {
       const volante = document.createElement('div');
       volante.className = 'carta volante';
       volante.dataset.id = cartaId;
-      volante.innerHTML = '<div class="carta-inner"><div class="carta-fronte volante-fronte"></div><div class="carta-retro pattern-francese"></div></div>';
+      const confVolante = MAZZI_ITALIANI[opts.tipoMazzo] || {};
+      const usaRetroFoto = !!confVolante.immagini;
+      const retroVolanteClass = opts.tipoMazzo === 'francese' ? 'pattern-francese' : (confVolante.retro || 'pattern-napoletane');
+      volante.innerHTML = usaRetroFoto
+        ? `<div class="carta-inner"><div class="carta-fronte volante-fronte"></div><div class="carta-retro ${retroVolanteClass} retro-immagine"><img class="retro-img" src="img/${opts.tipoMazzo}/retro.jpg" alt=""></div></div>`
+        : `<div class="carta-inner"><div class="carta-fronte volante-fronte"></div><div class="carta-retro ${retroVolanteClass}"></div></div>`;
       volante.style.width = w + 'px';
       volante.style.height = h + 'px';
       volante.style.left = (coordInizio.x - w / 2) + 'px';
@@ -430,7 +437,7 @@ class Controller {
     const src = document.querySelector(`#zona-giocatore .carta[data-id="${CSS.escape(carta.id)}"]`);
     const dst = document.getElementById('zona-tavolo');
     if (src && dst) {
-      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst));
+      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
     }
   }
 
@@ -438,13 +445,13 @@ class Controller {
     const src = document.querySelector(`#zona-giocatore .carta[data-id="${CSS.escape(carta.id)}"]`);
     const dst = document.getElementById('zona-tavolo');
     if (src && dst) {
-      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst));
+      await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
     }
     if (combo.length > 0) {
       const dstPrese = document.getElementById('zona-info');
       for (const c of combo) {
         const node = document.querySelector(`#zona-tavolo .carta[data-id="${CSS.escape(c.id)}"]`);
-        if (node) await UI.animaSpostamento(c.id, UI.coordinateDi(node), UI.coordinateDi(dstPrese), { durata: 320 });
+        if (node) await UI.animaSpostamento(c.id, UI.coordinateDi(node), UI.coordinateDi(dstPrese), { durata: 320, tipoMazzo: c.tipoMazzo });
       }
     }
     if (this.gioco.controllaScopa(this.gioco.stato.tavolo.filter(t => !combo.some(p => p.id === t.id)))) {
@@ -512,7 +519,7 @@ class Controller {
     this.occupato = true;
     const src = document.querySelector(`#zona-giocatore .carta[data-id="${CSS.escape(carta.id)}"]`);
     const dst = document.getElementById('zona-tavolo');
-    if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst));
+    if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
     const mossa = { tipo: 'gioca', cartaId: carta.id };
     await this._applicaMossa(mossa, this.umano);
     this.occupato = false;
@@ -769,7 +776,7 @@ class Controller {
       // anima la carta del bot verso il tavolo
       const src = document.querySelector(`#zona-avversario .carta[data-id="${CSS.escape(scelta.carta.id)}"]`);
       const dst = document.getElementById('zona-tavolo');
-      if (src && dst) await UI.animaSpostamento(scelta.carta.id, UI.coordinateDi(src), UI.coordinateDi(dst));
+      if (src && dst) await UI.animaSpostamento(scelta.carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: scelta.carta.tipoMazzo });
       this.gioco.eseguiMossa(this.botIdx, scelta.carta.id, scelta.prese.map(c => c.id));
       if (this.gioco.controllaScopa(this.gioco.stato.tavolo) && scelta.prese.length > 0) {
         UI.notifica('Il bot fa SCOPA!', 'avversario');
@@ -778,7 +785,7 @@ class Controller {
       const carta = Bot.mossaBotBriscola(s.mani[this.botIdx], s.tavolo[this.umano], s.briscola.seme, []);
       const src = document.querySelector(`#zona-avversario .carta[data-id="${CSS.escape(carta.id)}"]`);
       const dst = document.getElementById('zona-tavolo');
-      if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst));
+      if (src && dst) await UI.animaSpostamento(carta.id, UI.coordinateDi(src), UI.coordinateDi(dst), { tipoMazzo: carta.tipoMazzo });
       this.gioco.eseguiMossa(this.botIdx, carta.id);
     } else if (this.config.gioco === 'burraco') {
       const decisione = Bot.mossaBotBurraco(

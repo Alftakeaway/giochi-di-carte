@@ -134,7 +134,9 @@
         btn.className = 'carta-mazzo';
         btn.dataset.mazzo = chiave;
         btn.innerHTML = `
-          <span class="retro-preview ${conf.retro}"></span>
+          ${conf.immagini
+            ? `<span class="retro-preview retro-preview-immagine" style="background-image:url('img/${chiave}/retro.jpg')"></span>`
+            : `<span class="retro-preview ${conf.retro}"></span>`}
           <span class="nome">${conf.nome}</span>
           <span class="desc">${conf.regione}</span>`;
         btn.addEventListener('click', () => {

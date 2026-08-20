@@ -80,6 +80,12 @@
         config.stanza = `carte-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       }
 
+      // Il Burraco si gioca SEMPRE con le carte francesi da poker
+      // (2 mazzi da 52 + 4 Jolly = 108 carte), mai con mazzi regionali.
+      if (config.gioco === 'burraco') {
+        config.mazzo = 'francese';
+      }
+
       document.title = config.gioco.toUpperCase() + ' — Tavolo';
 
       const controller = new Controller(config);

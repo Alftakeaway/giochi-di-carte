@@ -39,7 +39,7 @@
 
     <!-- 2. SCELTA MAZZO -->
     <section class="pannello" id="passo-mazzo" hidden>
-      <h2>Mazzo regionale <small>(carte di tutta Italia)</small></h2>
+      <h2 id="titolo-passomazzo">Mazzo regionale <small>(carte di tutta Italia)</small></h2>
       <div class="griglia-mazzi" id="griglia-mazzi"></div>
     </section>
 
@@ -93,30 +93,59 @@
       btn.addEventListener('click', () => {
         stato.gioco = btn.dataset.gioco;
         document.querySelectorAll('.carta-gioco').forEach(b => b.classList.toggle('attiva', b === btn));
+        stato.mazzo = null; // azzera la scelta precedente
+        aggiornaPassoMazzo();
         mostra('#passo-mazzo', true);
         window.scrollTo({ top: $('#passo-mazzo').offsetTop - 10, behavior: 'smooth' });
       });
     });
 
-    /* Scelta mazzo regionale (da engine.js) */
-    const grigliaMazzi = $('#griglia-mazzi');
-    MAZZI_ITALIANI && Object.keys(MAZZI_ITALIANI).forEach(chiave => {
-      const conf = MAZZI_ITALIANI[chiave];
-      const btn = document.createElement('button');
-      btn.className = 'carta-mazzo';
-      btn.dataset.mazzo = chiave;
-      btn.innerHTML = `
-        <span class="retro-preview ${conf.retro}"></span>
-        <span class="nome">${conf.nome}</span>
-        <span class="desc">${conf.regione}</span>`;
-      btn.addEventListener('click', () => {
-        stato.mazzo = chiave;
-        document.querySelectorAll('.carta-mazzo').forEach(b => b.classList.toggle('attiva', b === btn));
-        mostra('#passo-modalita', true);
-        window.scrollTo({ top: $('#passo-modalita').offsetTop - 10, behavior: 'smooth' });
+    /* Passo mazzo: per Burraco valgono SOLO le carte francesi da poker
+       (2 mazzi da 52 + 4 Jolly = 108 carte). I mazzi regionali italiani
+       si usano esclusivamente per Scopa e Briscola. */
+    function aggiornaPassoMazzo() {
+      const griglia = $('#griglia-mazzi');
+      const titolo = $('#titolo-passomazzo');
+      griglia.innerHTML = '';
+
+      if (stato.gioco === 'burraco') {
+        titolo.innerHTML = 'Mazzo di gioco <small>(carte da poker con Jolly)</small>';
+        const btn = document.createElement('button');
+        btn.className = 'carta-mazzo attiva';
+        btn.dataset.mazzo = 'francese';
+        btn.innerHTML = `
+          <span class="retro-preview pattern-francese"></span>
+          <span class="nome">Carte Francesi</span>
+          <span class="desc">Poker — 2 mazzi da 52 + 4 Jolly (108 carte)</span>`;
+        btn.addEventListener('click', () => {
+          stato.mazzo = 'francese';
+          mostra('#passo-modalita', true);
+          window.scrollTo({ top: $('#passo-modalita').offsetTop - 10, behavior: 'smooth' });
+        });
+        griglia.appendChild(btn);
+        stato.mazzo = 'francese'; // pre-selezionato
+        return;
+      }
+
+      titolo.innerHTML = 'Mazzo regionale <small>(carte di tutta Italia)</small>';
+      Object.keys(MAZZI_ITALIANI || {}).forEach(chiave => {
+        const conf = MAZZI_ITALIANI[chiave];
+        const btn = document.createElement('button');
+        btn.className = 'carta-mazzo';
+        btn.dataset.mazzo = chiave;
+        btn.innerHTML = `
+          <span class="retro-preview ${conf.retro}"></span>
+          <span class="nome">${conf.nome}</span>
+          <span class="desc">${conf.regione}</span>`;
+        btn.addEventListener('click', () => {
+          stato.mazzo = chiave;
+          document.querySelectorAll('.carta-mazzo').forEach(b => b.classList.toggle('attiva', b === btn));
+          mostra('#passo-modalita', true);
+          window.scrollTo({ top: $('#passo-modalita').offsetTop - 10, behavior: 'smooth' });
+        });
+        griglia.appendChild(btn);
       });
-      grigliaMazzi.appendChild(btn);
-    });
+    }
 
     /* Scelta modalità */
     document.querySelectorAll('.carta-modalita').forEach(btn => {

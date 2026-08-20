@@ -671,6 +671,7 @@ class Briscola extends GiocoBase {
 class Burraco extends GiocoBase {
   constructor(config = {}) {
     super({ ...config, tipo: 'burraco' });
+    this.tipoMazzo = 'francese'; // il Burraco usa SEMPRE carte da poker (2 mazzi + 4 Jolly)
     this.punteggioTarget = config.punteggioTarget || 2000; // partita a 2000
   }
 

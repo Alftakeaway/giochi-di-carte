@@ -985,10 +985,27 @@ class Controller {
     const ids = new Set(this.selezione);
     ids.add(carta.id);
     if (ids.size < 3) {
+      // con meno di 3 carte non si può calare: se la carta può essere
+      // legata a una combinazione già sul tavolo, la si lega lì (utile
+      // quando si trascina una matta su una scala)
+      if (this._tentaLegaAutomatica(carta)) return;
       UI.notifica('Non bastano carte: seleziona (click) almeno 3 carte nella mano e trascina una di esse sul tavolo per calarle', 'errore', 4000);
       return;
     }
     this._azioneBurraco({ tipo: 'cala', idCarte: [...ids] });
+  }
+
+  /** Cerca la prima combinazione sul tavolo a cui la carta si può legare. */
+  _tentaLegaAutomatica(carta) {
+    const combos = this.gioco.stato.combinazioni[this.umano] || [];
+    for (let i = 0; i < combos.length; i++) {
+      const esito = this.gioco.legaCarta(carta, combos[i]);
+      if (esito.valida) {
+        this._azioneBurraco({ tipo: 'lega', cartaId: carta.id, indice: i });
+        return true;
+      }
+    }
+    return false;
   }
 
   _renderPulsanti() {

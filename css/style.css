@@ -291,13 +291,15 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .combinazione.impilata .pila .carta:last-child { margin-bottom: 0; }
 
 /* burraco (7+ carte): la pila resta compatta, l'ultima carta (o le ultime
- * due se pulito) è messa DI TRAVERSO in cima, come si fa al tavolo */
+ * due se pulito) è messa DI TRAVERSO in cima, come si fa al tavolo: resta
+ * a dimensione piena, sdraiata in orizzontale, e NON copre le strisce della
+ * pila (il seme e il numero di ogni carta restano sempre visibili) */
 .combinazione.impilata.burraco {
   position: relative; overflow: visible;
   border: 1px solid var(--oro);
   box-shadow: 0 0 8px rgba(212, 160, 23, 0.45);
   border-radius: 10px;
-  padding-top: 30px;
+  padding-top: calc(var(--carta-h) * 0.87);
 }
 .combinazione.impilata.burraco .pila {
   display: flex; flex-direction: column; align-items: center;
@@ -306,10 +308,10 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   position: absolute; top: 0; left: 50%;
   transform: translateX(-50%);
   display: flex; align-items: center; justify-content: center;
-  gap: calc(var(--carta-h) * -0.30);
+  gap: calc(var(--carta-h) * -0.15);
 }
 .combinazione.impilata .di-traverso .carta {
-  transform: rotate(90deg) scale(0.62);
+  transform: rotate(90deg);
   margin: 0;
 }
 

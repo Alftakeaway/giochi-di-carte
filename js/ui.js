@@ -422,6 +422,45 @@ class Controller {
     this.inPresa = null;                     // scopa: { carta, combinazioni }
     this.attesaBot = false;
     this.game = document.getElementById('gioco');
+    if (/[?&]debug=touch/.test(location.search)) this._attivaDebugTouch();
+  }
+
+  /** Pannello diagnostico (?debug=touch): mostra in tempo reale gli eventi
+   * puntatore ricevuti, su quale elemento cadono e se la mano è coperta
+   * da altro. Serve a capire cosa succede sul dispositivo reale. */
+  _attivaDebugTouch() {
+    const pannello = document.createElement('div');
+    pannello.id = 'debug-touch';
+    pannello.style.cssText = 'position:fixed;top:50px;left:4px;z-index:9999;background:rgba(0,0,0,.82);color:#0f0;font:10px/1.35 monospace;padding:6px 8px;border-radius:8px;max-width:94vw;pointer-events:none;white-space:pre;';
+    document.body.appendChild(pannello);
+    const righe = [];
+    const disegna = () => { pannello.textContent = righe.slice(-9).join('\n'); };
+    const registra = (nome, e) => {
+      const el = document.elementFromPoint(e.clientX || 0, e.clientY || 0);
+      const bersaglio = el ? (el.closest('.carta') ? 'carta:' + (el.closest('.carta').dataset.id || '?')
+        : el.id || el.className.toString().slice(0, 24) || el.tagName) : 'fuori';
+      righe.push(`${nome} ${Math.round(e.clientX || 0)},${Math.round(e.clientY || 0)} → ${bersaglio}`);
+      if (righe.length > 40) righe.splice(0, righe.length - 40);
+      disegna();
+    };
+    ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'touchstart', 'touchend'].forEach(t =>
+      window.addEventListener(t, e => registra(t.replace('pointer', 'p·'), e), { passive: true }));
+    // stato del layout ogni secondo: la mano è coperta dalla barra?
+    setInterval(() => {
+      const zona = document.getElementById('zona-giocatore');
+      const bar = document.getElementById('pulsanti');
+      if (!zona || !bar) return;
+      const zr = zona.getBoundingClientRect(), br = bar.getBoundingClientRect();
+      let coperte = 0, tot = 0;
+      zona.querySelectorAll('.carta').forEach(c => {
+        tot++;
+        const cr = c.getBoundingClientRect();
+        if (cr.bottom > Math.min(br.top, zr.bottom) + 2) coperte++;
+      });
+      righe.push(`— mano ${coperte}/${tot} coperte · zona fine=${Math.round(zr.bottom)} barra inizio=${Math.round(br.top)}`);
+      if (righe.length > 40) righe.splice(0, righe.length - 40);
+      disegna();
+    }, 1000);
   }
 
   /* ------------------------- avvio ------------------------- */
@@ -824,6 +863,12 @@ class Controller {
       });
       riga.appendChild(g);
     });
+    if (mioTurno && this.selezione.size === 0) {
+      const suggerimento = document.createElement('div');
+      suggerimento.className = 'suggerimento-mano';
+      suggerimento.textContent = 'Tocca 3+ carte poi «Cala» · il drag è facoltativo';
+      zonaMan.appendChild(suggerimento);
+    }
     zonaMan.appendChild(riga);
     this._adattaMano();
 
@@ -840,10 +885,14 @@ class Controller {
     const riga = zona.querySelector('.mano-riga');
     if (!riga) return;
     let sc = 1;
+    const cs = getComputedStyle(zona);
+    const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
     for (let i = 0; i < 8; i++) {
-      const bisogno = Math.max(riga.scrollWidth / Math.max(1, zona.clientWidth - 8), riga.offsetHeight / Math.max(1, zona.clientHeight - 8));
-      if (bisogno <= 1 || sc <= 0.5) break;
-      sc = Math.max(0.5, sc / bisogno);
+      let extra = 0;
+      for (const el of zona.children) if (el !== riga) extra += el.offsetHeight;
+      const bisogno = Math.max(riga.scrollWidth / Math.max(1, zona.clientWidth - 8), riga.offsetHeight / Math.max(1, zona.clientHeight - extra - padV));
+      if (bisogno <= 1 || sc <= 0.42) break;
+      sc = Math.max(0.42, sc / bisogno);
       zona.style.setProperty('--sc-mano', sc.toFixed(3));
     }
   }
@@ -1109,27 +1158,30 @@ class Controller {
 
       const pescaMazzo = document.createElement('button');
       pescaMazzo.className = 'btn btn-primario';
-      pescaMazzo.textContent = '🂠 Pesca dal mazzo';
+      pescaMazzo.textContent = '🂠 Mazzo';
+      pescaMazzo.title = 'Pesca dal mazzo';
       pescaMazzo.addEventListener('click', () => this._azioneBurraco({ tipo: 'pesca', sorgente: 'mazzo' }));
 
       const pescaMonte = document.createElement('button');
       pescaMonte.className = 'btn';
-      pescaMonte.textContent = s.monte.length > 1 ? `♻ Raccogli monte (${s.monte.length})` : '♻ Raccogli monte';
-      pescaMonte.title = 'Prendi TUTTE le carte del monte degli scarti';
+      pescaMonte.textContent = s.monte.length > 1 ? `♻ Monte (${s.monte.length})` : '♻ Monte';
+      pescaMonte.title = 'Raccogli TUTTE le carte del monte degli scarti';
       pescaMonte.disabled = s.monte.length === 0;
       pescaMonte.addEventListener('click', () => this._azioneBurraco({ tipo: 'pesca', sorgente: 'monte' }));
 
       const cala = document.createElement('button');
       cala.className = 'btn';
-      cala.textContent = `Cala selezione (${this.selezione.size})`;
+      cala.textContent = `Cala (${this.selezione.size})`;
+      cala.title = 'Calare le carte selezionate come nuova combinazione';
       cala.disabled = this.selezione.size < 3;
       cala.addEventListener('click', () => this._azioneBurraco({ tipo: 'cala', idCarte: [...this.selezione] }));
 
       const lega = document.createElement('button');
       lega.className = 'btn';
-      lega.textContent = this.comboSelezionata !== null
-        ? `Lega 1 carta alla combinazione ${this.comboSelezionata}`
-        : 'Lega (seleziona combinazione)';
+      lega.textContent = this.comboSelezionata !== null ? 'Lega ✓' : 'Lega';
+      lega.title = this.comboSelezionata !== null
+        ? `Lega la carta selezionata alla combinazione ${this.comboSelezionata + 1}`
+        : 'Prima tocca una combinazione sul tavolo';
       lega.disabled = this.selezione.size !== 1 || this.comboSelezionata === null;
       lega.addEventListener('click', () => {
         const [cartaId] = [...this.selezione];
@@ -1139,6 +1191,7 @@ class Controller {
       const scarta = document.createElement('button');
       scarta.className = 'btn btn-pericolo';
       scarta.textContent = 'Scarta';
+      scarta.title = 'Scarta la carta selezionata';
       scarta.disabled = this.selezione.size !== 1;
       scarta.addEventListener('click', () => {
         const [cartaId] = [...this.selezione];

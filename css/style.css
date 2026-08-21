@@ -331,6 +331,12 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   height: calc(var(--carta-h) * 0.45 * var(--sc-mano, 1));
   background: rgba(255, 255, 255, 0.28); border-radius: 2px; margin: 0 5px;
 }
+.suggerimento-mano {
+  width: 100%; text-align: center;
+  font-size: 0.62rem; color: var(--testo-debole, #bbb);
+  padding-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .gruppo-label {
   position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
   font-size: 0.5rem; font-weight: 800; letter-spacing: 1.5px;
@@ -575,9 +581,17 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
  * RESPONSIVE
  * ===================================================================== */
 @media (max-width: 640px) {
-  :root { --carta-w-base: clamp(57px, 21.5vw, 78px); }
+  :root {
+    /* La larghezza delle carte tiene conto ANCHE dell'altezza dello schermo:
+     * impila header+avversario+centro+combinazioni+mano+pulsanti ≈ 7.5 volte
+     * la larghezza carta + ~205px fissi. Così la mano resta SEMPRE sopra la
+     * barra pulsanti, su qualsiasi dispositivo, senza media query a scalini.
+     * Minimo 34px: sotto quella soglia le carte non sono più toccabili. */
+    --carta-w-base: max(34px, min(clamp(57px, 21.5vw, 78px), calc((100vh - 205px) / 7.5)));
+  }
 
-  .centro { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; gap: 0.3rem; min-height: calc(var(--carta-h) * 2.6); }
+  .centro { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; gap: 0.3rem; min-height: calc(var(--carta-h) * 2.2); }
+  .zona-combinazioni { min-height: calc(var(--carta-h) * 0.72); }
   .zona-mazzi { flex-direction: row; }
   .zona-info { flex-direction: row; }
   /* su schermi stretti le coperte dell'avversario si sovrappongono di più */
@@ -589,14 +603,6 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 
   .indicatore-turno { display: none; }
   .barra-superiore { padding: 0.4rem 0.5rem; }
-}
-
-/* telefoni stretti E bassi (es. 360x740): carte più piccole e centro
- * compatto, altrimenti la mano finisce sotto la barra pulsanti */
-@media (max-width: 640px) and (max-height: 760px) {
-  :root { --carta-w-base: clamp(48px, 18.5vw, 66px); }
-  .centro { min-height: calc(var(--carta-h) * 2.2); }
-  .zona-combinazioni { min-height: calc(var(--carta-h) * 0.72); }
 }
 
 @media (max-width: 420px) {

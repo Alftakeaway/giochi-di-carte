@@ -20,10 +20,11 @@
   --nero: #222222;
   --verde-acido: #7ccf8a;
   --radice: 16px;
-  --carta-w: clamp(65px, 19.5vw, 99px);
+  --carta-w-base: clamp(65px, 19.5vw, 99px);
+  --carta-w: var(--carta-w-base);
   --carta-h: calc(var(--carta-w) * 1.42);
   --raggio: calc(var(--carta-w) * 0.1);
-  --peek-combo: 18px; /* striscia visibile in cima alle combinazioni impilate */
+  --peek-combo-x: clamp(11px, 3.6vw, 20px); /* striscia visibile a sinistra di ogni carta nelle combinazioni */
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -272,47 +273,26 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
 .carta-mini.matta { border-color: var(--oro); background: rgba(212, 160, 23, 0.16); }
 .carta-mini.matta .cm-valore { color: var(--oro); }
 
-/* combinazione del GIOCATORE: impilata in verticale, ogni carta fa
- * intravedere la striscia in alto (seme + numero), l'ultima in basso
- * resta per intero e di faccia (non clippata, non capovolta) */
+/* combinazione del GIOCATORE: fila orizzontale compatta (come la mano),
+ * ogni carta fa intravedere la striscia sinistra con valore e seme,
+ * l'ultima resta intera. Le carte sono ridotte al 68% così anche un
+ * burraco (7+ carte) resta dentro la riga delle combinazioni senza
+ * traboccare su mazzi e tavolo. */
 .combinazione.impilata {
-  flex-direction: column; align-items: center;
-  gap: 0; padding: 0; border: none; background: transparent;
+  --carta-w: calc(var(--carta-w-base) * 0.68);
+  --carta-h: calc(var(--carta-w) * 1.42);
+  flex-direction: row; align-items: center;
+  gap: 0; padding: 3px; border: none; background: transparent;
   border-radius: 10px;
 }
-.combinazione.impilata .carta,
-.combinazione.impilata .pila .carta {
+.combinazione.impilata .carta {
   flex: 0 0 auto;
-  margin: 0 0 calc(var(--peek-combo, 18px) - var(--carta-h)) 0;
+  margin: 0 calc(var(--peek-combo-x, 20px) - var(--carta-w)) 0 0;
 }
-.combinazione.impilata .carta:first-child,
-.combinazione.impilata .pila .carta:first-child { margin-top: 0; }
-.combinazione.impilata .carta:last-child,
-.combinazione.impilata .pila .carta:last-child { margin-bottom: 0; }
-
-/* burraco (7+ carte): la pila resta compatta, l'ultima carta (o le ultime
- * due se pulito) è messa DI TRAVERSO in cima, come si fa al tavolo: resta
- * a dimensione piena, sdraiata in orizzontale, e NON copre le strisce della
- * pila (il seme e il numero di ogni carta restano sempre visibili) */
+.combinazione.impilata .carta:last-child { margin-right: 0; }
 .combinazione.impilata.burraco {
-  position: relative; overflow: visible;
   border: 1px solid var(--oro);
   box-shadow: 0 0 8px rgba(212, 160, 23, 0.45);
-  border-radius: 10px;
-  padding-top: calc(var(--carta-h) * 0.87);
-}
-.combinazione.impilata.burraco .pila {
-  display: flex; flex-direction: column; align-items: center;
-}
-.combinazione.impilata .di-traverso {
-  position: absolute; top: 0; left: 50%;
-  transform: translateX(-50%);
-  display: flex; align-items: center; justify-content: center;
-  gap: calc(var(--carta-h) * -0.15);
-}
-.combinazione.impilata .di-traverso .carta {
-  transform: rotate(90deg);
-  margin: 0;
 }
 
 /* mano del Burraco raggruppata in TRIS/SCALE: le carte sono disposte in
@@ -563,7 +543,7 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
  * RESPONSIVE
  * ===================================================================== */
 @media (max-width: 640px) {
-  :root { --carta-w: clamp(57px, 21.5vw, 78px); }
+  :root { --carta-w-base: clamp(57px, 21.5vw, 78px); }
 
   .centro { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; gap: 0.3rem; }
   .zona-mazzi { flex-direction: row; }
@@ -573,8 +553,14 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   .barra-superiore { padding: 0.4rem 0.5rem; }
 }
 
+@media (max-width: 420px) {
+  /* su schermi stretti anche 3 combinazioni devono stare in una riga */
+  :root { --peek-combo-x: 10px; }
+  .combinazione.impilata { --carta-w: calc(var(--carta-w-base) * 0.64); }
+}
+
 @media (max-height: 520px) and (orientation: landscape) {
-  :root { --carta-w: clamp(49px, 14.3vh, 75px); }
+  :root { --carta-w-base: clamp(49px, 14.3vh, 75px); }
   .zona-combinazioni { display: none; }
 }
 

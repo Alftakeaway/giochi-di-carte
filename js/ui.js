@@ -794,14 +794,22 @@ class Controller {
       this._manoGruppi = UI.organizzaManoBurraco(mano);
     }
     const mioTurno = s.turno === this.umano && s.fase === 'gioco';
-    for (const gruppo of (this._manoGruppi || [{ tipo: 'singole', carte: mano }])) {
-      const wrap = document.createElement('div');
-      wrap.className = 'gruppo-mano';
+    const riga = document.createElement('div');
+    riga.className = 'mano-riga';
+    const gruppi = this._manoGruppi || [{ tipo: 'singole', carte: mano }];
+    gruppi.forEach((gruppo, gi) => {
+      if (gi > 0) {
+        const div = document.createElement('span');
+        div.className = 'mano-divisore';
+        riga.appendChild(div);
+      }
+      const g = document.createElement('div');
+      g.className = 'gruppo-mano';
       if (gruppo.tipo !== 'singole') {
         const label = document.createElement('span');
         label.className = 'gruppo-label';
         label.textContent = gruppo.tipo === 'scala' ? 'Scala' : 'Tris';
-        wrap.appendChild(label);
+        g.appendChild(label);
       }
       gruppo.carte.forEach(c => {
         const node = this._carta({
@@ -812,12 +820,32 @@ class Controller {
         });
         // drag & drop: il giocatore decide lui come comporre le combinazioni
         if (mioTurno) this._abilitaDragMano(node, c);
-        wrap.appendChild(node);
+        g.appendChild(node);
       });
-      zonaMan.appendChild(wrap);
-    }
+      riga.appendChild(g);
+    });
+    zonaMan.appendChild(riga);
+    this._adattaMano();
 
     this._infoBurraco(s);
+  }
+
+  /** Ridimensiona le carte della mano (var --sc-mano) così che l'intera
+   * riga stia nella zona senza scorrere: ogni carta resta visibile,
+   * toccabile e trascinabile. */
+  _adattaMano() {
+    const zona = document.getElementById('zona-giocatore');
+    if (!zona || !zona.children.length) return;
+    zona.style.setProperty('--sc-mano', '1');
+    const riga = zona.querySelector('.mano-riga');
+    if (!riga) return;
+    let sc = 1;
+    for (let i = 0; i < 8; i++) {
+      const bisogno = Math.max(riga.scrollWidth / Math.max(1, zona.clientWidth - 8), riga.offsetHeight / Math.max(1, zona.clientHeight - 8));
+      if (bisogno <= 1 || sc <= 0.5) break;
+      sc = Math.max(0.5, sc / bisogno);
+      zona.style.setProperty('--sc-mano', sc.toFixed(3));
+    }
   }
 
   _infoBurraco(s) {
@@ -866,14 +894,43 @@ class Controller {
   _dragPressione(node, carta, ev) {
     if (this.occupato || this.gioco.stato.turno !== this.umano || this.gioco.stato.fase !== 'gioco') return;
     if (ev.button !== undefined && ev.button !== 0) return;
-    // blocca lo scroll del touch per questo gesto (touch-action è già none via CSS)
-    try { node.style.touchAction = 'none'; } catch (e) { /* noop */ }
+    // sul touch il fantasma è sollevato sopra il dito: la mira visiva
+    // (centro del fantasma) e il punto di rilascio restano coerenti
+    const lift = ev.pointerType === 'touch' ? 26 : 0;
     this._dragTarget = null;
-    const d = { node, carta, startX: ev.clientX, startY: ev.clientY, attivo: false, ghost: null };
+    const d = { node, carta, startX: ev.clientX, startY: ev.clientY, x: ev.clientX, y: ev.clientY, attivo: false, ghost: null, lift };
+
+    const stacca = () => {
+      window.removeEventListener('pointermove', muovi);
+      window.removeEventListener('pointerup', fine);
+      window.removeEventListener('pointercancel', annulla);
+      node.style.touchAction = '';
+      if (d.ghost) { d.ghost.remove(); d.ghost = null; }
+      node.classList.remove('dragging');
+    };
+
+    const concludi = () => {
+      if (!d.attivo) return; // click semplice: lo gestisce il click normale
+      this._sopprimiClick = true;
+      setTimeout(() => { this._sopprimiClick = false; }, 60);
+      const px = d.x, py = d.y - d.lift;
+      // catena di fallback per non perdere mai il drop:
+      // target evidenziato -> punto esatto -> rettangoli allargati (dito grosso)
+      // -> bersaglio più vicino entro 44px
+      const target = this._dragTarget
+        || this._trovaDropTarget(px, py)
+        || this._trovaDropTarget(px, py, 14)
+        || this._trovaDropVicino(px, py, 44);
+      this._dragTarget = null;
+      this._pulisciDrop();
+      if (target && target.tipo === 'lega') this._dropLega(d.carta, target.el);
+      else if (target && target.tipo === 'cala') this._dropCala(d.carta);
+    };
 
     const muovi = (e) => {
+      d.x = e.clientX; d.y = e.clientY;
       if (!d.attivo) {
-        const dist = Math.hypot(e.clientX - d.startX, e.clientY - d.startY);
+        const dist = Math.hypot(d.x - d.startX, d.y - d.startY);
         if (dist < 8) return;
         d.attivo = true;
         const ghost = d.node.cloneNode(true);
@@ -886,37 +943,22 @@ class Controller {
         d.node.classList.add('dragging');
       }
       const w = d.ghost.offsetWidth, h = d.ghost.offsetHeight;
-      d.ghost.style.left = (e.clientX - w / 2) + 'px';
-      d.ghost.style.top = (e.clientY - h / 2) + 'px';
-      this._evidenziaDrop(e.clientX, e.clientY);
+      d.ghost.style.left = (d.x - w / 2) + 'px';
+      d.ghost.style.top = (d.y - h / 2 - d.lift) + 'px';
+      this._evidenziaDrop(d.x, d.y - d.lift);
     };
 
-    const fine = (e) => {
-      window.removeEventListener('pointermove', muovi);
-      window.removeEventListener('pointerup', fine);
-      window.removeEventListener('pointercancel', annulla);
-      d.node.style.touchAction = '';
-      if (d.ghost) d.ghost.remove();
-      d.node.classList.remove('dragging');
-      const target = this._dragTarget || this._trovaDropTarget(e.clientX, e.clientY);
-      this._dragTarget = null;
-      this._pulisciDrop();
-      if (!d.attivo) return; // click semplice: lo gestisce il click normale
-      this._sopprimiClick = true;
-      setTimeout(() => { this._sopprimiClick = false; }, 60);
-      if (target && target.tipo === 'lega') this._dropLega(d.carta, target.el);
-      else if (target && target.tipo === 'cala') this._dropCala(d.carta);
+    const fine = () => {
+      stacca();
+      concludi();
     };
 
+    // il browser ha interrotto il gesto (scroll/telefonata): se il drag era
+    // attivo completiamo comunque il drop all'ultima posizione mirata,
+    // così la carta non "rientra" misteriosamente nella mano
     const annulla = () => {
-      window.removeEventListener('pointermove', muovi);
-      window.removeEventListener('pointerup', fine);
-      window.removeEventListener('pointercancel', annulla);
-      d.node.style.touchAction = '';
-      if (d.ghost) d.ghost.remove();
-      d.node.classList.remove('dragging');
-      this._dragTarget = null;
-      this._pulisciDrop();
+      stacca();
+      concludi();
     };
 
     window.addEventListener('pointermove', muovi);
@@ -924,11 +966,12 @@ class Controller {
     window.addEventListener('pointercancel', annulla);
   }
 
-  _trovaDropTarget(x, y) {
+  _trovaDropTarget(x, y, toll) {
+    const t = toll || 0;
     const inRett = (el, x, y) => {
       if (!el) return false;
       const r = el.getBoundingClientRect();
-      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      return x >= r.left - t && x <= r.right + t && y >= r.top - t && y <= r.bottom + t;
     };
     // prima le combinazioni già calate del giocatore (target per legare):
     // si controllano PRIMA le carte dentro ogni box, poi tutto il box
@@ -943,6 +986,29 @@ class Controller {
     const zona0 = document.getElementById('zona-combinazioni-0');
     if (inRett(zona0, x, y)) return { tipo: 'cala', el: zona0 };
     return null;
+  }
+
+  /** Bersaglio più vicino al punto anche se fuori dal suo rettangolo
+   * (entro raggioMax px): perdona i rilasci imprecisi col dito. */
+  _trovaDropVicino(x, y, raggioMax) {
+    const rMax = raggioMax || 44;
+    const cand = [];
+    for (const box of document.querySelectorAll('#zona-combinazioni-0 .combinazione.impilata')) {
+      cand.push({ tipo: 'lega', el: box });
+    }
+    const tavolo = document.getElementById('zona-tavolo');
+    if (tavolo) cand.push({ tipo: 'cala', el: tavolo });
+    const zona0 = document.getElementById('zona-combinazioni-0');
+    if (zona0) cand.push({ tipo: 'cala', el: zona0 });
+    let migliore = null, distMin = Infinity;
+    for (const c of cand) {
+      const r = c.el.getBoundingClientRect();
+      const dx = Math.max(r.left - x, 0, x - r.right);
+      const dy = Math.max(r.top - y, 0, y - r.bottom);
+      const dist = Math.hypot(dx, dy);
+      if (dist < distMin && dist <= rMax) { distMin = dist; migliore = c; }
+    }
+    return migliore;
   }
 
   _evidenziaDrop(x, y) {

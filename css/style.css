@@ -506,6 +506,9 @@ body { font-family: var(--font); color: var(--crema); min-height: 100%; }
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;
 }
+/* le immagini dentro le carte non devono mai ricevere eventi puntatore:
+ * su iOS il drag nativo dell'immagine ruba il gesto al nostro drag&drop */
+.carta img { pointer-events: none; -webkit-user-drag: none; }
 .carta.draggabile:active { cursor: grabbing; }
 .carta.drag-ghost {
   position: fixed; z-index: 2000; pointer-events: none; margin: 0;

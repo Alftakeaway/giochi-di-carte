@@ -888,12 +888,17 @@ class Controller {
     node.addEventListener('click', (ev) => {
       if (this._sopprimiClick) { ev.preventDefault(); ev.stopPropagation(); }
     }, true);
+    // il drag nativo (es. immagini su iOS) ruberebbe il gesto al nostro drag
+    node.addEventListener('dragstart', (ev) => ev.preventDefault());
     node.addEventListener('pointerdown', (ev) => this._dragPressione(node, carta, ev));
   }
 
   _dragPressione(node, carta, ev) {
     if (this.occupato || this.gioco.stato.turno !== this.umano || this.gioco.stato.fase !== 'gioco') return;
     if (ev.button !== undefined && ev.button !== 0) return;
+    // un secondo dito non deve disturbare il drag in corso
+    const pid = ev.pointerId;
+    const altroDito = (e) => e.pointerType === 'touch' && pid !== undefined && e.pointerId !== pid;
     // sul touch il fantasma è sollevato sopra il dito: la mira visiva
     // (centro del fantasma) e il punto di rilascio restano coerenti
     const lift = ev.pointerType === 'touch' ? 26 : 0;
@@ -928,6 +933,7 @@ class Controller {
     };
 
     const muovi = (e) => {
+      if (altroDito(e)) return;
       d.x = e.clientX; d.y = e.clientY;
       if (!d.attivo) {
         const dist = Math.hypot(d.x - d.startX, d.y - d.startY);
@@ -948,7 +954,18 @@ class Controller {
       this._evidenziaDrop(d.x, d.y - d.lift);
     };
 
-    const fine = () => {
+    // il punto di rilascio vero è quello dell'evento finale: con i gesti
+    // veloci l'ultimo pointermove può essere lontano da dove il dito si
+    // è sollevato
+    const aggiornaCoord = (e) => {
+      if (e && typeof e.clientX === 'number' && (e.clientX > 0 || e.clientY > 0)) {
+        d.x = e.clientX; d.y = e.clientY;
+      }
+    };
+
+    const fine = (e) => {
+      if (altroDito(e)) return;
+      aggiornaCoord(e);
       stacca();
       concludi();
     };
@@ -956,7 +973,9 @@ class Controller {
     // il browser ha interrotto il gesto (scroll/telefonata): se il drag era
     // attivo completiamo comunque il drop all'ultima posizione mirata,
     // così la carta non "rientra" misteriosamente nella mano
-    const annulla = () => {
+    const annulla = (e) => {
+      if (altroDito(e)) return;
+      aggiornaCoord(e);
       stacca();
       concludi();
     };

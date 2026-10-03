@@ -86,7 +86,7 @@ const UI = {
         <span class="valore">${carta.nome}</span>
         <span class="seme">${carta.seme.simbolo}</span>
       </div>
-      <div class="centro">
+      <div class="carta-centro">
         ${carta.eFigura
           ? `<div class="figura-container">${this._figuraSvg(carta.nome, confMazzo.accento)}</div><span class="figura-nome">${carta.nome}</span>`
           : carta.eJolly

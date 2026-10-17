@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a5130">
+  <title>Burraco Online — 2 umani vs 2 bot (server Rust)</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
+  <style>
+    :root{
+      --verde:#0a5130; --verde-2:#0d6b40; --verde-3:#0f8a4f;
+      --oro:#e0bb52; --oro-2:#c9a227; --testo:#f3f7f4; --muto:#9fc4b0;
+      --pannello:#0c3d28; --bordo:#1c7a4f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(160deg,#07331f,#0a5130 60%,#0c3d28);color:var(--testo);min-height:100vh}
+    header.top{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,0,0,.25)}
+    header.top svg{width:30px;height:33px}
+    header.top h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
+    header.top .sub{margin-left:auto;font-size:12px;color:var(--muto)}
+    .wrap{max-width:980px;margin:0 auto;padding:14px}
+    .connessione{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--pannello);
+      border:1px solid var(--bordo);border-radius:12px;padding:10px}
+    .connessione input{flex:1 1 240px;min-width:180px;background:#06281a;color:var(--testo);
+      border:1px solid var(--bordo);border-radius:8px;padding:9px 10px;font-size:14px}
+    .status{margin:10px 2px;font-weight:600;font-size:15px;min-height:22px}
+    .status.err{color:#ffb4b4}
+    .azioni{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+    button{font-family:inherit}
+    .btn{background:var(--verde-3);color:#fff;border:0;border-radius:10px;padding:11px 14px;
+      font-size:14px;cursor:pointer;font-weight:600;transition:filter .15s,transform .05s}
+    .btn:hover:not(:disabled){filter:brightness(1.08)}
+    .btn:active:not(:disabled){transform:translateY(1px)}
+    .btn:disabled{opacity:.38;cursor:default}
+    .btn.oro{background:linear-gradient(180deg,var(--oro),var(--oro-2));color:#3a2c00}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:760px){.grid{grid-template-columns:1.15fr .85fr}}
+    .card{background:var(--pannello);border:1px solid var(--bordo);border-radius:14px;padding:14px}
+    .card h2{margin:0 0 10px;font-size:14px;color:var(--muto);text-transform:uppercase;letter-spacing:.6px}
+    .mano{display:flex;flex-wrap:wrap;gap:7px}
+    .carta{position:relative;width:52px;height:74px;background:#fff;color:#111;border-radius:8px;
+      border:2px solid transparent;display:flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:15px;cursor:pointer;user-select:none;box-shadow:0 2px 5px rgba(0,0,0,.3)}
+    .carta small{position:absolute;top:3px;left:5px;font-size:10px;font-weight:600;color:#555}
+    .carta.sel{border-color:var(--oro);box-shadow:0 0 0 3px rgba(224,187,82,.35)}
+    .carta.matta{background:#2b2b3a;color:#fff}
+    .carta.matta small{color:#cfcfe0}
+    .seme-0{color:#c0392b}.seme-1{color:#c0392b}.seme-2{color:#222}.seme-3{color:#222}
+    table{border-collapse:collapse;width:100%;font-size:13px}
+    td,th{border:1px solid var(--bordo);padding:4px 7px;text-align:left}
+    th{color:var(--muto);font-weight:600}
+    .melds{display:flex;flex-wrap:wrap;gap:7px}
+    .meld{background:#0a3322;border:1px solid var(--bordo);border-radius:9px;padding:7px 9px;
+      font-size:13px;cursor:pointer;max-width:100%}
+    .meld:hover:not(:disabled){border-color:var(--oro)}
+    .meld:disabled{opacity:.5;cursor:default}
+    .meld.b{background:#5a3a00;border-color:#caa23a}
+    .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;background:#07331f;border:1px solid var(--bordo);color:var(--muto)}
+    .help{font-size:12px;color:var(--muto);line-height:1.5}
+    details summary{cursor:pointer;color:var(--muto);font-size:12px;margin-top:6px}
+    pre{background:#06281a;border:1px solid var(--bordo);border-radius:8px;padding:8px;max-height:220px;overflow:auto;font-size:11px}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <svg viewBox="0 0 40 44" aria-hidden="true"><path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="#e0bb52"/></svg>
+    <h1>Burraco Online</h1>
+    <span class="sub">2 umani vs 2 bot · server Rust</span>
+  </header>
+
+  <div class="wrap">
+    <div class="connessione">
+      <input id="server" value="ws://localhost:3000" aria-label="URL del server WebSocket" spellcheck="false">
+      <button class="btn oro" id="btnCrea" onclick="crea()">Crea partita</button>
+      <button class="btn" id="btnEntra" onclick="entra()">Entra con codice</button>
+    </div>
+
+    <div class="status" id="status">Inserisci l'URL del server (es. ws://localhost:3000) e premi «Crea partita».</div>
+    <p class="help" style="margin-top:6px">Modalità online <b>locale</b>: richiede il server Rust in esecuzione sul tuo PC
+      (avvialo con <code>cargo run -- --serve</code>, di default su <code>ws://localhost:3000</code>).
+      Apri questa pagina in due schede o su due dispositivi nella stessa rete per giocare in 2 umani contro 2 bot.</p>
+
+    <div class="azioni">
+      <button class="btn" id="btnPt" onclick="pesca('tallone')" disabled>Pesca tallone</button>
+      <button class="btn" id="btnPm" onclick="pesca('monte')" disabled>Pesca monte</button>
+      <button class="btn oro" id="btnCala" onclick="calaSel()" disabled>Cala</button>
+      <button class="btn oro" id="btnScarta" onclick="scartaSel()" disabled>Scarta</button>
+      <button class="btn" id="btnNext" onclick="act({tipo:'next'})" style="display:none">Smazzata successiva</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>La tua mano</h2>
+        <div class="mano" id="hand"></div>
+        <p class="help">Clicca le carte per selezionarle. Con 3+ carte premi <b>Cala</b>; con 1 carta <b>Scarta</b>. Per legare, seleziona 1 carta e clicca una delle tue combinazioni qui sotto.</p>
+      </div>
+      <div class="card">
+        <h2>Tavolo</h2>
+        <div id="board"></div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Stato grezzo (debug)</summary>
+      <pre id="json"></pre>
+    </details>
+  </div>
+
+<script>
+let ws, seat=-1, roomCode='', sel=new Set(), last=null;
+const $=id=>document.getElementById(id);
+
+function openConn(room){
+  const base=$('server').value.trim().replace(/\/+$/,'');
+  const url=base+'/ws'+(room?('?room='+room):'');
+  ws=new WebSocket(url);
+  ws.onmessage=e=>handle(JSON.parse(e.data));
+  ws.onclose=()=>status('Connessione chiusa.','err');
+  ws.onerror=()=>status('Errore di connessione al server.','err');
+}
+function crea(){ openConn(null); }
+function entra(){ const c=prompt("Codice stanza?"); if(c) openConn(c.toUpperCase()); }
+
+function status(t,kind){ const el=$('status'); el.textContent=t; el.className='status'+(kind?(' '+kind):''); }
+function handle(m){
+  if(m.type==='welcome'){ seat=m.seat; roomCode=m.room; status('Stanza '+m.room+' — sei il giocatore '+seat+' (di '+m.nGioc+')'); }
+  else if(m.type==='waiting'){ status('Stanza '+roomCode+' — '+m.msg); }
+  else if(m.type==='state'){ last=m.state; sel.clear(); render(last); }
+  else if(m.type==='error'){ status('Errore: '+m.msg,'err'); }
+}
+function myTurn(){ return last && last.turno===seat && last.fase!=='fine' && !last.finita; }
+
+function render(st){
+  $('json').textContent=JSON.stringify(st,null,1);
+  const me=st.seats[seat];
+
+  // mano
+  const hand=$('hand'); hand.innerHTML='';
+  for(const c of me.hand){
+    const d=document.createElement('div');
+    const seme=c.seme ?? -1;
+    d.className='carta'+(c.jolly?' matta':'')+(sel.has(c.id)?' sel':'');
+    d.innerHTML='<small class="seme-'+seme+'">'+(c.semeLabel||'')+'</small>'+c.etichetta;
+    d.onclick=()=>{ if(sel.has(c.id)) sel.delete(c.id); else sel.add(c.id); render(last); };
+    hand.appendChild(d);
+  }
+
+  // bottoni
+  const puoPescare = st.fase==='pesca' && myTurn();
+  $('btnPt').disabled = !puoPescare;
+  $('btnPm').disabled = !(puoPescare && st.monte.length>0);
+  $('btnCala').disabled = !(st.fase==='gioco' && myTurn() && sel.size>=3);
+  $('btnScarta').disabled = !(st.fase==='gioco' && myTurn() && sel.size===1);
+
+  // board
+  const board=$('board'); board.innerHTML='';
+  const t=document.createElement('table');
+  for(const s of st.seats){
+    const tr=document.createElement('tr');
+    tr.innerHTML='<th>P'+s.seat+' ('+s.team+')</th><td>mano:'+s.handCount+'</td><td>burrachi:'+s.burrachi+'</td><td>melds:'+s.melds.length+'</td>';
+    t.appendChild(tr);
+  }
+  const tr=document.createElement('tr');
+  tr.innerHTML='<th>Turno</th><td>'+(st.turno+(myTurn()?' (TUO)':''))+'</td><th>Tallone</th><td>'+st.talloneCount+'</td><th>Monte</th><td>'+st.monte.length+'</td>';
+  t.appendChild(tr);
+  const tr2=document.createElement('tr');
+  tr2.innerHTML='<th>Totali squadra</th><td>'+JSON.stringify(st.totaliSquadra)+'</td><th>Fase</th><td>'+st.fase+'</td>';
+  t.appendChild(tr2);
+  board.appendChild(t);
+
+  // mie combinazioni (cliccabili per legare)
+  const mt=document.createElement('div'); mt.style.marginTop='10px';
+  mt.innerHTML='<b>Le tue combinazioni</b> — seleziona 1 carta e cliccane una per legare:';
+  const wrap=document.createElement('div'); wrap.className='melds'; wrap.style.marginTop='6px';
+  for(let i=0;i<me.melds.length;i++){
+    const m=me.melds[i];
+    const b=document.createElement('button');
+    b.className='meld'+(m.burraco?' b':'');
+    const desc=m.slots.map(s=>s.carta.etichetta).join(' ')+(m.burraco?' ★BURRACO':'');
+    b.textContent='#'+i+' '+desc;
+    b.disabled=!(st.fase==='gioco' && myTurn() && sel.size===1);
+    b.onclick=()=>{ const id=[...sel][0]; act({tipo:'lega',indice:i,id}); };
+    wrap.appendChild(b);
+  }
+  mt.appendChild(wrap);
+  board.appendChild(mt);
+
+  // pozzetti
+  const pz=document.createElement('div'); pz.style.marginTop='8px';
+  pz.innerHTML='Pozzetti: '+st.pozzetti.map(p=>p.count+(p.taken?'(preso)':'')).join(' · ');
+  board.appendChild(pz);
+
+  $('btnNext').style.display=(st.finita && st.vincitore==null)?'inline-block':'none';
+}
+
+function pesca(s){ act({tipo:'pesca',sorgente:s}); }
+function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
+function scartaSel(){ if(sel.size===1){ act({tipo:'scarta',id:[...sel][0]}); } }
+function act(obj){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'action',action:obj})); else status('Non connesso.','err'); }
+</script>
+</body>
+</html>

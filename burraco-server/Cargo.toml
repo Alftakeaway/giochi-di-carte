@@ -1,0 +1,19 @@
+[package]
+name = "burraco-server"
+version = "0.1.0"
+edition = "2021"
+description = "Server autoritativo Rust per il Burraco online (2 umani vs 2 bot)"
+
+[[bin]]
+name = "burraco-server"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tower = "0.5"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+rand = "0.8"
+futures-util = "0.3"

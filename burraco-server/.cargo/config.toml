@@ -1,0 +1,14 @@
+# Build configuration for the Burraco server.
+#
+# The Rust toolchain installed on this machine is the GNU target
+# (x86_64-pc-windows-gnu), but the standalone MinGW binutils (dlltool/ar/ld)
+# are not available, so we link via the MSVC toolchain that ships with the
+# already-installed Visual Studio 2019 Build Tools. rustc auto-detects the
+# Windows SDK / VC libraries through `vswhere`, so only the linker path is
+# pinned here. `cargo build` then works with no extra environment setup.
+
+[build]
+target = "x86_64-pc-windows-msvc"
+
+[target.x86_64-pc-windows-msvc]
+linker = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC\\14.29.30133\\bin\\Hostx64\\x64\\link.exe"

@@ -100,6 +100,7 @@ const PREPARA = function () {
         mieAltezze: meldsMie.map(function (el) { return Math.round(r(el).h); }),
         footerBasso: r(q('.footer-tavolo')).b,
         traverso: document.querySelectorAll('#melds-0 .slot-traverso').length,
+        rango: getComputedStyle(q('#mano-giocatore .carta .rango')).fontSize,
         ordBtns: Array.prototype.map.call(document.querySelectorAll('#ordinamento .ord-btn'), function (b) {
           return { ordine: b.dataset.ordine, attivo: b.classList.contains('attivo'), visibile: b.getBoundingClientRect().width > 0 };
         })
@@ -115,6 +116,7 @@ const PREPARA = function () {
     verifica('le tue combinazioni si vedono per intero', m.mieDentro, m.mieAltezze);
     verifica('la mano non esce dallo schermo', m.footerBasso <= m.view + 1, { footer: m.footerBasso, view: m.view });
     verifica('il burraco mostra la carta di traverso', m.traverso >= 1, m.traverso);
+    verifica('il numero in angolo è cresciuto del 45% (22 px)', m.rango === '22px', m.rango);
     verifica('i tre comandi di ordinamento sono visibili', m.ordBtns.length === 3 && m.ordBtns.every(b => b.visibile), m.ordBtns);
     verifica('all\'inizio è attivo «Combinazioni»',
       m.ordBtns.filter(b => b.attivo).map(b => b.ordine).join(',') === 'combinazioni', m.ordBtns);

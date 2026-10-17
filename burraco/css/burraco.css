@@ -430,7 +430,7 @@ button { font-family: inherit; }
 .carta .angolo.basso { bottom: 3px; right: 4px; transform: rotate(180deg); }
 /* Il numero in angolo è grande: il seme sta già al centro della carta, quindi
  * nell'angolo non serve ripeterlo (e lo spazio guadagnato va tutto al numero). */
-.carta .angolo .rango { font-size: 26px; }
+.carta .angolo .rango { font-size: 22px; }
 .carta .angolo .seme { display: none; }
 .carta .centro {
   position: absolute;
@@ -672,7 +672,7 @@ button { font-family: inherit; }
 }
 /* nella pila si vede solo la striscia in alto: qui il seme serve, perché il
  * centro della carta è coperto dalla carta successiva */
-.meld .carta .angolo .rango { font-size: 16px; }
+.meld .carta .angolo .rango { font-size: 14px; }
 .meld .carta .angolo .seme { display: inline; font-size: 10px; }
 /* impilata resta scoperto solo il bordo superiore: valore e seme devono
  * stare sulla stessa riga per essere leggibili */

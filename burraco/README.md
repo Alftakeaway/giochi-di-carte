@@ -83,15 +83,24 @@ scorrere niente. Sui telefoni le tre colonne si impilano una sotto l'altra.
   sciolte restano in fondo.
 - In alto a destra della mano ci sono tre comandi con un clic:
   **Combinazioni** (default), **Numero** (dall'asso al re) e **Seme**.
-- Le carte disegnano il **numero in grande nell'angolo** e il seme al centro:
-  così si legge il valore senza avvicinare gli occhi, e il seme non viene
-  ripetuto su tutta la carta.
+- Le carte disegnano il **numero in grande in alto a sinistra** (una volta sola)
+  e il seme al centro: così si legge il valore senza avvicinare gli occhi, e il
+  seme non viene ripetuto su tutta la carta.
+- Le **pinelle** portano agli angoli il segno del jolly — in alto a destra e in
+  basso a sinistra a testa in giù — **nero o rosso secondo il seme**, come nelle
+  carte italiane. I **jolly** hanno lo stesso segno ma colorato (viola e oro) e
+  la scritta JOLLY in basso. Il bollino «MATTA» è stato eliminato: copriva il
+  numero e non serviva, il segno agli angoli dice già tutto.
 - Le combinazioni sono **impilate in verticale** e di ogni carta resta visibile
   la striscia in alto con valore e seme. Nel burraco la prima carta è messa
   **di traverso in basso**; un timbro dice se è `PULITO`, `SEMIPULITO` o `SPORCO`.
 - Il tavolo si adatta all'altezza dello schermo: su un portatile 1366×768 le
   carte rimpiccioliscono quel tanto che basta per far vedere tutto senza
   scorrere; sotto i 620 px di altezza la pagina scorre e la mano resta ancorata.
+- La barra delle azioni ha **altezza fissa**: l'esito della selezione compare in
+  basso a sinistra, fuori dal flusso, così a ogni pescata la mano non salta.
+  Sul telefono i pulsanti stanno su una riga sola e, se non entrano, si
+  scorrono di lato.
 - Le matte calate mostrano al centro il valore che rappresentano (es. `J ♥`), così
   la sequenza si legge a colpo d'occhio; il filetto viola e lo sfondo lilla
   ricordano che la carta è un jolly o una pinella.
@@ -100,11 +109,11 @@ scorrere niente. Sui telefoni le tre colonne si impilano una sotto l'altra.
 
 ```bash
 node test/engine.test.js        # regole, punteggi, casi limite (149 controlli)
-node test/simulazione.test.js   # 400 partite AI vs AI, invarianti su ogni smazzata
+node test/simulazione.test.js   # 200 partite AI vs AI, invarianti su ogni smazzata
 node test/browser.test.js       # gioca partite vere in Chromium (richiede playwright-core)
 node test/chiusura.test.js      # chiusura end-to-end: click reali e punti assegnati
 node test/drag.test.js          # trascinamento, pile verticali, tre tipi di burraco (44 controlli)
-node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento (38 controlli)
+node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento, carte, mano che non salta (72 controlli)
 node test/dettaglio.js          # primo piano delle carte (solo controllo visivo)
 node test/anteprima.js          # schermate del tavolo (solo controllo visivo)
 ```

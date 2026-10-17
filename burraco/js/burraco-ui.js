@@ -177,6 +177,27 @@
       '</svg>';
   }
 
+  /* Lo stesso segno della carta jolly, ma colorato: nero o rosso secondo il
+   * seme per le pinelle, viola e oro per i jolly. Sta negli angoli della
+   * carta (in alto a destra e in basso a sinistra, a testa in giù). */
+  function svgJollyAngolo(colore, decorato) {
+    let s = '<svg class="jolly-angolo-svg" viewBox="0 0 40 44" aria-hidden="true">' +
+      '<path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="' + colore + '"/>';
+    if (decorato) {
+      s += '<circle cx="4" cy="7" r="3.1" fill="#e0bb52"/>' +
+        '<circle cx="20" cy="4" r="3.1" fill="#e0bb52"/>' +
+        '<circle cx="36" cy="7" r="3.1" fill="#e0bb52"/>';
+    }
+    return s + '</svg>';
+  }
+
+  /* I due segni agli angoli che dicono «questa carta è una matta» senza
+   * coprire il numero (al posto del bollino MATTA, che lo copriva). */
+  function angoliMatta(colore, decorato) {
+    return '<span class="matta-angolo alto">' + svgJollyAngolo(colore, decorato) + '</span>' +
+      '<span class="matta-angolo basso">' + svgJollyAngolo(colore, decorato) + '</span>';
+  }
+
   function creaCartaEl(carta, opzioni) {
     const o = opzioni || {};
     const el = document.createElement('div');
@@ -194,12 +215,12 @@
       el.classList.add('matta-figurata');
       const r = E.RANGO_CORTO[o.valoreRappresentato] || String(o.valoreRappresentato);
       const s = E.SIMBOLO[o.seme] || (carta.seme ? E.SIMBOLO[carta.seme] : '') || '';
-      if (s === '\u2665' || s === '\u2666') el.classList.add('rossa');
+      const rossa = s === '\u2665' || s === '\u2666';
+      if (rossa) el.classList.add('rossa');
       el.innerHTML =
         '<span class="angolo alto"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
         '<span class="centro">' + s + '</span>' +
-        '<span class="angolo basso"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
-        '<span class="badge-matta">MATTA</span>';
+        angoliMatta(rossa ? '#c62828' : '#1d1d1d');
       if (o.titolo) el.title = o.titolo;
       return el;
     }
@@ -208,15 +229,14 @@
       el.innerHTML =
         '<span class="centro">' + svgJolly() + '</span>' +
         '<span class="etichetta-jolly">JOLLY</span>' +
-        '<span class="badge-matta">MATTA</span>';
+        angoliMatta('#7b1fa2', true);
     } else {
       const r = E.RANGO_CORTO[carta.valore] || String(carta.valore);
       const s = E.SIMBOLO[carta.seme] || '';
       el.innerHTML =
         '<span class="angolo alto"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
         '<span class="centro">' + s + '</span>' +
-        '<span class="angolo basso"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
-        (carta.valore === 2 ? '<span class="badge-matta">MATTA</span>' : '');
+        (carta.valore === 2 ? angoliMatta(carta.rossa ? '#c62828' : '#1d1d1d') : '');
     }
 
     if (o.titolo) el.title = o.titolo;
@@ -598,10 +618,14 @@
     bar.appendChild(anteprima);
 
     if (!selezionate.length) {
-      anteprima.className = 'anteprima guida';
-      anteprima.textContent = ui.spostamento
-        ? 'Tocca la combinazione che deve ricevere la carta, oppure trascinala.'
-        : 'Tocca una carta per scartarla, 3 o più carte per calare una combinazione, oppure trascina una carta su una combinazione.';
+      /* La guida lunga («tocca una carta per scartarla…») è stata tolta:
+       * stava nella barra e a ogni pescata faceva saltare su la mano.
+       * Resta solo l'aiuto mentre si sposta una carta, che compare
+       * quando il giocatore lo chiede. */
+      if (ui.spostamento) {
+        anteprima.className = 'anteprima guida';
+        anteprima.textContent = 'Tocca la combinazione che deve ricevere la carta, oppure trascinala.';
+      }
     }
 
     if (selezionate.length >= 3) {

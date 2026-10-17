@@ -1,10 +1,13 @@
 'use strict';
 /* Verifica che il tavolo non tagli niente, nemmeno sugli schermi bassi dei
  * portatili (15,6" = 1366x768 oppure 1536x864 con il zoom di Windows).
- * Copre i tre difetti segnalati giocando davvero:
+ * Copre i difetti segnalati giocando davvero:
  *   - le scritte Tallone / Monte tagliate a metà e il numero di carte sparito
  *   - le tue combinazioni che sparivano quando l'avversario calava le sue
  *   - l'ordinamento della mano (combinazioni / numero / seme)
+ *   - la scritta guida che a ogni pescata faceva saltare su la mano
+ *   - il bollino MATTA che copriva il numero, sostituito dai segni jolly
+ *     agli angoli (numero sceso di un altro 10%)
  *
  * Uso: node test/layout.test.js   (richiede playwright-core) */
 const path = require('path');
@@ -131,6 +134,22 @@ const PREPARA = function () {
         footerBasso: r(q('.footer-tavolo')).b,
         traverso: document.querySelectorAll('#melds-0 .slot-traverso').length,
         rango: getComputedStyle(q('#mano-giocatore .carta .rango')).fontSize,
+        carteMano: Array.prototype.slice.call(document.querySelectorAll('#mano-giocatore .carta')).map(function (el) {
+          const marc = el.querySelectorAll('.matta-angolo');
+          const svg = marc.length ? marc[0].querySelector('path') : null;
+          return {
+            id: el.dataset.id,
+            jolly: el.classList.contains('jolly'),
+            nRango: el.querySelectorAll('.rango').length,
+            nMarc: marc.length,
+            colore: svg ? getComputedStyle(svg).fill : null
+          };
+        }),
+        badge: document.querySelectorAll('.badge-matta').length,
+        anteprimaPos: (function () {
+          const a = q('#anteprima');
+          return a ? getComputedStyle(a).position : null;
+        })(),
         ordBtns: Array.prototype.map.call(document.querySelectorAll('#ordinamento .ord-btn'), function (b) {
           return { ordine: b.dataset.ordine, attivo: b.classList.contains('attivo'), visibile: b.getBoundingClientRect().width > 0 };
         })
@@ -146,11 +165,73 @@ const PREPARA = function () {
     verifica('le tue combinazioni si vedono per intero', m.mieDentro, m.mieAltezze);
     verifica('la mano non esce dallo schermo', m.footerBasso <= m.view + 1, { footer: m.footerBasso, view: m.view });
     verifica('il burraco mostra la carta di traverso', m.traverso >= 1, m.traverso);
-    verifica('il numero in angolo è cresciuto del 45% (22 px)', m.rango === '22px', m.rango);
+    verifica('il numero in angolo è sceso di un altro 10% (20 px)', m.rango === '20px', m.rango);
+    verifica('il bollino MATTA non c\'è più (copriva il numero)', m.badge === 0, m.badge);
+    verifica('il numero compare una volta sola, in alto a sinistra',
+      m.carteMano.every(function (c) { return c.jolly || c.nRango === 1; }),
+      m.carteMano.map(function (c) { return c.id + ':' + c.nRango; }));
+    const pinella = m.carteMano.filter(function (c) { return c.id === 'h2d'; })[0];
+    verifica('la pinella porta il segno jolly in entrambi gli angoli',
+      pinella && pinella.nMarc === 2, pinella);
+    verifica('il segno della pinella è rosso come il suo seme',
+      pinella && pinella.colore === 'rgb(198, 40, 40)', pinella && pinella.colore);
+    const jolly = m.carteMano.filter(function (c) { return c.id === 'hj'; })[0];
+    verifica('il jolly porta il segno colorato in entrambi gli angoli',
+      jolly && jolly.nMarc === 2 && jolly.colore === 'rgb(123, 31, 162)', jolly);
+    verifica('le carte normali non hanno segni agli angoli',
+      m.carteMano.every(function (c) { return c.id === 'h2d' || c.id === 'hj' || c.nMarc === 0; }),
+      m.carteMano.filter(function (c) { return c.nMarc > 0; }).map(function (c) { return c.id; }));
+    verifica('l\'anteprima è fuori dal flusso della barra', m.anteprimaPos === 'absolute', m.anteprimaPos);
     verifica('i tre comandi di ordinamento sono visibili', m.ordBtns.length === 3 && m.ordBtns.every(b => b.visibile), m.ordBtns);
     verifica('all\'inizio è attivo «Combinazioni»',
       m.ordBtns.filter(b => b.attivo).map(b => b.ordine).join(',') === 'combinazioni', m.ordBtns);
 
+    await page.close();
+  }
+
+  /* ------------------------------------------------- la mano non deve saltare */
+  /* La scritta guida stava DENTRO la barra delle azioni: a ogni pescata
+   * compariva, la barra cresceva di 34 px e la mano del giocatore saltava
+   * su (e poi giù quando spariva). Ora l'anteprima è fuori dal flusso:
+   * la mano deve restare ferma in tutte le fasi del turno. */
+  console.log('\n== la mano non salta ==');
+  {
+    const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
+    page.on('pageerror', e => errori.push('salto: ' + e));
+    await page.goto(URL_FILE, { waitUntil: 'load' });
+    await page.click('#btn-avvia');
+    await page.evaluate(() => { window.__burraco.ui.animazione = false; });
+    await page.waitForTimeout(250);
+
+    const leggiMano = () => page.evaluate(() =>
+      Math.round(document.querySelector('#mano-giocatore').getBoundingClientRect().top));
+
+    const prima = await leggiMano();
+    await page.evaluate(() => {
+      const btn = Array.prototype.slice.call(document.querySelectorAll('#barra-azioni .btn'))
+        .find(b => /Pesca dal tallone/.test(b.textContent));
+      if (btn) btn.click();
+    });
+    await page.waitForTimeout(300);
+    const dopo = await leggiMano();
+
+    /* seleziona tre carte: compare l'anteprima con l'esito della combinazione */
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => {
+        const c = document.querySelector('#mano-giocatore .carta.cliccabile:not(.selezionata)');
+        if (c) c.click();
+      });
+      await page.waitForTimeout(80);
+    }
+    const selezionate = await leggiMano();
+    const anteprimaPiena = await page.evaluate(() => {
+      const a = document.querySelector('#anteprima');
+      return a ? a.textContent.trim().length > 0 : false;
+    });
+
+    verifica('alla pescata la mano non si muove', prima === dopo, { prima, dopo });
+    verifica('con l\'anteprima la mano non si muove', prima === selezionate, { prima, selezionate });
+    verifica('l\'anteprima mostra l\'esito della selezione', anteprimaPiena === true, anteprimaPiena);
     await page.close();
   }
 

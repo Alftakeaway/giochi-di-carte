@@ -330,6 +330,7 @@ button { font-family: inherit; }
 .footer-tavolo {
   flex: 0 0 auto;
   background: rgba(0, 0, 0, .2);
+  position: relative;
 }
 .area-mano {
   flex: 0 0 auto;
@@ -427,11 +428,24 @@ button { font-family: inherit; }
   font-weight: 700;
 }
 .carta .angolo.alto { top: 3px; left: 4px; }
-.carta .angolo.basso { bottom: 3px; right: 4px; transform: rotate(180deg); }
 /* Il numero in angolo è grande: il seme sta già al centro della carta, quindi
- * nell'angolo non serve ripeterlo (e lo spazio guadagnato va tutto al numero). */
-.carta .angolo .rango { font-size: 22px; }
+ * nell'angolo non serve ripeterlo (e lo spazio guadagnato va tutto al numero).
+ * Il numero compare una volta sola, in alto a sinistra. */
+.carta .angolo .rango { font-size: 20px; }
 .carta .angolo .seme { display: none; }
+/* Segno «jolly» agli angoli delle pinelle e dei jolly: in alto a destra e in
+ * basso a sinistra a testa in giù, come nelle carte italiane. Nero o rosso
+ * secondo il seme per le pinelle, viola e oro per i jolly. */
+.carta .matta-angolo {
+  position: absolute;
+  width: 22%;
+  aspect-ratio: 40 / 44;
+  opacity: .92;
+  pointer-events: none;
+}
+.carta .matta-angolo.alto { top: 3px; right: 4px; }
+.carta .matta-angolo.basso { bottom: 3px; left: 4px; transform: rotate(180deg); }
+.carta .matta-angolo .jolly-angolo-svg { width: 100%; height: 100%; display: block; }
 .carta .centro {
   position: absolute;
   inset: 0;
@@ -460,18 +474,6 @@ button { font-family: inherit; }
   font-weight: 800;
   letter-spacing: .8px;
   color: #7b1fa2;
-}
-.carta .badge-matta {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  font-size: 8px;
-  font-weight: 800;
-  padding: 1px 3px;
-  border-radius: 4px;
-  background: #7b1fa2;
-  color: #fff;
-  letter-spacing: .3px;
 }
 
 .carta.selezionata {
@@ -672,7 +674,7 @@ button { font-family: inherit; }
 }
 /* nella pila si vede solo la striscia in alto: qui il seme serve, perché il
  * centro della carta è coperto dalla carta successiva */
-.meld .carta .angolo .rango { font-size: 14px; }
+.meld .carta .angolo .rango { font-size: 13px; }
 .meld .carta .angolo .seme { display: inline; font-size: 10px; }
 /* impilata resta scoperto solo il bordo superiore: valore e seme devono
  * stare sulla stessa riga per essere leggibili */
@@ -685,9 +687,10 @@ button { font-family: inherit; }
 }
 .meld .carta .centro { font-size: 20px; }
 .meld .carta .etichetta-jolly { font-size: 6.5px; bottom: 2px; }
-/* nella pila il timbro MATTA ruberebbe lo spazio del valore: la matta si
- * riconosce dal filetto viola a sinistra */
-.meld .carta .badge-matta { display: none; }
+/* il segno jolly degli angoli, in versione piccola per le carte impilate */
+.meld .carta .matta-angolo { width: 19%; aspect-ratio: 40 / 44; opacity: .9; }
+.meld .carta .matta-angolo.alto { top: 1px; right: 2px; }
+.meld .carta .matta-angolo.basso { bottom: 1px; left: 2px; }
 .meld .carta.matta-figurata {
   box-shadow: inset 3px 0 0 rgba(123, 31, 162, .8), inset 0 0 0 1.5px rgba(123, 31, 162, .45);
 }
@@ -806,7 +809,7 @@ body.trascinando .carta { cursor: grabbing; }
   flex: 0 0 auto;
   display: flex;
   gap: 8px;
-  padding: 6px 12px 10px;
+  padding: 6px 12px 24px;
   background: rgba(0, 0, 0, .3);
   border-top: 1px solid var(--bordo);
   flex-wrap: wrap;
@@ -814,18 +817,30 @@ body.trascinando .carta { cursor: grabbing; }
   justify-content: center;
 }
 .barra-azioni .spazio { flex: 1 1 auto; }
+/* L'anteprima (l'esito della selezione, l'aiuto mentre si sposta una carta)
+ * sta in basso a sinistra, FUORI dal flusso della barra: se stesse dentro,
+ * ogni sua comparsa farebbe crescere la barra e la mano salterebbe su
+ * a ogni pescata. È ancorata al piè di pagina (non alla barra) così sui
+ * telefoni, dove la barra scorre di lato, non viene mai tagliata. */
 .anteprima {
-  flex: 1 1 100%;
-  text-align: center;
-  font-size: 12.5px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  min-height: 0;
-  transition: .15s;
+  position: absolute;
+  left: 14px;
+  bottom: 5px;
+  max-width: 72%;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.25;
+  padding: 2px 9px;
+  border-radius: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 1;
 }
 .anteprima.valida { background: rgba(126, 226, 168, .16); color: #a8f0c6; }
 .anteprima.non-valida { background: rgba(255, 155, 155, .14); color: #ffc4c4; }
-.anteprima.guida { color: rgba(255, 255, 255, .5); font-size: 12px; }
+.anteprima.guida { color: rgba(255, 255, 255, .5); }
 .anteprima:empty { display: none; }
 
 /* --------------------------------------------------------------- overlay */
@@ -991,6 +1006,19 @@ body.trascinando .carta { cursor: grabbing; }
   .col-avv, .col-mie { overflow: visible; }
   .centro-destra { width: 100%; max-height: none; }
   .notifica { font-size: 12px; padding: 7px 12px; }
+  /* La barra non va a capo: con il ritorno a capo la pescata portava i
+   * pulsanti da due righe a una, la barra si accorciava e la mano del
+   * giocatore saltava giù. Su una riga sola l'altezza è fissa; se i
+   * pulsanti non entrano nello schermo, si scorrono di lato. */
+  .barra-azioni {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+  .barra-azioni::-webkit-scrollbar { display: none; }
+  .barra-azioni .btn { flex: 0 0 auto; }
   .footer-tavolo {
     position: sticky;
     bottom: 0;
@@ -1007,6 +1035,9 @@ body.trascinando .carta { cursor: grabbing; }
   .turno-badge { font-size: 11.5px; padding: 4px 9px; }
   .btn { padding: 9px 13px; font-size: 13px; }
   .meld .carta .centro { font-size: 17px; }
+  /* sui telefoni le carte delle combinazioni sono strette: il segno agli
+   * angoli ruba spazio al valore, la matta si riconosce dal filetto viola */
+  .meld .carta .matta-angolo { display: none; }
 }
 
 @media (max-width: 420px) {
@@ -1016,7 +1047,7 @@ body.trascinando .carta { cursor: grabbing; }
   .punteggio-box .nome { max-width: 68px; font-size: 11px; }
   .punteggio-box .delta { display: none; }
   .turno-badge { font-size: 11px; padding: 4px 7px; }
-  .barra-azioni { gap: 6px; padding: 6px 8px 10px; }
+  .barra-azioni { gap: 6px; padding: 6px 8px 22px; }
   .barra-azioni .btn { padding: 8px 10px; font-size: 12.5px; }
 }
 

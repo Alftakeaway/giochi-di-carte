@@ -1318,6 +1318,18 @@
    * ===================================================================== */
   collegaScelte();
 
+  /* Il gioco sta dentro il sito delle carte: il collegamento alla dashboard
+   * ha senso solo quando la pagina è servita da /burraco/. Da sola (cartella
+   * aperta da file:// o pubblicata come sito a sé) non avrebbe una dashboard
+   * a cui tornare, quindi lo si nasconde. */
+  (function collegaRitorno() {
+    const link = document.getElementById('link-giochi');
+    if (!link) return;
+    const servito = /^https?:$/.test(window.location.protocol) &&
+      /\/burraco(\/|$)/i.test(window.location.pathname);
+    if (!servito) link.hidden = true;
+  })();
+
   /* Aggancio di diagnostica: consente di pilotare la partita dalla console
    * del browser (utile per il debug e per i test automatici). */
   window.__burraco = {

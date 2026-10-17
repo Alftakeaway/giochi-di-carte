@@ -154,95 +154,82 @@
     return raggruppaMano(carte).reduce(function (acc, b) { return acc.concat(b.carte); }, []);
   }
 
-  /* Accende il bottone dell'ordinamento attivo. */
-  function aggiornaOrdinamento() {
-    $$('#ordinamento .ord-btn').forEach(function (btn) {
-      const attivo = btn.dataset.ordine === ui.ordineMano;
-      btn.classList.toggle('attivo', attivo);
-      btn.setAttribute('aria-pressed', attivo ? 'true' : 'false');
-    });
-  }
-
   /* =====================================================================
    * COSTRUZIONE ELEMENTI
    * ===================================================================== */
-  /* Il jolly è disegnato con un SVG: l'emoji 🃏 cambia aspetto (e a volte
-   * non esiste) da un sistema all'altro, il disegno no. */
-  function svgJolly() {
-    return '<svg class="jolly-svg" viewBox="0 0 40 44" aria-hidden="true">' +
-      '<path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="#7b1fa2"/>' +
-      '<circle cx="4" cy="7" r="3.1" fill="#e0bb52"/>' +
-      '<circle cx="20" cy="4" r="3.1" fill="#e0bb52"/>' +
-      '<circle cx="36" cy="7" r="3.1" fill="#e0bb52"/>' +
-      '</svg>';
+  /* Le facce delle carte sono immagini di un mazzo di dominio pubblico
+   * (Wikimedia Commons, categoria «Public domain playing cards», CC0:
+   * utilizzo libero anche commerciale, senza attribuzione). Sono fornite in
+   * JXL (formato principale, più leggero) con ripiego WebP per i browser
+   * che non lo decodificano ancora: il <picture> sceglie quello giusto. */
+  const NOME_FILE_RANGO = { 1: 'Ace', 11: 'Jack', 12: 'Queen', 13: 'King' };
+  const NOME_FILE_SEME = { cuori: 'Hearts', quadri: 'Diamonds', fiori: 'Clubs', picche: 'Spades' };
+
+  /* Percorso senza estensione dell'immagine che rappresenta la carta.
+   * Una matta calata mostra la carta che rappresenta (valore e seme
+   * passati nelle opzioni), non il 2 o il jolly che è in realtà. */
+  function fileFaccia(carta, o) {
+    if (carta.jolly) return 'img/carte/Joker_red';
+    const valore = (o && o.wild && o.valoreRappresentato) ? o.valoreRappresentato : carta.valore;
+    const seme = (o && o.seme) || carta.seme;
+    const r = NOME_FILE_RANGO[valore] || String(valore);
+    return 'img/carte/' + r + '_of_' + (NOME_FILE_SEME[seme] || 'Spades');
   }
 
-  /* Lo stesso segno della carta jolly, ma colorato: nero o rosso secondo il
-   * seme per le pinelle, viola e oro per i jolly. Sta negli angoli della
-   * carta (in alto a destra e in basso a sinistra, a testa in giù). */
-  function svgJollyAngolo(colore, decorato) {
-    let s = '<svg class="jolly-angolo-svg" viewBox="0 0 40 44" aria-hidden="true">' +
-      '<path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="' + colore + '"/>';
-    if (decorato) {
-      s += '<circle cx="4" cy="7" r="3.1" fill="#e0bb52"/>' +
-        '<circle cx="20" cy="4" r="3.1" fill="#e0bb52"/>' +
-        '<circle cx="36" cy="7" r="3.1" fill="#e0bb52"/>';
-    }
-    return s + '</svg>';
+  /* Nomignolo per il jolly: due mazzi, jolly rossi e neri alternati, come
+   * in un mazzo vero (le carte jolly del motore si chiamano j0…j3). */
+  function fileJolly(carta) {
+    const ultima = carta.id.charAt(carta.id.length - 1);
+    return 'img/carte/Joker_' + (ultima === '1' || ultima === '3' ? 'black' : 'red');
   }
 
-  /* I due segni agli angoli che dicono «questa carta è una matta» senza
-   * coprire il numero (al posto del bollino MATTA, che lo copriva). */
-  function angoliMatta(colore, decorato) {
-    return '<span class="matta-angolo alto">' + svgJollyAngolo(colore, decorato) + '</span>' +
-      '<span class="matta-angolo basso">' + svgJollyAngolo(colore, decorato) + '</span>';
+  /* Il <picture> con la faccia della carta. */
+  function facciaHtml(percorso, alt) {
+    return '<picture>' +
+      '<source type="image/jxl" srcset="' + percorso + '.jxl">' +
+      '<img class="faccia" src="' + percorso + '.webp" alt="' + escapeHtml(alt || '') + '" draggable="false">' +
+      '</picture>';
   }
+
+  /* Velo viola: dice «questa carta è una matta» (jolly o pinella) senza
+   * coprire nulla, a differenza del vecchio bollino MATTA. */
+  function veloMatta() { return '<span class="velo-matta"></span>'; }
 
   function creaCartaEl(carta, opzioni) {
     const o = opzioni || {};
     const el = document.createElement('div');
-    el.className = 'carta' + (carta.rossa ? ' rossa' : ' nera') + (carta.jolly ? ' jolly' : '');
+    el.className = 'carta' + (carta.jolly ? ' jolly' : '') + (carta.rossa ? ' rossa' : '');
     el.dataset.id = carta.id;
 
     if (o.coperta) {
       el.classList.add('coperta');
+      el.innerHTML = facciaHtml('img/carte/retro', 'Carta coperta');
+      if (o.titolo) el.title = o.titolo;
       return el;
     }
 
-    /* matta dentro una combinazione: si comporta come la carta che rappresenta
-     * (angolo con valore e seme) ma resta riconoscibile dal colore viola */
     if (o.wild && o.valoreRappresentato) {
+      /* matta dentro una combinazione: mostra la carta che rappresenta,
+       * con il velo viola che la distingue dalle carte naturali */
       el.classList.add('matta-figurata');
-      const r = E.RANGO_CORTO[o.valoreRappresentato] || String(o.valoreRappresentato);
-      const s = E.SIMBOLO[o.seme] || (carta.seme ? E.SIMBOLO[carta.seme] : '') || '';
-      const rossa = s === '\u2665' || s === '\u2666';
-      if (rossa) el.classList.add('rossa');
-      el.innerHTML =
-        '<span class="angolo alto"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
-        '<span class="centro">' + s + '</span>' +
-        /* il numero anche in basso a destra, a testa in giù, come nelle carte
-         * vere: si legge il valore da qualsiasi verso si tenga la carta */
-        '<span class="angolo basso"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
-        angoliMatta(rossa ? '#c62828' : '#1d1d1d');
+      const alt = (carta.nomeLungo || 'Matta') + ' che vale come ' +
+        (E.RANGO_CORTO[o.valoreRappresentato] || o.valoreRappresentato) +
+        (E.SIMBOLO[o.seme] || '');
+      el.innerHTML = facciaHtml(fileFaccia(carta, o), alt) + veloMatta();
       if (o.titolo) el.title = o.titolo;
       return el;
     }
 
     if (carta.jolly) {
-      el.innerHTML =
-        '<span class="centro">' + svgJolly() + '</span>' +
-        '<span class="etichetta-jolly">JOLLY</span>' +
-        angoliMatta('#7b1fa2', true);
-    } else {
-      const r = E.RANGO_CORTO[carta.valore] || String(carta.valore);
-      const s = E.SIMBOLO[carta.seme] || '';
-      el.innerHTML =
-        '<span class="angolo alto"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
-        '<span class="centro">' + s + '</span>' +
-        '<span class="angolo basso"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
-        (carta.valore === 2 ? angoliMatta(carta.rossa ? '#c62828' : '#1d1d1d') : '');
+      el.classList.add('matta');
+      el.innerHTML = facciaHtml(fileJolly(carta), 'Jolly') + veloMatta();
+      if (o.titolo) el.title = o.titolo;
+      return el;
     }
 
+    if (carta.valore === 2) el.classList.add('matta');
+    el.innerHTML = facciaHtml(fileFaccia(carta, o), carta.nomeLungo || '') +
+      (carta.valore === 2 ? veloMatta() : '');
     if (o.titolo) el.title = o.titolo;
     return el;
   }
@@ -413,6 +400,7 @@
         cont.appendChild(v);
       }
       melds.forEach(function (m, idx) { cont.appendChild(creaMeldEl(m, g, idx)); });
+      aggiustaPassoMelds(cont);
     }
     const p = ui.partita;
     const bur = p.contaBurrachi(ui.manoVisibile);
@@ -433,9 +421,10 @@
     return testo;
   }
 
-  /* Una combinazione è una pila verticale: le carte si sovrappongono e si
-   * vede solo l'angolo in alto a sinistra. Quando è un burraco l'ultima carta
-   * in basso viene messa di traverso, come si fa al tavolo. */
+  /* Una combinazione è una fila di carte dritte, non a ventaglio: ognuna
+   * scavalca la precedente e si vede l'indice in alto a sinistra di tutte,
+   * come quando si tengono le carte in mano. Quando è un burraco la prima
+   * carta sta di traverso sotto la fila, come si fa al tavolo. */
   function creaMeldEl(m, g, idx) {
     const el = document.createElement('div');
     el.className = 'meld' + (m.burraco
@@ -474,9 +463,9 @@
       c.dataset.slot = i;
       c.dataset.giocatore = g;
       c.dataset.indiceMeld = idx;
-      /* impilate come sul tavolo: la carta più in basso copre quella sopra,
-       * così di ognuna resta visibile solo l'angolo in alto a sinistra */
-      c.style.zIndex = String(200 - i);
+      /* la carta dopo copre quella prima: di ognuna resta visibile la
+       * striscia di sinistra con valore e seme (ordine naturale del DOM) */
+      c.style.zIndex = String(i);
       /* solo le combinazioni del giocatore locale si possono riordinare */
       if (g === ui.manoVisibile) {
         c.classList.add('spostabile');
@@ -487,24 +476,47 @@
       return c;
     };
 
-    /* dall'ultima carta alla seconda: la prima finisce in fondo alla pila */
-    for (let i = m.slots.length - 1; i >= 1; i--) pila.appendChild(nodo(m.slots[i], i));
-
-    const prima = m.slots[0];
+    /* la carta di traverso (la prima del burraco) sta fuori dalla fila:
+     * sotto, al centro — è il segno del burraco, come al tavolo */
     if (m.burraco) {
+      for (let i = 1; i < m.slots.length; i++) pila.appendChild(nodo(m.slots[i], i));
+      el.appendChild(pila);
       const supporto = document.createElement('div');
       supporto.className = 'slot-traverso';
       supporto.style.zIndex = '200';
-      supporto.appendChild(nodo(prima, 0));
+      supporto.appendChild(nodo(m.slots[0], 0));
       supporto.firstChild.classList.add('di-traverso');
-      pila.appendChild(supporto);
+      el.appendChild(supporto);
     } else {
-      pila.appendChild(nodo(prima, 0));
+      for (let i = 0; i < m.slots.length; i++) pila.appendChild(nodo(m.slots[i], i));
+      el.appendChild(pila);
     }
-    el.appendChild(pila);
 
     if (m.nuovo) { el.classList.add('appena-giocata'); delete m.nuovo; }
     return el;
+  }
+
+  /* Le file lunghe non devono sbordare dalla colonna: se la combinazione è
+   * più larga dello spazio che c'è, le carte si accavallano di più (il
+   * passo si restringe) ma restano dritte. Il valore finisce in --passo,
+   * che il CSS usa per il margine negativo fra una carta e l'altra. */
+  function aggiustaPassoMelds(cont) {
+    const stile = getComputedStyle(document.documentElement);
+    const cw = parseFloat(stile.getPropertyValue('--cw-meld')) || 60;
+    const passoBase = parseFloat(stile.getPropertyValue('--passo-meld')) || 28;
+    const PASSO_MINIMO = 16;
+    const disponibile = (cont.clientWidth || 0) - 12;
+    if (disponibile <= cw) return;
+    Array.prototype.slice.call(cont.children).forEach(function (meldEl) {
+      if (!meldEl.classList || !meldEl.contains) return;
+      if (!meldEl.classList.contains('meld')) return;
+      const n = meldEl.querySelectorAll('.pila-meld > .carta').length;
+      if (n < 2) return;
+      let passo = passoBase;
+      const massimo = Math.floor((disponibile - cw) / (n - 1));
+      if (massimo < passo) passo = Math.max(PASSO_MINIMO, massimo);
+      meldEl.style.setProperty('--passo', passo + 'px');
+    });
   }
 
   function renderMano() {
@@ -513,14 +525,8 @@
     const g = ui.manoVisibile;
     const manoEl = $('#mano-giocatore');
     manoEl.innerHTML = '';
-
-    $('#etichetta-mano').textContent = (ui.config.modo === 'cpu' && g === 0)
-      ? 'La tua mano'
-      : 'Mano di ' + nomeGiocatore(g);
-    $('#pill-mano').textContent = carte(s.mani[g].length);
-    $('#pill-pozzetto-mio').textContent = s.pozzettoPreso[g]
-      ? 'pozzetto preso'
-      : 'pozzetto pronto (' + (s.pozzetti[g] || []).length + ')';
+    /* le scritte sulla mano (nome, quante carte, pozzetto) sono nella barra
+     * dei comandi: renderAzioni le scrive in informazioniMano() */
 
     /* in due sullo stesso dispositivo la mano resta coperta finché non si
      * conferma il passaggio del dispositivo */
@@ -578,6 +584,67 @@
     });
   }
 
+  /* Filetto verticale fra le scritte e i pulsanti veri e propri. */
+  function separatoreBarra() {
+    const el = document.createElement('div');
+    el.className = 'separatore';
+    return el;
+  }
+
+  /* Le scritte che stavano sopra le carte in mano (nome della mano, quante
+   * carte, pozzetto) e i comandi di ordinamento ora stanno nella barra dei
+   * comandi: così la fascia di verde sopra le carte resta libera e le carte
+   * hanno tutto lo spazio. La barra non va mai a capo, quindi la sua altezza
+   * è fissa e la mano non salta quando cambiano i pulsanti. */
+  function informazioniMano() {
+    const p = ui.partita;
+    const s = p.stato;
+    const g = ui.manoVisibile;
+    const info = document.createElement('div');
+    info.className = 'info-mano';
+    const nome = document.createElement('span');
+    nome.textContent = (ui.config.modo === 'cpu' && g === 0) ? 'La tua mano' : 'Mano di ' + nomeGiocatore(g);
+    info.appendChild(nome);
+    const quante = document.createElement('span');
+    quante.className = 'pill';
+    quante.id = 'pill-mano';
+    quante.textContent = carte(s.mani[g].length);
+    info.appendChild(quante);
+    const pozzetto = document.createElement('span');
+    pozzetto.className = 'pill';
+    pozzetto.id = 'pill-pozzetto-mio';
+    pozzetto.textContent = s.pozzettoPreso[g]
+      ? 'pozzetto preso'
+      : 'pozzetto pronto (' + (s.pozzetti[g] || []).length + ')';
+    info.appendChild(pozzetto);
+    return info;
+  }
+
+  /* I tre comandi di ordinamento, ricreati a ogni render della barra (il
+   * click è gestito con la delega su #barra-azioni). */
+  function comandiOrdinamento() {
+    const box = document.createElement('div');
+    box.className = 'ordinamento';
+    box.id = 'ordinamento';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Ordina le carte in mano');
+    [
+      { ordine: 'combinazioni', testo: 'Combinazioni', titolo: 'Mette vicine le carte che formano già tris o scale' },
+      { ordine: 'numero', testo: 'Numero', titolo: 'Ordina per valore, dall\'asso al re' },
+      { ordine: 'seme', testo: 'Seme', titolo: 'Raggruppa per seme' }
+    ].forEach(function (o) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ord-btn' + (ui.ordineMano === o.ordine ? ' attivo' : '');
+      b.dataset.ordine = o.ordine;
+      b.title = o.titolo;
+      b.textContent = o.testo;
+      b.setAttribute('aria-pressed', ui.ordineMano === o.ordine ? 'true' : 'false');
+      box.appendChild(b);
+    });
+    return box;
+  }
+
   function renderAzioni() {
     const p = ui.partita;
     const s = p.stato;
@@ -586,6 +653,12 @@
 
     if (s.finita) return;
 
+    /* tutto il contenuto sta in un solo figlio: la barra scorre di lato se
+     * avanza, ma non va mai a capo (l'altezza non deve cambiare) */
+    const interno = document.createElement('div');
+    interno.className = 'barra-interno';
+    bar.appendChild(interno);
+
     const g = ui.manoVisibile;
     const eMioTurno = s.turno === g && !ui.botInCorso && !ui.attesaConsegna;
 
@@ -593,9 +666,12 @@
       const att = document.createElement('div');
       att.style.cssText = 'font-size:13.5px;opacity:.7;padding:10px';
       att.textContent = '⏳ In attesa di ' + nomeGiocatore(s.turno) + '…';
-      bar.appendChild(att);
+      interno.appendChild(att);
       return;
     }
+
+    interno.appendChild(informazioniMano());
+    interno.appendChild(separatoreBarra());
 
     /* ---- fase di pesca ---- */
     if (s.fase === 'pesca') {
@@ -608,9 +684,11 @@
           esegui(function () { return p.prendiMonte(); }, 'pesca');
         });
       b2.disabled = s.monte.length === 0;
-      bar.appendChild(b1);
-      bar.appendChild(b2);
-      bar.appendChild(suggerimento());
+      interno.appendChild(b1);
+      interno.appendChild(b2);
+      interno.appendChild(suggerimento());
+      interno.appendChild(separatoreBarra());
+      interno.appendChild(comandiOrdinamento());
       return;
     }
 
@@ -619,7 +697,21 @@
     const anteprima = document.createElement('div');
     anteprima.className = 'anteprima';
     anteprima.id = 'anteprima';
+    /* l'anteprima sta fuori dal flusso (ancorata al piè di pagina), non
+     * dentro il contenuto che scorre: se stesse dentro, la barra cambierebbe
+     * larghezza e la mano salterebbe */
     bar.appendChild(anteprima);
+
+    if (!selezionate.length) {
+      /* La guida lunga («tocca una carta per scartarla…») è stata tolta:
+       * stava nella barra e a ogni pescata faceva saltare su la mano.
+       * Resta solo l'aiuto mentre si sposta una carta, che compare
+       * quando il giocatore lo chiede. */
+      if (ui.spostamento) {
+        anteprima.className = 'anteprima guida';
+        anteprima.textContent = 'Tocca la combinazione che deve ricevere la carta, oppure trascinala.';
+      }
+    }
 
     if (!selezionate.length) {
       /* La guida lunga («tocca una carta per scartarla…») è stata tolta:
@@ -672,7 +764,7 @@
         esegui(function () { return p.cala(carteSelezionate().map(function (c) { return c.id; })); }, 'cala');
       });
     bCala.disabled = !(selezionate.length >= 3 && p.calaAmmissibile(g, selezionate));
-    bar.appendChild(bCala);
+    interno.appendChild(bCala);
 
     const bScarta = pulsante(
       (selezionate.length === 1 && p.chiudeCon(g, selezionate[0].id)) ? '🏁 Chiudi la smazzata' : '⬇️ Scarta',
@@ -681,15 +773,17 @@
         esegui(function () { return p.scarta(carteSelezionate()[0].id); }, 'scarta');
       });
     bScarta.disabled = !(selezionate.length === 1 && !p.scartoVietato(g, selezionate[0].id));
-    bar.appendChild(bScarta);
+    interno.appendChild(bScarta);
 
     if (selezionate.length) {
-      bar.appendChild(pulsante('✕ Annulla', 'btn-icona', function () {
+      interno.appendChild(pulsante('✕ Annulla', 'btn-icona', function () {
         ui.selezione.clear();
         render();
       }));
     }
-    bar.appendChild(suggerimento());
+    interno.appendChild(suggerimento());
+    interno.appendChild(separatoreBarra());
+    interno.appendChild(comandiOrdinamento());
   }
 
   function suggerimento() {
@@ -1258,17 +1352,17 @@
     $('#btn-regole-avvio').addEventListener('click', function () { $('#overlay-regole').hidden = false; });
     $('#btn-chiudi-regole').addEventListener('click', function () { $('#overlay-regole').hidden = true; });
 
-    /* ordine delle carte in mano: combinazioni possibili, numero o seme */
-    $$('#ordinamento .ord-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        if (!ui.partita) return;
-        if (ui.ordineMano === btn.dataset.ordine) return;
-        ui.ordineMano = btn.dataset.ordine;
-        aggiornaOrdinamento();
-        render();
-      });
+    /* ordine delle carte in mano: i tre bottoni ora stanno nella barra dei
+     * comandi e vengono ricreati a ogni render, quindi il click lo si
+     * intercetta con la delega su #barra-azioni */
+    $('#barra-azioni').addEventListener('click', function (ev) {
+      const btn = ev.target && ev.target.closest ? ev.target.closest('.ord-btn') : null;
+      if (!btn) return;
+      if (!ui.partita) return;
+      if (ui.ordineMano === btn.dataset.ordine) return;
+      ui.ordineMano = btn.dataset.ordine;
+      render();
     });
-    aggiornaOrdinamento();
 
     $('#btn-menu').addEventListener('click', function () { $('#overlay-menu').hidden = false; });
     $('#btn-menu-riprendi').addEventListener('click', function () { $('#overlay-menu').hidden = true; });

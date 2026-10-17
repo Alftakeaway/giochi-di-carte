@@ -136,28 +136,38 @@ async function trascina(page, selDa, selA, presa) {
   console.log('situazione preparata:', JSON.stringify(inizio));
 
   /* =====================================================================
-   * 1. LE COMBINAZIONI SONO PILE VERTICALI
+   * 1. LE COMBINAZIONI SONO FILE ORIZZONTALI ACCAVALLATE, NON A VENTAGLIO
    * ===================================================================== */
   const pile = await page.evaluate(function () {
     const meld = document.querySelectorAll('#melds-0 .meld')[0];
     const carte = Array.prototype.slice.call(meld.querySelectorAll('.pila-meld .carta'));
     const box = carte.map(function (c) {
       const r = c.getBoundingClientRect();
-      return { y: Math.round(r.y), h: Math.round(r.height), z: getComputedStyle(c).zIndex };
+      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), z: getComputedStyle(c).zIndex };
     });
-    const alt = carte.map(function (c) { return Math.round(c.getBoundingClientRect().top); });
+    const xs = carte.map(function (c) { return Math.round(c.getBoundingClientRect().left); });
+    const ys = carte.map(function (c) { return Math.round(c.getBoundingClientRect().top); });
     return {
       quante: carte.length,
       box: box,
-      verticale: alt.every(function (v, i) { return i === 0 || v > alt[i - 1]; }),
-      passo: alt.length > 1 ? Math.round(alt[1] - alt[0]) : 0,
-      cartaH: box.length ? box[0].h : 0
+      /* fila orizzontale dritta: la x cresce e le carte restano allineate
+       * in alto (non ruotate come nel ventaglio) */
+      orizzontale: xs.every(function (v, i) { return i === 0 || v > xs[i - 1]; }),
+      allineate: ys.every(function (v) { return v === ys[0]; }),
+      passo: xs.length > 1 ? Math.round(xs[1] - xs[0]) : 0,
+      /* la striscia di sinistra (valore e seme) di ogni carta sta sopra la
+       * precedente: lo z-index cresce con la posizione */
+      zCrescente: box.every(function (b, i) { return i === 0 || parseInt(b.z, 10) > parseInt(box[i - 1].z, 10); }),
+      cartaW: box.length ? box[0].w : 0
     };
   });
   verifica('la combinazione ha 4 carte', pile.quante === 4, pile.quante);
-  verifica('le carte sono disposte in verticale (y crescente)', pile.verticale, pile.box);
-  verifica('le carte si sovrappongono (passo minore dell\'altezza)',
-    pile.passo > 0 && pile.passo < pile.cartaH, { passo: pile.passo, altezza: pile.cartaH });
+  verifica('le carte sono in fila orizzontale dritta (x crescente, non a ventaglio)',
+    pile.orizzontale && pile.allineate, pile.box);
+  verifica('le carte si accavallano dritte (passo minore della larghezza)',
+    pile.passo > 0 && pile.passo < pile.cartaW, { passo: pile.passo, larghezza: pile.cartaW });
+  verifica('la striscia di ogni carta (valore e seme) sta sopra la precedente',
+    pile.zCrescente, pile.box.map(function (b) { return b.z; }));
 
   /* =====================================================================
    * 2. LA MANO È ORDINATA PER COMBINAZIONI POSSIBILI

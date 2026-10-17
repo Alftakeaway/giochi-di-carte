@@ -6,11 +6,9 @@
  *   - le tue combinazioni che sparivano quando l'avversario calava le sue
  *   - l'ordinamento della mano (combinazioni / numero / seme)
  *   - la scritta guida che a ogni pescata faceva saltare su la mano
- *   - il bollino MATTA che copriva il numero, sostituito dai segni jolly
- *     agli angoli (numero sceso di un altro 10%)
- *   - la scritta JOLLY che copriva il segno in basso a sinistra
- *   - il numero in basso a destra tolto per sbaglio: rimesso come nelle
- *     carte da poker, con le carte ingrandite del 20% così niente si tocca
+ *   - le carte (mano e combinazioni) sono immagini reali, ingrandite, con
+ *     il formato vero 5:7, e le matte portano il velo viola al posto dei
+ *     vecchi segni agli angoli (che coprivano il numero)
  *
  * Uso: node test/layout.test.js   (richiede playwright-core) */
 const path = require('path');
@@ -67,9 +65,6 @@ const PREPARA = function () {
   const errori = [];
 
   /* ------------------------------------------------- schermata iniziale */
-  /* Il contenitore del tavolo si chiama .campo-gioco proprio perché .campo
-   * è già usato dai gruppi della schermata iniziale: quando si chiamava
-   * .campo anche lui, le etichette andavano a capo su due righe. */
   console.log('\n== schermata iniziale ==');
   {
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
@@ -112,7 +107,7 @@ const PREPARA = function () {
     await page.waitForTimeout(200);
 
     const m = await page.evaluate(function () {
-      const r = e => { const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, h: b.height, l: b.left, r: b.right }; };
+      const r = e => { const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, h: b.height, l: b.left, r: b.right, w: b.width }; };
       const q = s => document.querySelector(s);
       const centro = q('.col-centro');
       const avv = q('.col-avv');
@@ -122,6 +117,7 @@ const PREPARA = function () {
       const meldsAvv = Array.prototype.slice.call(document.querySelectorAll('#melds-1 .meld'));
       const meldsMie = Array.prototype.slice.call(document.querySelectorAll('#melds-0 .meld'));
       const rc = r(centro), ra = r(avv), rm = r(mie);
+      const meldCard = q('#melds-0 .pila-meld > .carta');
       return {
         view: window.innerHeight,
         larghezza: window.innerWidth,
@@ -129,56 +125,35 @@ const PREPARA = function () {
         didT: r(didT), didM: r(didM),
         pilaT: r(q('#tallone-pila')), pilaM: r(q('#monte-pila')),
         testoTallone: didT.textContent, testoMonte: didM.textContent,
-        /* ogni combinazione deve stare dentro la sua colonna */
         avvDentro: meldsAvv.every(function (el) { const b = r(el); return b.t >= ra.t - 1 && b.b <= ra.b + 1; }),
         avvAltezze: meldsAvv.map(function (el) { return Math.round(r(el).h); }),
         mieDentro: meldsMie.every(function (el) { const b = r(el); return b.t >= rm.t - 1 && b.b <= rm.b + 1; }),
         mieAltezze: meldsMie.map(function (el) { return Math.round(r(el).h); }),
         footerBasso: r(q('.footer-tavolo')).b,
         traverso: document.querySelectorAll('#melds-0 .slot-traverso').length,
-        rango: getComputedStyle(q('#mano-giocatore .carta .rango')).fontSize,
+        meldCard: meldCard ? { w: Math.round(meldCard.getBoundingClientRect().width), h: Math.round(meldCard.getBoundingClientRect().height) } : null,
+        meldPasso: (function () {
+          const c1 = q('#melds-0 .pila-meld > .carta:nth-child(1)');
+          const c2 = q('#melds-0 .pila-meld > .carta:nth-child(2)');
+          if (!c1 || !c2) return null;
+          return Math.round(c2.getBoundingClientRect().left - c1.getBoundingClientRect().left);
+        })(),
         carteMano: Array.prototype.slice.call(document.querySelectorAll('#mano-giocatore .carta')).map(function (el) {
-          const marc = el.querySelectorAll('.matta-angolo');
-          const svg = marc.length ? marc[0].querySelector('path') : null;
-          const rb = el.querySelector('.angolo.basso .rango');
-          const rbR = rb ? rb.getBoundingClientRect() : null;
-          const mbR = (function () { const e = el.querySelector('.matta-angolo.basso'); return e ? e.getBoundingClientRect() : null; })();
+          const img = el.querySelector('img.faccia');
           return {
             id: el.dataset.id,
-            jolly: el.classList.contains('jolly'),
-            nRango: el.querySelectorAll('.rango').length,
-            nMarc: marc.length,
-            colore: svg ? getComputedStyle(svg).fill : null,
-            bassoTesto: rb ? rb.textContent : null,
-            bassoRot: (function () { const a = el.querySelector('.angolo.basso'); return a ? getComputedStyle(a).transform : null; })(),
-            /* il numero in basso a destra non deve toccare il segno jolly
-             * in basso a sinistra (pinelle e jolly) */
-            numeroSulSegno: rbR && mbR &&
-              rbR.left < mbR.right - 0.5 && mbR.left < rbR.right - 0.5 &&
-              rbR.top < mbR.bottom - 0.5 && mbR.top < rbR.bottom - 0.5
+            coperta: el.classList.contains('coperta'),
+            matta: el.classList.contains('matta') || el.classList.contains('matta-figurata'),
+            src: img ? (img.getAttribute('srcset') || img.getAttribute('src')) : null,
+            haVelo: !!el.querySelector('.velo-matta')
           };
         }),
         badge: document.querySelectorAll('.badge-matta').length,
-        /* rettangoli reali del jolly in mano: la scritta non deve toccare
-         * né il segno in basso a sinistra né la corona, e la corona non
-         * deve toccare il segno in alto a destra */
-        jollyRects: (function () {
-          const el = document.querySelector('#mano-giocatore .carta.jolly');
-          if (!el) return null;
-          const rr = s => { const e = el.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, l: b.left, r: b.right }; };
-          const tocca = (a, c) => a && c && a.l < c.r - 0.5 && c.l < a.r - 0.5 && a.t < c.b - 0.5 && c.t < a.b - 0.5;
-          const parola = rr('.etichetta-jolly'), basso = rr('.matta-angolo.basso'),
-            corona = rr('.jolly-svg'), alto = rr('.matta-angolo.alto');
-          return {
-            parola: parola, basso: basso, corona: corona, alto: alto,
-            sovrapposizioni: [tocca(parola, basso), tocca(parola, corona), tocca(corona, alto)].filter(Boolean).length
-          };
-        })(),
         anteprimaPos: (function () {
           const a = q('#anteprima');
           return a ? getComputedStyle(a).position : null;
         })(),
-        ordBtns: Array.prototype.map.call(document.querySelectorAll('#ordinamento .ord-btn'), function (b) {
+        ordBtns: Array.prototype.map.call(document.querySelectorAll('.barra-azioni .ord-btn'), function (b) {
           return { ordine: b.dataset.ordine, attivo: b.classList.contains('attivo'), visibile: b.getBoundingClientRect().width > 0 };
         })
       };
@@ -193,33 +168,27 @@ const PREPARA = function () {
     verifica('le tue combinazioni si vedono per intero', m.mieDentro, m.mieAltezze);
     verifica('la mano non esce dallo schermo', m.footerBasso <= m.view + 1, { footer: m.footerBasso, view: m.view });
     verifica('il burraco mostra la carta di traverso', m.traverso >= 1, m.traverso);
-    verifica('il numero in angolo è sceso di un altro 10% (20 px)', m.rango === '20px', m.rango);
+    verifica('le combinazioni usano carte ingrandite (>= 48px) col formato vero 5:7',
+      m.meldCard && m.meldCard.w >= 48 && Math.abs((m.meldCard.h / m.meldCard.w) - 1.4) < 0.06, m.meldCard);
+    verifica('le carte delle combinazioni si accavallano dritte (passo < larghezza)',
+      m.meldPasso !== null && m.meldPasso > 0 && m.meldPasso < m.meldCard.w, m.meldPasso);
     verifica('il bollino MATTA non c\'è più (copriva il numero)', m.badge === 0, m.badge);
-    verifica('il numero compare due volte: in alto a sinistra e in basso a destra',
-      m.carteMano.every(function (c) { return c.jolly || c.nRango === 2; }),
-      m.carteMano.map(function (c) { return c.id + ':' + c.nRango; }));
-    verifica('il numero in basso è a testa in giù (rotate 180)',
-      m.carteMano.every(function (c) { return c.jolly || /matrix\(-1, 0, 0, -1, 0, 0\)/.test(c.bassoRot || ''); }),
-      m.carteMano.filter(function (c) { return !c.jolly; }).map(function (c) { return c.id + ':' + c.bassoRot; }));
-    verifica('il numero in basso a destra non copre il segno jolly in basso a sinistra',
-      m.carteMano.every(function (c) { return !c.numeroSulSegno; }),
-      m.carteMano.filter(function (c) { return c.numeroSulSegno; }).map(function (c) { return c.id; }));
+    verifica('ogni carta in mano ha una faccia reale (immagine .webp)',
+      m.carteMano.every(function (c) { return c.coperta || (c.src && /\.webp$/.test(c.src)); }),
+      m.carteMano.map(function (c) { return c.id + ':' + c.src; }));
+    verifica('le matte hanno il velo viola al posto dei segni agli angoli',
+      m.carteMano.filter(function (c) { return c.matta; }).every(function (c) { return c.haVelo; }),
+      m.carteMano.filter(function (c) { return c.matta; }).map(function (c) { return c.id + ':' + c.haVelo; }));
+    verifica('le carte normali non hanno il velo matta',
+      m.carteMano.filter(function (c) { return !c.matta && !c.coperta; }).every(function (c) { return !c.haVelo; }),
+      m.carteMano.filter(function (c) { return c.haVelo && !c.matta; }).map(function (c) { return c.id; }));
     const pinella = m.carteMano.filter(function (c) { return c.id === 'h2d'; })[0];
-    verifica('la pinella porta il segno jolly in entrambi gli angoli',
-      pinella && pinella.nMarc === 2, pinella);
-    verifica('il segno della pinella è rosso come il suo seme',
-      pinella && pinella.colore === 'rgb(198, 40, 40)', pinella && pinella.colore);
+    verifica('la pinella è marcata come matta (velo viola)', pinella && pinella.matta && pinella.haVelo, pinella);
     const jolly = m.carteMano.filter(function (c) { return c.id === 'hj'; })[0];
-    verifica('il jolly porta il segno colorato in entrambi gli angoli',
-      jolly && jolly.nMarc === 2 && jolly.colore === 'rgb(123, 31, 162)', jolly);
-    verifica('le carte normali non hanno segni agli angoli',
-      m.carteMano.every(function (c) { return c.id === 'h2d' || c.id === 'hj' || c.nMarc === 0; }),
-      m.carteMano.filter(function (c) { return c.nMarc > 0; }).map(function (c) { return c.id; }));
+    verifica('il jolly è marcato come matta (velo viola)', jolly && jolly.matta && jolly.haVelo, jolly);
     verifica('l\'anteprima è fuori dal flusso della barra', m.anteprimaPos === 'absolute', m.anteprimaPos);
-    verifica('sul jolly la scritta non copre né il segno in basso né la corona',
-      m.jollyRects && m.jollyRects.sovrapposizioni === 0,
-      m.jollyRects && { parola: m.jollyRects.parola, basso: m.jollyRects.basso, corona: m.jollyRects.corona, alto: m.jollyRects.alto });
-    verifica('i tre comandi di ordinamento sono visibili', m.ordBtns.length === 3 && m.ordBtns.every(b => b.visibile), m.ordBtns);
+    verifica('i tre comandi di ordinamento sono nella barra e visibili',
+      m.ordBtns.length === 3 && m.ordBtns.every(b => b.visibile), m.ordBtns);
     verifica('all\'inizio è attivo «Combinazioni»',
       m.ordBtns.filter(b => b.attivo).map(b => b.ordine).join(',') === 'combinazioni', m.ordBtns);
 
@@ -229,7 +198,8 @@ const PREPARA = function () {
   /* ------------------------------------------------- la mano non deve saltare */
   /* La scritta guida stava DENTRO la barra delle azioni: a ogni pescata
    * compariva, la barra cresceva di 34 px e la mano del giocatore saltava
-   * su (e poi giù quando spariva). Ora l'anteprima è fuori dal flusso:
+   * su (e poi giù quando spariva). Ora l'anteprima è fuori dal flusso e
+   * tutte le scritte (nome, pozzetto, ordinamento) stanno nella barra fissa:
    * la mano deve restare ferma in tutte le fasi del turno. */
   console.log('\n== la mano non salta ==');
   {
@@ -291,25 +261,25 @@ const PREPARA = function () {
   verifica('la matta della scala non finisce in mezzo alle carte sciolte',
     inizio.slice(0, 4).join(',') === 'h8,h9,h10,h2d' || inizio.slice(0, 3).join(',') === 'h8,h9,h10', inizio);
 
-  await page.click('#ordinamento .ord-btn[data-ordine="numero"]');
+  await page.click('.barra-azioni .ord-btn[data-ordine="numero"]');
   await page.waitForTimeout(120);
   const perNumero = await page.evaluate(leggi);
   verifica('«Numero» ordina dal valore più basso al più alto',
     perNumero.join(',') === 'h2d,h3,h5,h8,h9,h10,h12,hj', perNumero);
   verifica('il jolly resta in fondo con «Numero»', perNumero[perNumero.length - 1] === 'hj', perNumero);
   const attivoNumero = await page.evaluate(function () {
-    return Array.prototype.filter.call(document.querySelectorAll('#ordinamento .ord-btn'),
+    return Array.prototype.filter.call(document.querySelectorAll('.barra-azioni .ord-btn'),
       function (b) { return b.classList.contains('attivo'); }).map(function (b) { return b.dataset.ordine; }).join(',');
   });
   verifica('si accende solo il comando «Numero»', attivoNumero === 'numero', attivoNumero);
 
-  await page.click('#ordinamento .ord-btn[data-ordine="seme"]');
+  await page.click('.barra-azioni .ord-btn[data-ordine="seme"]');
   await page.waitForTimeout(120);
   const perSeme = await page.evaluate(leggi);
   verifica('«Seme» raggruppa cuori, quadri, fiori, picche',
     perSeme.join(',') === 'h8,h9,h10,h2d,h3,h5,h12,hj', perSeme);
 
-  await page.click('#ordinamento .ord-btn[data-ordine="combinazioni"]');
+  await page.click('.barra-azioni .ord-btn[data-ordine="combinazioni"]');
   await page.waitForTimeout(120);
   const tornato = await page.evaluate(leggi);
   verifica('tornando su «Combinazioni» la scala si ricompatta',

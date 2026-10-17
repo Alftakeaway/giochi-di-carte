@@ -7,7 +7,7 @@
   <meta name="description" content="Burraco italiano completo: gioca contro il computer o in due sullo stesso dispositivo, con tutte le regole ufficiali.">
   <title>Burraco — Giochi di Carte Italiani</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/burraco.css?v=9">
+  <link rel="stylesheet" href="css/burraco.css?v=11">
 </head>
 <body>
 
@@ -155,19 +155,10 @@
 
     <footer class="footer-tavolo">
       <div class="area-mano">
-        <div class="etichetta-zona">
-          <span id="etichetta-mano">La tua mano</span>
-          <span class="pill" id="pill-mano"></span>
-          <span class="pill" id="pill-pozzetto-mio"></span>
-          <div class="ordinamento" id="ordinamento" role="group" aria-label="Ordina le carte in mano">
-            <button class="ord-btn attivo" type="button" data-ordine="combinazioni"
-                    title="Mette vicine le carte che formano già tris o scale">Combinazioni</button>
-            <button class="ord-btn" type="button" data-ordine="numero"
-                    title="Ordina per valore, dall'asso al re">Numero</button>
-            <button class="ord-btn" type="button" data-ordine="seme"
-                    title="Raggruppa per seme">Seme</button>
-          </div>
-        </div>
+        <!-- Le scritte che stavano qui sopra (nome della mano, quante carte,
+             pozzetto, comandi di ordinamento) sono state spostate nella
+             barra dei comandi in basso: così questa fascia di verde resta
+             libera e le carte in mano hanno tutto lo spazio. -->
         <div class="mano" id="mano-giocatore"></div>
       </div>
 
@@ -226,7 +217,7 @@
           <li><strong>Sequenza:</strong> almeno 3 carte consecutive dello stesso seme.</li>
           <li><strong>Matte:</strong> jolly e pinelle (tutti i 2). Massimo <strong>una matta</strong> per combinazione; due solo se nella sequenza c'è la pinella del seme stesso al posto naturale del 2.</li>
           <li>Una matta non esce mai dal gioco: se possiedi la carta naturale che rappresenta, puoi <strong>sostituirla</strong> e la matta si sposta all'estremità restando calata.</li>
-          <li>Le combinazioni si dispongono sul tavolo <strong>impilate in verticale</strong>: di ogni carta resta visibile l'angolo con valore e seme.</li>
+          <li>Le combinazioni si dispongono sul tavolo come le carte in mano: <strong>dritte e una sopra l'altra</strong>, non a ventaglio. Di ogni carta resta visibile l'angolo in alto a sinistra con valore e seme.</li>
         </ul>
 
         <h3>Spostare una carta da una combinazione all'altra</h3>
@@ -234,7 +225,7 @@
           <li><strong>Trascina</strong> la carta da una combinazione a un'altra: se ci entra viene integrata subito, e i punti delle due combinazioni si aggiornano.</li>
           <li>In alternativa <strong>tocca</strong> la carta e poi la combinazione di destinazione (comodo sul telefono).</li>
           <li>La combinazione di partenza deve restare valida e con almeno 3 carte; un burraco non si può scomporre.</li>
-          <li>La mano si ordina da sola mettendo vicine le carte che formano già un tris o una scala. In basso a destra, sopra le carte, i tre comandi <strong>Combinazioni</strong>, <strong>Numero</strong> e <strong>Seme</strong> cambiano ordinamento con un clic.</li>
+          <li>La mano si ordina da sola mettendo vicine le carte che formano già un tris o una scala. Nella barra dei comandi in basso, i tre pulsanti <strong>Combinazioni</strong>, <strong>Numero</strong> e <strong>Seme</strong> cambiano ordinamento con un clic.</li>
         </ul>
 
         <h3>Burraco</h3>
@@ -293,6 +284,6 @@
 
   <script src="js/burraco-engine.js?v=4"></script>
   <script src="js/burraco-ai.js?v=4"></script>
-  <script src="js/burraco-ui.js?v=6"></script>
+  <script src="js/burraco-ui.js?v=8"></script>
 </body>
 </html>

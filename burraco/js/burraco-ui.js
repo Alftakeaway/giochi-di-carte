@@ -220,6 +220,9 @@
       el.innerHTML =
         '<span class="angolo alto"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
         '<span class="centro">' + s + '</span>' +
+        /* il numero anche in basso a destra, a testa in giù, come nelle carte
+         * vere: si legge il valore da qualsiasi verso si tenga la carta */
+        '<span class="angolo basso"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
         angoliMatta(rossa ? '#c62828' : '#1d1d1d');
       if (o.titolo) el.title = o.titolo;
       return el;
@@ -236,6 +239,7 @@
       el.innerHTML =
         '<span class="angolo alto"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
         '<span class="centro">' + s + '</span>' +
+        '<span class="angolo basso"><span class="rango">' + r + '</span><span class="seme">' + s + '</span></span>' +
         (carta.valore === 2 ? angoliMatta(carta.rossa ? '#c62828' : '#1d1d1d') : '');
     }
 

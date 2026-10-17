@@ -9,6 +9,8 @@
  *   - il bollino MATTA che copriva il numero, sostituito dai segni jolly
  *     agli angoli (numero sceso di un altro 10%)
  *   - la scritta JOLLY che copriva il segno in basso a sinistra
+ *   - il numero in basso a destra tolto per sbaglio: rimesso come nelle
+ *     carte da poker, con le carte ingrandite del 20% così niente si tocca
  *
  * Uso: node test/layout.test.js   (richiede playwright-core) */
 const path = require('path');
@@ -138,12 +140,22 @@ const PREPARA = function () {
         carteMano: Array.prototype.slice.call(document.querySelectorAll('#mano-giocatore .carta')).map(function (el) {
           const marc = el.querySelectorAll('.matta-angolo');
           const svg = marc.length ? marc[0].querySelector('path') : null;
+          const rb = el.querySelector('.angolo.basso .rango');
+          const rbR = rb ? rb.getBoundingClientRect() : null;
+          const mbR = (function () { const e = el.querySelector('.matta-angolo.basso'); return e ? e.getBoundingClientRect() : null; })();
           return {
             id: el.dataset.id,
             jolly: el.classList.contains('jolly'),
             nRango: el.querySelectorAll('.rango').length,
             nMarc: marc.length,
-            colore: svg ? getComputedStyle(svg).fill : null
+            colore: svg ? getComputedStyle(svg).fill : null,
+            bassoTesto: rb ? rb.textContent : null,
+            bassoRot: (function () { const a = el.querySelector('.angolo.basso'); return a ? getComputedStyle(a).transform : null; })(),
+            /* il numero in basso a destra non deve toccare il segno jolly
+             * in basso a sinistra (pinelle e jolly) */
+            numeroSulSegno: rbR && mbR &&
+              rbR.left < mbR.right - 0.5 && mbR.left < rbR.right - 0.5 &&
+              rbR.top < mbR.bottom - 0.5 && mbR.top < rbR.bottom - 0.5
           };
         }),
         badge: document.querySelectorAll('.badge-matta').length,
@@ -183,9 +195,15 @@ const PREPARA = function () {
     verifica('il burraco mostra la carta di traverso', m.traverso >= 1, m.traverso);
     verifica('il numero in angolo è sceso di un altro 10% (20 px)', m.rango === '20px', m.rango);
     verifica('il bollino MATTA non c\'è più (copriva il numero)', m.badge === 0, m.badge);
-    verifica('il numero compare una volta sola, in alto a sinistra',
-      m.carteMano.every(function (c) { return c.jolly || c.nRango === 1; }),
+    verifica('il numero compare due volte: in alto a sinistra e in basso a destra',
+      m.carteMano.every(function (c) { return c.jolly || c.nRango === 2; }),
       m.carteMano.map(function (c) { return c.id + ':' + c.nRango; }));
+    verifica('il numero in basso è a testa in giù (rotate 180)',
+      m.carteMano.every(function (c) { return c.jolly || /matrix\(-1, 0, 0, -1, 0, 0\)/.test(c.bassoRot || ''); }),
+      m.carteMano.filter(function (c) { return !c.jolly; }).map(function (c) { return c.id + ':' + c.bassoRot; }));
+    verifica('il numero in basso a destra non copre il segno jolly in basso a sinistra',
+      m.carteMano.every(function (c) { return !c.numeroSulSegno; }),
+      m.carteMano.filter(function (c) { return c.numeroSulSegno; }).map(function (c) { return c.id; }));
     const pinella = m.carteMano.filter(function (c) { return c.id === 'h2d'; })[0];
     verifica('la pinella porta il segno jolly in entrambi gli angoli',
       pinella && pinella.nMarc === 2, pinella);

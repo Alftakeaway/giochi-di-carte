@@ -83,9 +83,14 @@ scorrere niente. Sui telefoni le tre colonne si impilano una sotto l'altra.
   sciolte restano in fondo.
 - In alto a destra della mano ci sono tre comandi con un clic:
   **Combinazioni** (default), **Numero** (dall'asso al re) e **Seme**.
-- Le carte disegnano il **numero in grande in alto a sinistra** (una volta sola)
-  e il seme al centro: così si legge il valore senza avvicinare gli occhi, e il
-  seme non viene ripetuto su tutta la carta.
+- Le carte disegnano il **numero in grande due volte** — in alto a sinistra e
+  in basso a destra a testa in giù, come nelle carte da poker — così il valore
+  si legge da qualsiasi verso si tenga la carta. Il seme sta al centro, bello
+  grande, e non viene ripetuto negli angoli: lo spazio guadagnato va al numero.
+- Le carte sono state **ingrandite del 20%** (62→74 px su schermo grande,
+  50→60 sui portatili, 44→53 sui telefoni): con più cose disegnate dentro,
+  numero, segni e seme non si toccano — come in un mazzo vero, dove gli angoli
+  e il centro restano ben separati.
 - Le **pinelle** portano agli angoli il segno del jolly — in alto a destra e in
   basso a sinistra a testa in giù — **nero o rosso secondo il seme**, come nelle
   carte italiane. I **jolly** hanno lo stesso segno ma colorato (viola e oro): la
@@ -114,7 +119,7 @@ node test/simulazione.test.js   # 200 partite AI vs AI, invarianti su ogni smazz
 node test/browser.test.js       # gioca partite vere in Chromium (richiede playwright-core)
 node test/chiusura.test.js      # chiusura end-to-end: click reali e punti assegnati
 node test/drag.test.js          # trascinamento, pile verticali, tre tipi di burraco (44 controlli)
-node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento, carte, mano che non salta (73 controlli)
+node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento, carte, mano che non salta, numero in basso a destra, niente che si tocca (81 controlli)
 node test/dettaglio.js          # primo piano delle carte (solo controllo visivo)
 node test/anteprima.js          # schermate del tavolo (solo controllo visivo)
 ```

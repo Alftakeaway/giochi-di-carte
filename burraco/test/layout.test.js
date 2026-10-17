@@ -136,7 +136,7 @@ const PREPARA = function () {
           const c1 = q('#melds-0 .pila-meld > .carta:nth-child(1)');
           const c2 = q('#melds-0 .pila-meld > .carta:nth-child(2)');
           if (!c1 || !c2) return null;
-          return Math.round(c2.getBoundingClientRect().left - c1.getBoundingClientRect().left);
+          return Math.round(c2.getBoundingClientRect().top - c1.getBoundingClientRect().top);
         })(),
         carteMano: Array.prototype.slice.call(document.querySelectorAll('#mano-giocatore .carta')).map(function (el) {
           const img = el.querySelector('img.faccia');
@@ -149,6 +149,21 @@ const PREPARA = function () {
           };
         }),
         badge: document.querySelectorAll('.badge-matta').length,
+        manoGeo: (function () {
+          const carte = Array.prototype.slice.call(document.querySelectorAll('#mano-giocatore .carta'));
+          const box = carte.map(function (c) {
+            const b = c.getBoundingClientRect();
+            return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) };
+          });
+          return {
+            quante: box.length,
+            box: box,
+            dritta: box.every(function (c) { return Math.abs(c.y - box[0].y) <= 1; }),
+            crescente: box.every(function (c, i) { return i === 0 || c.x > box[i - 1].x; }),
+            passo: box.length > 1 ? box[1].x - box[0].x : 0,
+            larghezza: box.length ? box[0].w : 0
+          };
+        })(),
         anteprimaPos: (function () {
           const a = q('#anteprima');
           return a ? getComputedStyle(a).position : null;
@@ -170,8 +185,12 @@ const PREPARA = function () {
     verifica('il burraco mostra la carta di traverso', m.traverso >= 1, m.traverso);
     verifica('le combinazioni usano carte ingrandite (>= 48px) col formato vero 5:7',
       m.meldCard && m.meldCard.w >= 48 && Math.abs((m.meldCard.h / m.meldCard.w) - 1.4) < 0.06, m.meldCard);
-    verifica('le carte delle combinazioni si accavallano dritte (passo < larghezza)',
-      m.meldPasso !== null && m.meldPasso > 0 && m.meldPasso < m.meldCard.w, m.meldPasso);
+    verifica('le carte delle combinazioni si accavallano dritte (passo < altezza)',
+      m.meldPasso !== null && m.meldPasso > 0 && m.meldPasso < m.meldCard.h, m.meldPasso);
+    verifica('la mano è una fila dritta di carte che si accavallano (non a ventaglio)',
+      m.manoGeo.quante > 1 && m.manoGeo.dritta && m.manoGeo.crescente &&
+      m.manoGeo.passo > 0 && m.manoGeo.passo < m.manoGeo.larghezza,
+      { passo: m.manoGeo.passo, larghezza: m.manoGeo.larghezza, quante: m.manoGeo.quante });
     verifica('il bollino MATTA non c\'è più (copriva il numero)', m.badge === 0, m.badge);
     verifica('ogni carta in mano ha una faccia reale (immagine .webp)',
       m.carteMano.every(function (c) { return c.coperta || (c.src && /\.webp$/.test(c.src)); }),

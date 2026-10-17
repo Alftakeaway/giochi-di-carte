@@ -136,7 +136,7 @@ async function trascina(page, selDa, selA, presa) {
   console.log('situazione preparata:', JSON.stringify(inizio));
 
   /* =====================================================================
-   * 1. LE COMBINAZIONI SONO FILE ORIZZONTALI ACCAVALLATE, NON A VENTAGLIO
+   * 1. LE COMBINAZIONI SONO PILE VERTICALI ACCAVALLATE, NON A VENTAGLIO
    * ===================================================================== */
   const pile = await page.evaluate(function () {
     const meld = document.querySelectorAll('#melds-0 .meld')[0];
@@ -150,23 +150,23 @@ async function trascina(page, selDa, selA, presa) {
     return {
       quante: carte.length,
       box: box,
-      /* fila orizzontale dritta: la x cresce e le carte restano allineate
-       * in alto (non ruotate come nel ventaglio) */
-      orizzontale: xs.every(function (v, i) { return i === 0 || v > xs[i - 1]; }),
-      allineate: ys.every(function (v) { return v === ys[0]; }),
-      passo: xs.length > 1 ? Math.round(xs[1] - xs[0]) : 0,
-      /* la striscia di sinistra (valore e seme) di ogni carta sta sopra la
-       * precedente: lo z-index cresce con la posizione */
+      /* pila verticale dritta: la y cresce e le carte restano allineate
+       * (non ruotate come nel ventaglio) */
+      verticale: ys.every(function (v, i) { return i === 0 || v > ys[i - 1]; }),
+      allineate: xs.every(function (v) { return v === xs[0]; }),
+      passo: ys.length > 1 ? Math.round(ys[1] - ys[0]) : 0,
+      /* la striscia in alto (valore e seme) di ogni carta sta sopra quella
+       * precedente: lo z-index cresce con la posizione nella pila */
       zCrescente: box.every(function (b, i) { return i === 0 || parseInt(b.z, 10) > parseInt(box[i - 1].z, 10); }),
-      cartaW: box.length ? box[0].w : 0
+      cartaH: box.length ? box[0].h : 0
     };
   });
   verifica('la combinazione ha 4 carte', pile.quante === 4, pile.quante);
-  verifica('le carte sono in fila orizzontale dritta (x crescente, non a ventaglio)',
-    pile.orizzontale && pile.allineate, pile.box);
-  verifica('le carte si accavallano dritte (passo minore della larghezza)',
-    pile.passo > 0 && pile.passo < pile.cartaW, { passo: pile.passo, larghezza: pile.cartaW });
-  verifica('la striscia di ogni carta (valore e seme) sta sopra la precedente',
+  verifica('le carte sono in pila verticale dritta (y crescente, non a ventaglio)',
+    pile.verticale && pile.allineate, pile.box);
+  verifica('le carte si accavallano dritte (passo minore dell\'altezza)',
+    pile.passo > 0 && pile.passo < pile.cartaH, { passo: pile.passo, altezza: pile.cartaH });
+  verifica('la striscia in alto di ogni carta (valore e seme) sta sopra la precedente',
     pile.zCrescente, pile.box.map(function (b) { return b.z; }));
 
   /* =====================================================================

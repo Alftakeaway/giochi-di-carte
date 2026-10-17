@@ -22,7 +22,7 @@
   --ch: 106px;
   --cw-meld: 66px;
   --ch-meld: 92px;
-  --passo-meld: 32px;
+  --passo-meld: 20px;
   --cw-back: 34px;
   --ch-back: 48px;
   --raggio: 9px;
@@ -557,10 +557,10 @@ button { font-family: inherit; }
   font-style: italic;
 }
 
-/* Una combinazione è una fila di carte dritte (non a ventaglio): ognuna
- * scavalca la precedente e resta scoperto l'angolo in alto a sinistra con
- * valore e seme — come quando si tengono le carte in mano, ma senza
- * inclinarle. La carta di traverso del burraco sta sotto la fila. */
+/* Una combinazione è una pila verticale di carte dritte (non a ventaglio):
+ * ognuna scavalca quella sopra e resta scoperta la striscia in alto con
+ * valore e seme — come quando si calano le carte sul tavolo. La carta di
+ * traverso del burraco sta in fondo alla pila. */
 .meld {
   display: flex;
   flex-direction: column;
@@ -594,14 +594,14 @@ button { font-family: inherit; }
 
 .meld .pila-meld {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
 }
-/* ogni carta scavalca la precedente: si vede la striscia sinistra con
- * valore e seme. Il passo si restringe da sé per le file lunghe
- * (renderMelds calcola --passo in base allo spazio disponibile). */
+/* ogni carta scavalca quella sopra: si vede la striscia in alto con valore
+ * e seme. Il passo si restringe da sé per le pile lunghe (renderMelds
+ * calcola --passo in base allo spazio disponibile). */
 .meld .pila-meld > * + * {
-  margin-left: calc(var(--passo, var(--passo-meld)) - var(--cw-meld));
+  margin-top: calc(var(--passo, var(--passo-meld)) - var(--ch-meld));
 }
 
 .meld .carta {
@@ -968,7 +968,7 @@ body.trascinando .carta { cursor: grabbing; }
     --ch: 94px;
     --cw-meld: 64px;
     --ch-meld: 90px;
-    --passo-meld: 30px;
+    --passo-meld: 18px;
   }
 }
 @media (min-width: 721px) and (max-height: 790px) {
@@ -977,7 +977,7 @@ body.trascinando .carta { cursor: grabbing; }
     --ch: 84px;
     --cw-meld: 60px;
     --ch-meld: 84px;
-    --passo-meld: 28px;
+    --passo-meld: 17px;
   }
 }
 /* finestre molto basse: il tavolo scorre e la mano resta ancorata in basso */
@@ -993,7 +993,7 @@ body.trascinando .carta { cursor: grabbing; }
     --ch: 89px;
     --cw-meld: 54px;
     --ch-meld: 76px;
-    --passo-meld: 25px;
+    --passo-meld: 15px;
   }
 
   /* su schermi piccoli il tavolo scorre e il piè di pagina resta ancorato */
@@ -1026,7 +1026,7 @@ body.trascinando .carta { cursor: grabbing; }
 }
 
 @media (max-width: 420px) {
-  :root { --cw: 53px; --ch: 76px; --cw-meld: 48px; --ch-meld: 67px; --passo-meld: 21px; }
+  :root { --cw: 53px; --ch: 76px; --cw-meld: 48px; --ch-meld: 67px; --passo-meld: 14px; }
   /* a 390px il nome del giocatore serve più del delta dell'ultima smazzata */
   .punteggio-box { padding: 4px 7px; gap: 5px; }
   .punteggio-box .nome { max-width: 68px; font-size: 11px; }

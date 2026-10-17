@@ -421,10 +421,10 @@
     return testo;
   }
 
-  /* Una combinazione è una fila di carte dritte, non a ventaglio: ognuna
-   * scavalca la precedente e si vede l'indice in alto a sinistra di tutte,
-   * come quando si tengono le carte in mano. Quando è un burraco la prima
-   * carta sta di traverso sotto la fila, come si fa al tavolo. */
+  /* Una combinazione è una pila verticale di carte dritte (non a ventaglio):
+   * ognuna scavalca quella sopra e resta scoperta la striscia in alto con
+   * valore e seme, come quando si calano le carte sul tavolo. Quando è un
+   * burraco la prima carta sta di traverso in fondo alla pila. */
   function creaMeldEl(m, g, idx) {
     const el = document.createElement('div');
     el.className = 'meld' + (m.burraco
@@ -463,9 +463,10 @@
       c.dataset.slot = i;
       c.dataset.giocatore = g;
       c.dataset.indiceMeld = idx;
-      /* la carta dopo copre quella prima: di ognuna resta visibile la
-       * striscia di sinistra con valore e seme (ordine naturale del DOM) */
-      c.style.zIndex = String(i);
+      /* impilate in verticale come sul tavolo: la carta sopra copre quella da
+       * sotto, così di ognuna resta visibile solo l'angolo in alto a sinistra
+       * con valore e seme */
+      c.style.zIndex = String(200 - i);
       /* solo le combinazioni del giocatore locale si possono riordinare */
       if (g === ui.manoVisibile) {
         c.classList.add('spostabile');
@@ -476,44 +477,48 @@
       return c;
     };
 
-    /* la carta di traverso (la prima del burraco) sta fuori dalla fila:
+    /* la carta di traverso (la prima del burraco) sta in fondo alla pila:
      * sotto, al centro — è il segno del burraco, come al tavolo */
+    for (let i = m.slots.length - 1; i >= 1; i--) pila.appendChild(nodo(m.slots[i], i));
+    const prima = m.slots[0];
     if (m.burraco) {
-      for (let i = 1; i < m.slots.length; i++) pila.appendChild(nodo(m.slots[i], i));
-      el.appendChild(pila);
       const supporto = document.createElement('div');
       supporto.className = 'slot-traverso';
       supporto.style.zIndex = '200';
-      supporto.appendChild(nodo(m.slots[0], 0));
+      supporto.appendChild(nodo(prima, 0));
       supporto.firstChild.classList.add('di-traverso');
-      el.appendChild(supporto);
+      pila.appendChild(supporto);
     } else {
-      for (let i = 0; i < m.slots.length; i++) pila.appendChild(nodo(m.slots[i], i));
-      el.appendChild(pila);
+      pila.appendChild(nodo(prima, 0));
     }
+    el.appendChild(pila);
 
     if (m.nuovo) { el.classList.add('appena-giocata'); delete m.nuovo; }
     return el;
   }
 
-  /* Le file lunghe non devono sbordare dalla colonna: se la combinazione è
-   * più larga dello spazio che c'è, le carte si accavallano di più (il
-   * passo si restringe) ma restano dritte. Il valore finisce in --passo,
-   * che il CSS usa per il margine negativo fra una carta e l'altra. */
+  /* Le pile lunghe non devono sbordare dalla colonna: se la combinazione è
+   * più alta dello spazio che c'è, le carte si accavallano di più (il passo
+   * si restringe) ma restano dritte. Il valore finisce in --passo, che il
+   * CSS usa per il margine negativo fra una carta e l'altra. */
   function aggiustaPassoMelds(cont) {
     const stile = getComputedStyle(document.documentElement);
     const cw = parseFloat(stile.getPropertyValue('--cw-meld')) || 60;
-    const passoBase = parseFloat(stile.getPropertyValue('--passo-meld')) || 28;
-    const PASSO_MINIMO = 16;
-    const disponibile = (cont.clientWidth || 0) - 12;
-    if (disponibile <= cw) return;
+    const ch = parseFloat(stile.getPropertyValue('--ch-meld')) || cw * 1.4;
+    const passoBase = parseFloat(stile.getPropertyValue('--passo-meld')) || 20;
+    const PASSO_MINIMO = 11;
+    /* l'altezza utile è quella della colonna (che scorre se serve) meno lo
+     * spazio per la testata e i bordi */
+    const colonna = cont.parentElement;
+    const disponibile = ((colonna && colonna.clientHeight) || 0) - 26;
+    if (disponibile <= ch) return;
     Array.prototype.slice.call(cont.children).forEach(function (meldEl) {
       if (!meldEl.classList || !meldEl.contains) return;
       if (!meldEl.classList.contains('meld')) return;
       const n = meldEl.querySelectorAll('.pila-meld > .carta').length;
       if (n < 2) return;
       let passo = passoBase;
-      const massimo = Math.floor((disponibile - cw) / (n - 1));
+      const massimo = Math.floor((disponibile - ch) / (n - 1));
       if (massimo < passo) passo = Math.max(PASSO_MINIMO, massimo);
       meldEl.style.setProperty('--passo', passo + 'px');
     });
@@ -562,24 +567,28 @@
       });
     });
 
-    /* sovrapposizione calcolata in base allo spazio disponibile: fra un
-     * blocco e l'altro resta un varco, così i tris e le scale si distinguono */
+    /* La mano è una fila dritta di carte che si accavallano (non a
+     * ventaglio): ognuna lascia scoperta la striscia di sinistra con il
+     * valore, come quando si tengono le carte in mano. Il passo si adatta
+     * da sé: con poche carte o tanto spazio la fila si allarga, con tante
+     * carte si stringe per non sbordare. Fra un blocco e l'altro resta un
+     * varco, così i tris e le scale si distinguono. */
     requestAnimationFrame(function () {
       const stile = getComputedStyle(document.documentElement);
       const cw = parseFloat(stile.getPropertyValue('--cw')) || 62;
-      const gap = 6;
       const varco = blocchi.length > 1 ? 9 : 0;
       const n = nodi.length;
       if (!n) return;
       const larghezza = manoEl.clientWidth - 8;
-      const varchi = inizioBlocco.size * varco;
-      const totale = n * cw + (n - 1) * gap + varchi;
-      let sovrapposizione = 0;
-      if (totale > larghezza && n > 1) sovrapposizione = (totale - larghezza) / (n - 1);
+      /* quanto basta perché si veda il valore sulla striscia scoperta */
+      const PASSO_MINIMO = Math.round(cw * 0.32);
+      let passo = cw * 0.58;
+      if (n > 1) passo = Math.min(passo, (larghezza - cw) / (n - 1));
+      passo = Math.max(PASSO_MINIMO, passo);
       nodi.forEach(function (el, i) {
         if (i === 0) { el.style.marginLeft = '0'; return; }
         const extra = inizioBlocco.has(i) ? varco : 0;
-        el.style.marginLeft = Math.round(gap - sovrapposizione + extra) + 'px';
+        el.style.marginLeft = Math.round(passo - cw + extra) + 'px';
       });
     });
   }

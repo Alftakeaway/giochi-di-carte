@@ -390,11 +390,20 @@ pub async fn run() {
     let rooms: Arc<RoomMap> = Arc::new(RoomMap::new(HashMap::new()));
     let app = Router::new()
         .route("/", get(index))
+        .route("/healthz", get(|| async { (StatusCode::OK, "ok") }))
         .route("/favicon.ico", get(|| async { (StatusCode::NO_CONTENT, "") }))
         .route("/ws", get(ws_handler))
         .with_state(rooms);
 
-    let addr = std::env::var("BURRACO_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".into());
+    // Render/Fly/Koyeb espongono la porta tramite $PORT; resta possibile
+    // sovrascrivere con BURRACO_ADDR per test in locale.
+    let addr = if let Ok(a) = std::env::var("BURRACO_ADDR") {
+        a
+    } else if let Ok(port) = std::env::var("PORT") {
+        format!("0.0.0.0:{port}")
+    } else {
+        "0.0.0.0:3000".into()
+    };
     println!("Burraco server in ascolto su http://{addr}  (WebSocket: ws://{addr}/ws)");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

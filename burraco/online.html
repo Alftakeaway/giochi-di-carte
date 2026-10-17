@@ -77,9 +77,6 @@
     </div>
 
     <div class="status" id="status">Inserisci l'URL del server (es. ws://localhost:3000) e premi «Crea partita».</div>
-    <p class="help" style="margin-top:6px">Modalità online <b>locale</b>: richiede il server Rust in esecuzione sul tuo PC
-      (avvialo con <code>cargo run -- --serve</code>, di default su <code>ws://localhost:3000</code>).
-      Apri questa pagina in due schede o su due dispositivi nella stessa rete per giocare in 2 umani contro 2 bot.</p>
 
     <div class="azioni">
       <button class="btn" id="btnPt" onclick="pesca('tallone')" disabled>Pesca tallone</button>
@@ -110,24 +107,40 @@
 <script>
 let ws, seat=-1, roomCode='', sel=new Set(), last=null;
 const $=id=>document.getElementById(id);
+// Permette di puntare a un server esterno via ?server=wss://host (es. Render/Fly).
+const _q=new URLSearchParams(location.search);
+if(_q.get('server')) $('server').value=_q.get('server');
 
-function openConn(room){
+let lastRoom=null, tentativi=0;
+const MAX_TENTATIVI=6;
+function connetti(room){
+  lastRoom=room;
   const base=$('server').value.trim().replace(/\/+$/,'');
   const url=base+'/ws'+(room?('?room='+room):'');
   ws=new WebSocket(url);
   ws.onmessage=e=>handle(JSON.parse(e.data));
-  ws.onclose=()=>status('Connessione chiusa.','err');
-  ws.onerror=()=>status('Errore di connessione al server.','err');
+  ws.onopen=()=>{ tentativi=0; };
+  ws.onclose=()=>{
+    // I piani free (Render/Fly) vanno in spin-down: ritenta con backoff.
+    if(tentativi<MAX_TENTATIVI){
+      tentativi++;
+      status('Riconnessione al server ('+tentativi+'/'+MAX_TENTATIVI+')…');
+      setTimeout(()=>connetti(lastRoom), 800*tentativi);
+    } else {
+      status('Connessione persa. Ricarica la pagina o crea una nuova partita.','err');
+    }
+  };
+  ws.onerror=()=>{};
 }
-function crea(){ openConn(null); }
-function entra(){ const c=prompt("Codice stanza?"); if(c) openConn(c.toUpperCase()); }
+function crea(){ connetti(null); }
+function entra(){ const c=prompt("Codice stanza?"); if(c) connetti(c.toUpperCase()); }
 
 function status(t,kind){ const el=$('status'); el.textContent=t; el.className='status'+(kind?(' '+kind):''); }
 function handle(m){
-  if(m.type==='welcome'){ seat=m.seat; roomCode=m.room; status('Stanza '+m.room+' — sei il giocatore '+seat+' (di '+m.nGioc+')'); }
+  if(m.type==='welcome'){ tentativi=0; seat=m.seat; roomCode=m.room; status('Stanza '+m.room+' — sei il giocatore '+seat+' (di '+m.nGioc+')'); }
   else if(m.type==='waiting'){ status('Stanza '+roomCode+' — '+m.msg); }
   else if(m.type==='state'){ last=m.state; sel.clear(); render(last); }
-  else if(m.type==='error'){ status('Errore: '+m.msg,'err'); }
+  else if(m.type==='error'){ tentativi=MAX_TENTATIVI; status('Errore: '+m.msg,'err'); }
 }
 function myTurn(){ return last && last.turno===seat && last.fase!=='fine' && !last.finita; }
 

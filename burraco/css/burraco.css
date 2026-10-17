@@ -271,7 +271,7 @@ button { font-family: inherit; }
   flex-direction: column;
   gap: 3px;
 }
-.campo {
+.campo-gioco {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -303,7 +303,7 @@ button { font-family: inherit; }
 
 /* schermi larghi: il campo diventa una riga, tre colonne affiancate */
 @media (min-width: 721px) {
-  .campo {
+  .campo-gioco {
     flex-direction: row;
     gap: 14px;
     align-items: stretch;
@@ -987,7 +987,7 @@ body.trascinando .carta { cursor: grabbing; }
 
   /* su schermi piccoli il tavolo scorre e il piè di pagina resta ancorato */
   .tavolo { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .campo { flex-direction: column; gap: 8px; }
+  .campo-gioco { flex-direction: column; gap: 8px; }
   .col-avv, .col-mie { overflow: visible; }
   .centro-destra { width: 100%; max-height: none; }
   .notifica { font-size: 12px; padding: 7px 12px; }

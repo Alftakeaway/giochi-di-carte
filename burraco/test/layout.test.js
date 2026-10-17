@@ -60,6 +60,36 @@ const PREPARA = function () {
   const browser = await chromium.launch({ executablePath: CHROME, args: ['--allow-file-access-from-files'] });
   const errori = [];
 
+  /* ------------------------------------------------- schermata iniziale */
+  /* Il contenitore del tavolo si chiama .campo-gioco proprio perché .campo
+   * è già usato dai gruppi della schermata iniziale: quando si chiamava
+   * .campo anche lui, le etichette andavano a capo su due righe. */
+  console.log('\n== schermata iniziale ==');
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+    page.on('pageerror', e => errori.push('avvio: ' + e));
+    await page.goto(URL_FILE, { waitUntil: 'load' });
+    await page.waitForTimeout(150);
+    const avvio = await page.evaluate(function () {
+      return {
+        etichette: Array.prototype.map.call(document.querySelectorAll('.campo > label'), function (el) {
+          return { testo: el.textContent, h: Math.round(el.getBoundingClientRect().height) };
+        }),
+        scelte: Array.prototype.map.call(document.querySelectorAll('.campo .scelta'), function (el) {
+          return { testo: el.textContent.trim().slice(0, 18), w: Math.round(el.getBoundingClientRect().width) };
+        }),
+        tavoloNascosto: document.getElementById('tavolo').hidden
+      };
+    });
+    verifica('ci sono le 4 etichette dei gruppi', avvio.etichette.length === 4, avvio.etichette.length);
+    verifica('nessuna etichetta va a capo su due righe',
+      avvio.etichette.every(function (e) { return e.h <= 20; }), avvio.etichette);
+    verifica('le scelte restano larghe come il gruppo',
+      avvio.scelte.length > 0 && avvio.scelte.every(function (s) { return s.w > 100; }), avvio.scelte.slice(0, 3));
+    verifica('il tavolo è nascosto prima di iniziare', avvio.tavoloNascosto === true, avvio.tavoloNascosto);
+    await page.close();
+  }
+
   /* ---------------------------------------------------------- schermi */
   const SCHERMI = [
     { nome: 'laptop 1366x768', w: 1366, h: 768 },

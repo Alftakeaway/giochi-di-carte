@@ -2,3 +2,7 @@ target/
 .git/
 **/target/
 Cargo.lock.orig
+# La config cargo locale (.cargo/config.toml) fissa il target x86_64-pc-windows-msvc
+# per il PC di sviluppo: dentro l'immagine Linux Docker fallirebbe con E0463.
+# La escludiamo dal context così cargo usa il target di default della immagine.
+.cargo/

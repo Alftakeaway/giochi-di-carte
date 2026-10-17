@@ -16,7 +16,7 @@
    * ===================================================================== */
   const ui = {
     partita: null,
-    config: { modo: 'cpu', livello: 'normale', target: 2005, nomi: ['Tu', 'Computer'] },
+    config: { modo: 'cpu', livello: 'normale', target: 2005, giocatori: 2, nomi: ['Tu', 'Computer'] },
     selezione: new Set(),
     manoVisibile: 0,
     botInCorso: false,
@@ -73,6 +73,21 @@
   function num(v) { return String(v).replace('-', '−'); }
 
   function nomeGiocatore(g) { return ui.config.nomi[g] || ('Giocatore ' + (g + 1)); }
+
+  /* Nome della squadra (a quattro giocatori). A due giocatori la squadra
+   * coincides con il giocatore. */
+  function nomeSquadra(t) {
+    if (ui.partita && ui.partita.nGioc === 4) {
+      const mia = ui.partita.squadre.indexOf(t);
+      const altri = [];
+      for (let g = 0; g < ui.partita.nGioc; g++) {
+        if (ui.partita.squadre[g] === t && g !== mia) altri.push(nomeGiocatore(g));
+      }
+      return (t === 0 ? 'Voi' : 'Loro') + ' (' + nomeGiocatore(mia) +
+        (altri.length ? ' + ' + altri.join(' + ') : '') + ')';
+    }
+    return nomeGiocatore(t);
+  }
 
   /* Il giocatore locale si chiama "Tu": per lui i verbi vanno alla seconda
    * persona, per gli altri alla terza. */
@@ -267,6 +282,26 @@
     const s = p.stato;
     const box = $('#punteggi');
     box.innerHTML = '';
+    if (p.nGioc === 4) {
+      /* a squadre: due riquadri, uno per squadra */
+      const tSq = p.totaliSquadra();
+      for (let t = 0; t < 2; t++) {
+        const el = document.createElement('div');
+        el.className = 'punteggio-box' + (s.turno !== null && p.squadre[s.turno] === t && !s.finita ? ' attivo' : '');
+        let delta = '';
+        const pu = s.punteggiUltima;
+        if (pu && !pu.annullata && pu.punti) {
+          let d = 0;
+          for (let g = 0; g < p.nGioc; g++) if (p.squadre[g] === t) d += pu.punti[g];
+          delta = '<span class="delta ' + (d >= 0 ? 'positivo' : 'negativo') +
+            '" title="Punti dell\'ultima smazzata">(' + (d >= 0 ? '+' : '−') + Math.abs(d) + ')</span>';
+        }
+        el.innerHTML = '<span class="nome">' + escapeHtml(nomeSquadra(t)) + '</span>' +
+          '<span class="val">' + num(tSq[t]) + '</span>' + delta;
+        box.appendChild(el);
+      }
+      return;
+    }
     for (let g = 0; g < 2; g++) {
       const el = document.createElement('div');
       el.className = 'punteggio-box' + (s.turno === g && !s.finita ? ' attivo' : '');
@@ -296,34 +331,49 @@
     badge.className = 'turno-badge' + (mio ? ' mio' : ' attesa');
   }
 
+  /* Le mani nascoste: a due giocatori è l'avversario, a quattro sono i due
+   * avversari più il compagno — ognuno con il suo nome e quante carte ha. */
   function renderAvversario() {
     const p = ui.partita;
     const s = p.stato;
-    const g = 1 - ui.manoVisibile;
+    const box = $('#mano-avversario');
+    const etichetta = $('#etichetta-avversario');
+    box.innerHTML = '';
 
-    $('#etichetta-avversario').textContent = nomeGiocatore(g);
-
-    const pill = $('#pill-avversario');
-    const bur = p.contaBurrachi(g);
-    const pt = p.puntiMeld(g) + p.bonusMeld(g);
-    pill.textContent = pt + ' pt' + (bur ? ' · ' + bur + ' burraco' + (bur > 1 ? 'hi' : '') : '');
-
-    $('#pill-pozzetto-avv').textContent = s.pozzettoPreso[g] ? 'pozzetto preso' : 'pozzetto da prendere';
-
-    const manoEl = $('#mano-avversario');
-    manoEl.innerHTML = '';
-    const n = s.mani[g].length;
-    for (let i = 0; i < n; i++) {
-      const el = creaCartaEl(s.mani[g][i], { coperta: true });
-      el.style.marginLeft = i === 0 ? '0' : '-20px';
-      manoEl.appendChild(el);
+    const bots = [];
+    if (p.nGioc === 4) {
+      bots.push(1, 2, 3);
+      if (etichetta) etichetta.textContent = 'Le mani al tavolo';
+    } else {
+      const avv = 1 - ui.manoVisibile;
+      bots.push(avv);
+      if (etichetta) etichetta.textContent = nomeGiocatore(avv);
     }
-    if (n === 0) {
-      const v = document.createElement('div');
-      v.style.cssText = 'font-size:12px;opacity:.5';
-      v.textContent = 'nessuna carta in mano';
-      manoEl.appendChild(v);
-    }
+
+    bots.forEach(function (g) {
+      const gruppo = document.createElement('div');
+      gruppo.className = 'mano-bot';
+      const nom = document.createElement('div');
+      nom.className = 'nome-bot';
+      nom.textContent = nomeGiocatore(g) + ' · ' + carte(s.mani[g].length);
+      gruppo.appendChild(nom);
+      const fila = document.createElement('div');
+      fila.className = 'fila-bot';
+      const n = s.mani[g].length;
+      for (let i = 0; i < n; i++) {
+        const el = creaCartaEl(s.mani[g][i], { coperta: true });
+        el.style.marginLeft = i === 0 ? '0' : '-20px';
+        fila.appendChild(el);
+      }
+      if (n === 0) {
+        const v = document.createElement('div');
+        v.style.cssText = 'font-size:12px;opacity:.5';
+        v.textContent = 'nessuna carta';
+        fila.appendChild(v);
+      }
+      gruppo.appendChild(fila);
+      box.appendChild(gruppo);
+    });
   }
 
   function renderCentro() {
@@ -388,24 +438,36 @@
   }
 
   function renderMelds() {
-    for (let lato = 0; lato < 2; lato++) {
-      const g = lato === 0 ? ui.manoVisibile : 1 - ui.manoVisibile;
-      const cont = document.getElementById('melds-' + lato);
+    const p = ui.partita;
+    const n = p.nGioc;
+    for (let g = 0; g < n; g++) {
+      const cont = document.getElementById('melds-' + g);
+      if (!cont) continue;
       cont.innerHTML = '';
-      const melds = ui.partita.stato.melds[g];
+      const melds = p.stato.melds[g];
       if (!melds.length) {
         const v = document.createElement('div');
         v.className = 'vuoto';
-        v.textContent = lato === 0 ? 'Nessuna combinazione calata' : 'Nessuna combinazione';
+        v.textContent = g === ui.manoVisibile ? 'Nessuna combinazione calata' : 'Nessuna combinazione';
         cont.appendChild(v);
       }
       melds.forEach(function (m, idx) { cont.appendChild(creaMeldEl(m, g, idx)); });
       aggiustaPassoMelds(cont);
+
+      /* punti, burrachi e stato del pozzetto di ogni giocatore, nella
+       * striscia sopra la sua colonna */
+      const bur = p.contaBurrachi(g);
+      const pill = document.getElementById('pill-' + g);
+      if (pill) {
+        pill.textContent = (p.puntiMeld(g) + p.bonusMeld(g)) + ' pt' +
+          (bur ? ' · ' + bur + ' burraco' + (bur > 1 ? 'hi' : '') : '');
+      }
+      const pp = document.getElementById('pill-pozzetto-' + g);
+      if (pp) {
+        const t = p.squadre ? p.squadre[g] : g;
+        pp.textContent = p.stato.pozzettoPreso[t] ? 'pozzetto preso' : 'pozzetto da prendere';
+      }
     }
-    const p = ui.partita;
-    const bur = p.contaBurrachi(ui.manoVisibile);
-    $('#pill-mie').textContent = (p.puntiMeld(ui.manoVisibile) + p.bonusMeld(ui.manoVisibile)) +
-      ' pt' + (bur ? ' · ' + bur + ' burraco' + (bur > 1 ? 'hi' : '') : '');
   }
 
   /* Descrizione completa di una combinazione (tooltip). */
@@ -1127,7 +1189,9 @@
     const p = ui.partita;
     const s = p.stato;
     if (s.finita) { mostraFineSmazzata(); return; }
-    if (ui.config.modo === 'cpu' && s.turno === 1) {
+    /* nella modalità contro il computer giocano il bot: a due giocatori è
+     * l'avversario, a quattro sono i tre posti occupati dai bot */
+    if (ui.config.modo === 'cpu' && s.turno !== 0) {
       setTimeout(turnoBot, 620);
       return;
     }
@@ -1170,7 +1234,12 @@
 
     ui.botInCorso = false;
     render();
-    if (p.stato.finita) mostraFineSmazzata();
+    if (p.stato.finita) { mostraFineSmazzata(); return; }
+    /* a quattro giocatori il turno passa a un altro bot: la catena continua
+     * finché non arriva al giocatore umano (o finisce la smazzata) */
+    if (ui.config.modo === 'cpu' && p.stato.turno !== 0) {
+      setTimeout(turnoBot, 500);
+    }
   }
 
   function annunciaAzioneBot(azione, esito, attore) {
@@ -1234,7 +1303,7 @@
     if (s.vincitore !== null) {
       const box2 = document.createElement('div');
       box2.style.cssText = 'text-align:center;margin:16px 0 0;font-size:19px;font-weight:700;color:#f0cf6d';
-      box2.textContent = '🏆 ' + nomeGiocatore(s.vincitore) + ' vince la partita!';
+      box2.textContent = '🏆 ' + nomeSquadra(s.vincitore) + ' vince la partita!';
       $('#fine-contenuto').appendChild(box2);
 
       azioni.appendChild(pulsante('🔄 Nuova partita', 'btn-oro btn-grande', function () {
@@ -1267,49 +1336,144 @@
 
   function tabellaPunteggi(pu) {
     const p = ui.partita;
-    let h = '<table class="tabella-punti"><thead><tr><th>Voce</th><th>' +
-      escapeHtml(nomeGiocatore(0)) + '</th><th>' + escapeHtml(nomeGiocatore(1)) + '</th></tr></thead><tbody>';
+    const n = p.nGioc;
+    const quattro = n === 4;
+    let h = '<table class="tabella-punti"><thead><tr><th>Voce</th>';
+    for (let g = 0; g < n; g++) {
+      h += '<th' + (quattro ? ' style="font-size:11px"' : '') + '>' +
+        escapeHtml(nomeGiocatore(g)) + '</th>';
+    }
+    h += '</tr></thead><tbody>';
 
-    const riga = function (etichetta, v0, v1, classe) {
-      const fmt = function (v) {
-        if (v === null || v === undefined || v === 0) return '<span style="opacity:.35">—</span>';
-        const segno = v > 0 ? '+' : '−';
-        const cls = v > 0 ? 'positivo' : 'negativo';
-        return '<span class="' + cls + '">' + segno + Math.abs(v) + '</span>';
-      };
-      return '<tr' + (classe ? ' class="' + classe + '"' : '') + '><td>' + etichetta + '</td><td>' +
-        fmt(v0) + '</td><td>' + fmt(v1) + '</td></tr>';
+    const celle = function (etichetta, valori, classe) {
+      let out = '<td>' + etichetta + '</td>';
+      for (let g = 0; g < n; g++) out += '<td>' + valori[g] + '</td>';
+      return '<tr' + (classe ? ' class="' + classe + '"' : '') + '>' + out + '</tr>';
+    };
+
+    const fmt = function (v) {
+      if (v === null || v === undefined || v === 0) return '<span style="opacity:.35">—</span>';
+      const segno = v > 0 ? '+' : '−';
+      const cls = v > 0 ? 'positivo' : 'negativo';
+      return '<span class="' + cls + '">' + segno + Math.abs(v) + '</span>';
     };
 
     const d = pu.dettaglio;
-    h += riga('Carte calate', d[0].puntiCarte, d[1].puntiCarte);
-    h += riga('Bonus burraco (' + d[0].burrachi + ' / ' + d[1].burrachi + ')',
-      d[0].bonusBurraco, d[1].bonusBurraco);
-    h += riga('Bonus chiusura', d[0].chiusura, d[1].chiusura);
-    h += riga('Carte rimaste in mano', -d[0].carteInMano, -d[1].carteInMano);
-    h += riga('Pozzetto non preso', -d[0].penalePozzetto, -d[1].penalePozzetto);
+    h += celle('Carte calate', d.map(function (x) { return fmt(x.puntiCarte); }));
+    h += celle('Bonus burraco (' + d.map(function (x) { return x.burrachi; }).join(' / ') + ')',
+      d.map(function (x) { return fmt(x.bonusBurraco); }));
+    h += celle('Bonus chiusura', d.map(function (x) { return fmt(x.chiusura); }));
+    h += celle('Carte rimaste in mano', d.map(function (x) { return fmt(-x.carteInMano); }));
+    h += celle('Pozzetto non preso', d.map(function (x) { return fmt(-x.penalePozzetto); }));
     const num = function (v) { return String(v).replace('-', '−'); };
-    h += '<tr class="totale"><td>Punti smazzata</td><td>' + num(pu.punti[0]) +
-      '</td><td>' + num(pu.punti[1]) + '</td></tr>';
-    h += '<tr class="totale"><td>Totale partita</td><td class="totale-parziale">' + num(p.stato.totali[0]) +
-      ' / ' + p.target + '</td><td class="totale-parziale">' + num(p.stato.totali[1]) + ' / ' + p.target + '</td></tr>';
+    h += celle('Punti smazzata', pu.punti.map(num), 'totale');
+    if (quattro) {
+      /* totali per squadra: due celle, ognuna sulla colonna dei due compagni */
+      const tSq = p.totaliSquadra();
+      for (let t = 0; t < 2; t++) {
+        let out = '<td>Squadra ' + (t === 0 ? 'vostra' : 'avversaria') + '</td>';
+        for (let g = 0; g < n; g++) {
+          out += p.squadre[g] === t
+            ? '<td class="totale-parziale">' + num(tSq[t]) + ' / ' + p.target + '</td>'
+            : '<td style="opacity:.35">—</td>';
+        }
+        h += '<tr class="totale">' + out + '</tr>';
+      }
+    } else {
+      h += '<tr class="totale"><td>Totale partita</td>' +
+        '<td class="totale-parziale">' + num(p.stato.totali[0]) + ' / ' + p.target + '</td>' +
+        '<td class="totale-parziale">' + num(p.stato.totali[1]) + ' / ' + p.target + '</td></tr>';
+    }
     h += '</tbody></table>';
     return h;
+  }
+
+  /* =====================================================================
+   * STRUTTURA DEL TAVOLO
+   * A due giocatori il campo è quello statico dell'HTML (avversario a
+   * sinistra, mazzetti al centro, io a destra). A quattro giocatori lo
+   * ricostruiamo: avversari a sinistra, compagno e io a destra — la
+   * squadra si legge a colpo d'occhio.
+   * ===================================================================== */
+  function colonnaGiocatore(g, classe, etichetta) {
+    return '<div class="colonna ' + classe + '">' +
+      '<div class="etichetta-zona">' +
+      '<span>' + escapeHtml(etichetta) + '</span>' +
+      '<span class="pill" id="pill-' + g + '"></span>' +
+      '<span class="pill" id="pill-pozzetto-' + g + '"></span>' +
+      '</div>' +
+      '<div class="lista-melds" id="melds-' + g + '"></div>' +
+      '</div>';
+  }
+
+  function colonnaCentro() {
+    return '<div class="colonna col-centro">' +
+      '<div class="mazzetti">' +
+      '<div class="mazzetto" id="mazzetto-tallone">' +
+      '<div class="pila" id="tallone-pila"></div>' +
+      '<div class="didascalia" id="tallone-didascalia"><strong>Tallone</strong></div>' +
+      '</div>' +
+      '<div class="mazzetto" id="mazzetto-monte">' +
+      '<div class="pila" id="monte-pila"></div>' +
+      '<div class="didascalia" id="monte-didascalia"><strong>Monte</strong></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="centro-destra">' +
+      '<div class="log-mosse" id="log-mosse"></div>' +
+      '<div class="notifiche" id="notifiche" role="status" aria-live="polite"></div>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function costruisciTavolo() {
+    const campo = $('#campo-gioco');
+    const tavolo = $('#tavolo');
+    if (!campo) return;
+    const n = ui.partita ? ui.partita.nGioc : ui.config.giocatori;
+    if (tavolo) tavolo.classList.toggle('quattro', n === 4);
+    const nomi = ui.partita ? ui.partita.nomi : ui.config.nomi;
+    if (n === 4) {
+      /* avversari a sinistra, mazzetti al centro, compagno e io a destra:
+       * la squadra si legge a colpo d'occhio */
+      campo.innerHTML =
+        colonnaGiocatore(1, 'col-avv', nomi[1] || 'Avversario 1') +
+        colonnaGiocatore(3, 'col-avv', nomi[3] || 'Avversario 3') +
+        colonnaCentro() +
+        colonnaGiocatore(2, 'col-comp', (nomi[2] || 'Compagno') + ' (con te)') +
+        colonnaGiocatore(0, 'col-mie', 'Le tue combinazioni');
+    } else {
+      campo.innerHTML =
+        colonnaGiocatore(1, 'col-avv', nomi[1] || 'Avversario') +
+        colonnaCentro() +
+        colonnaGiocatore(0, 'col-mie', 'Le tue combinazioni');
+    }
   }
 
   /* =====================================================================
    * AVVIO PARTITA
    * ===================================================================== */
   function avviaPartita() {
+    const quattro = ui.config.giocatori === 4 && ui.config.modo !== 'hotseat';
+    const nomi = quattro
+      ? [($('#nome-0') && $('#nome-0').value || 'Tu').trim().slice(0, 14) || 'Tu',
+         'Computer 1', 'Computer 2', 'Computer 3']
+      : [
+        ($('#nome-0').value || 'Giocatore 1').trim().slice(0, 14),
+        ($('#nome-1').value || 'Giocatore 2').trim().slice(0, 14)
+      ];
     ui.partita = new E.Partita({
       target: ui.config.target,
-      nomi: ui.config.nomi.slice()
+      nomi: nomi,
+      giocatori: quattro ? 4 : 2
     });
+    ui.config.nomi = nomi;
     ui.selezione.clear();
     ui.attesaConsegna = false;
     ui.botInCorso = false;
     ui.manoVisibile = 0;
     ui.messaggio = '';
+
+    costruisciTavolo();
 
     $('#overlay-fine').hidden = true;
     $('#overlay-consegna').hidden = true;
@@ -1332,8 +1496,26 @@
         b.classList.add('attiva');
         ui.config.modo = b.dataset.modo;
         $('#campo-livello').style.display = ui.config.modo === 'cpu' ? '' : 'none';
+        /* i quattro giocatori hanno senso solo contro il computer */
+        $('#campo-giocatori').style.display = ui.config.modo === 'cpu' ? '' : 'none';
+        if (ui.config.modo !== 'cpu') selezionaGiocatori(2);
         $('#nome-1').value = ui.config.modo === 'cpu' ? 'Computer' : 'Giocatore 2';
+        $('#nome-1').style.display = ui.config.modo === 'cpu' && ui.config.giocatori === 4
+          ? 'none' : '';
       });
+    });
+    /*numero di giocatori: 2 (classico) o 4 a squadre contro il computer */
+    function selezionaGiocatori(n) {
+      ui.config.giocatori = n;
+      $$('#scelta-giocatori .scelta').forEach(function (x) {
+        x.classList.toggle('attiva', Number(x.dataset.giocatori) === n);
+      });
+      /* a quattro giocatori i compagni/avversari sono il computer: il nome
+       * dell'avversario non si può scegliere */
+      $('#nome-1').style.display = (ui.config.modo === 'cpu' && n === 4) ? 'none' : '';
+    }
+    $$('#scelta-giocatori .scelta').forEach(function (b) {
+      b.addEventListener('click', function () { selezionaGiocatori(Number(b.dataset.giocatori)); });
     });
     $$('#scelta-livello .scelta').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -1393,20 +1575,20 @@
       render();
     });
 
-    /* pesca toccando i mazzetti */
-    $('#mazzetto-tallone').addEventListener('click', function () {
+    /* pesca toccando i mazzetti (delega: a quattro giocatori il campo viene
+     * ricostruto, i listener diretti su #mazzetto-* andrebbero persi) */
+    document.addEventListener('click', function (ev) {
+      if (!ev.target || !ev.target.closest) return;
       const p = ui.partita;
-      if (!p || p.stato.finita) return;
-      if (p.stato.fase !== 'pesca' || p.stato.turno !== ui.manoVisibile || ui.botInCorso) return;
-      if (!p.stato.tallone.length) return;
-      esegui(function () { return p.pescaTallone(); }, 'pesca');
-    });
-    $('#mazzetto-monte').addEventListener('click', function () {
-      const p = ui.partita;
-      if (!p || p.stato.finita) return;
-      if (p.stato.fase !== 'pesca' || p.stato.turno !== ui.manoVisibile || ui.botInCorso) return;
-      if (!p.stato.monte.length) return;
-      esegui(function () { return p.prendiMonte(); }, 'pesca');
+      if (!p || p.stato.finita || ui.botInCorso) return;
+      if (p.stato.fase !== 'pesca' || p.stato.turno !== ui.manoVisibile) return;
+      if (ev.target.closest('#mazzetto-tallone')) {
+        if (!p.stato.tallone.length) return;
+        esegui(function () { return p.pescaTallone(); }, 'pesca');
+      } else if (ev.target.closest('#mazzetto-monte')) {
+        if (!p.stato.monte.length) return;
+        esegui(function () { return p.prendiMonte(); }, 'pesca');
+      }
     });
 
     /* click sulle combinazioni: attacca la carta selezionata oppure sposta
@@ -1505,10 +1687,12 @@
         if (config.modo) ui.config.modo = config.modo;
         if (config.livello) ui.config.livello = config.livello;
         if (config.target) ui.config.target = config.target;
+        if (config.giocatori) ui.config.giocatori = config.giocatori;
         if (config.nomi) ui.config.nomi = config.nomi.slice();
       }
       avviaPartita();
     },
-    azione: esegui
+    azione: esegui,
+    mostraFineSmazzata: mostraFineSmazzata
   };
 })();

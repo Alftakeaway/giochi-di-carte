@@ -12,6 +12,9 @@
  *   { tipo:'lega',   indice:n, id:'...' }
  *   { tipo:'scarta', id:'...' }
  *   null  -> il turno è terminato o la partita è finita
+ *
+ * Lo stesso bot gira sia a due giocatori sia a quattro (a squadre): nelle
+ * decisioni tiene conto di TUTTI gli avversari, non solo di quello di turno.
  * ========================================================================= */
 (function (root) {
   'use strict';
@@ -104,16 +107,17 @@
    * ------------------------------------------------------------------- */
   function ammissibile(p, g, idsDaRimuovere, burrachiProiettati) {
     const s = p.stato;
+    const squadra = p.squadre ? p.squadre[g] : g;
     const rimossi = new Set(idsDaRimuovere);
     const restanti = s.mani[g].filter(c => !rimossi.has(c.id));
     const burrachi = burrachiProiettati === undefined ? p.contaBurrachi(g) : burrachiProiettati;
 
     if (restanti.length === 0) {
-      if (s.pozzettoPreso[g]) return false;
-      if (!(s.pozzetti[g] || []).length) return false;
+      if (s.pozzettoPreso[squadra]) return false;
+      if (!(s.pozzetti[squadra] || []).length) return false;
       return true;
     }
-    if (s.pozzettoPreso[g]) {
+    if (s.pozzettoPreso[squadra]) {
       if (restanti.every(E.isMatta)) return false;
       if (restanti.length === 1 && burrachi < 1) return false;
     }
@@ -183,7 +187,8 @@
     const c = conf(livello);
     const mano = s.mani[g];
     const melds = s.melds[g];
-    const avversario = 1 - g;
+    /* gli avversari: a quattro giocatori sono due (l'altra squadra) */
+    const avversari = p.avversariDi ? p.avversariDi(g) : [1 - g];
 
     // se possiamo chiudere, chiudiamo subito
     if (mano.length === 1 && p.chiudeCon(g, mano[0].id)) return mano[0].id;
@@ -210,10 +215,12 @@
       // la carta si legherebbe a una nostra combinazione: non scartarla
       for (const m of melds) if (E.provaLegatura(m, carta)) { u += 14; break; }
 
-      // la carta servirebbe all'avversario (si legherebbe ai suoi giochi)
-      for (const m of s.melds[avversario]) if (E.provaLegatura(m, carta)) { u += 18; break; }
+      // la carta servirebbe a un avversario (si legherebbe ai suoi giochi)
+      for (const avv of avversari) {
+        for (const m of s.melds[avv]) if (E.provaLegatura(m, carta)) { u += 18; break; }
+      }
 
-      // scartare carte di valore alto è costoso se l'avversario chiude
+      // scartare carte di valore alto è costoso se un avversario chiude
       u += carta.punti * 0.4;
 
       if (c.rumoreScarto) u += rng() * c.rumoreScarto;

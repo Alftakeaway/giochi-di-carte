@@ -44,6 +44,11 @@
  *              chiude in mano si sottraggono i punti delle carte rimaste e
  *              100 punti se non ha preso il pozzetto.
  * PARTITA    : si gioca a smazzate fino a 505 / 1005 / 2005 punti.
+ * QUATTRO    : con 4 giocatori si gioca a SQUADRE (0+2 contro 1+3, i
+ *              compagni siedono di fronte): 11 carte a testa, UN pozzetto
+ *              da 11 per squadra, turno in cerchio. Quando uno chiude
+ *              pagano i due avversari (il compagno non paga mai); vince la
+ *              squadra che per prima raggiunge il punteggio obiettivo.
  * ========================================================================= */
 (function (root) {
   'use strict';
@@ -635,33 +640,45 @@
   class Partita {
     /**
      * @param {object} [opzioni]
-     *   target  : 505 | 1005 | 2005 (punteggio per vincere la partita)
-     *   nomi    : [nomeGiocatore0, nomeGiocatore1]
-     *   seed    : seed del generatore casuale (opzionale, per test)
+     *   target   : 505 | 1005 | 2005 (punteggio per vincere la partita)
+     *   nomi     : [nomeGiocatore0, nomeGiocatore1, ...]
+     *   giocatori: 2 (uno contro uno) oppure 4 (a squadre: 0+2 contro 1+3)
+     *   seed     : seed del generatore casuale (opzionale, per test)
      */
     constructor(opzioni) {
       const o = opzioni || {};
       this.target = TARGET_VALIDI.indexOf(o.target) >= 0 ? o.target : 2005;
-      this.nomi = o.nomi || ['Giocatore 1', 'Giocatore 2'];
+      /* 2 giocatori (classico) oppure 4 a squadre: i compagni siedono di
+       * fronte, quindi la squadra A è 0+2 e la squadra B è 1+3. */
+      this.nGioc = o.giocatori === 4 ? 4 : 2;
+      this.squadre = this.nGioc === 4 ? [0, 1, 0, 1] : [0, 1];
+      this.nomi = o.nomi || (this.nGioc === 4
+        ? ['Giocatore 1', 'Giocatore 2', 'Giocatore 3', 'Giocatore 4']
+        : ['Giocatore 1', 'Giocatore 2']);
       this.rng = creaRng(o.seed);
       this.stato = null;
       this.nuovaPartita();
     }
 
     nuovaPartita() {
+      const n = this.nGioc;
+      const vuote = () => { const a = []; for (let i = 0; i < n; i++) a.push([]); return a; };
+      const zeri = () => { const a = []; for (let i = 0; i < n; i++) a.push(0); return a; };
       this.stato = {
         smazzata: 0,
-        mazziere: 0,          // viene invertito in nuovaSmazzata: il mazziere
-                              // della prima smazzata è il giocatore 1 e apre il 2
+        mazziere: 0,          // viene incrementato in nuovaSmazzata: il mazziere
+                              // della prima smazzata è l'ultimo giocatore
         turno: 0,
         fase: 'pesca',                 // 'pesca' | 'gioco' | 'fine'
         tallone: [],
         monte: [],
-        mani: [[], []],
+        mani: vuote(),
+        /* i pozzetti sono uno per SQUADRA (a due giocatori la squadra coincide
+         * con il giocatore, quindi non cambia nulla) */
         pozzetti: [[], []],
         pozzettoPreso: [false, false],
-        melds: [[], []],
-        totali: [0, 0],
+        melds: vuote(),
+        totali: zeri(),
         punteggiUltima: null,
         storico: [],
         chiusaDa: null,
@@ -679,9 +696,10 @@
     /* ---------------- distribuzione ---------------- */
     nuovaSmazzata() {
       const s = this.stato;
+      const n = this.nGioc;
       s.smazzata += 1;
-      s.mazziere = 1 - s.mazziere;
-      s.turno = 1 - s.mazziere;        // inizia chi non è mazziere
+      s.mazziere = (s.mazziere + 1) % n;
+      s.turno = (s.mazziere + 1) % n;    // inizia chi segue il mazziere
       s.fase = 'pesca';
       s.chiusaDa = null;
       s.finita = false;
@@ -689,20 +707,20 @@
       s.turniSmazzata = 0;
       s.ultimaAzione = null;
       s.pozzettoPreso = [false, false];
-      s.melds = [[], []];
+      s.melds = (function () { const a = []; for (let i = 0; i < n; i++) a.push([]); return a; })();
       s.pozzettoDaGiocare = [false, false];
 
       const mazzo = mescola(creaMazzo(), this.rng);
       s.tallone = mazzo;
-      s.mani = [[], []];
+      s.mani = (function () { const a = []; for (let i = 0; i < n; i++) a.push([]); return a; })();
+      /* una carta a testa per giro: a due giocatori è identico al vecchio
+       * ciclo (stessa sequenza di pescate a parità di seme casuale) */
       for (let i = 0; i < CARTE_MANO; i++) {
-        s.mani[0].push(s.tallone.pop());
-        s.mani[1].push(s.tallone.pop());
+        for (let g = 0; g < n; g++) s.mani[g].push(s.tallone.pop());
       }
       s.pozzetti = [[], []];
       for (let i = 0; i < CARTE_POZZETTO; i++) {
-        s.pozzetti[0].push(s.tallone.pop());
-        s.pozzetti[1].push(s.tallone.pop());
+        for (let t = 0; t < 2; t++) s.pozzetti[t].push(s.tallone.pop());
       }
       s.monte = [s.tallone.pop()];
       s.log = ['Nuova smazzata n. ' + s.smazzata + '. Inizia ' + this.nomi[s.turno] + '.'];
@@ -712,6 +730,32 @@
     /* ---------------- info di stato ---------------- */
     get giocatoreDiTurno() { return this.stato.turno; }
     get avversarioDiTurno() { return 1 - this.stato.turno; }
+
+    /* A quatto giocatori gli avversari sono due (l'altra squadra);
+     * `avversarioDiTurno` resta il primo, per chi guarda a due. */
+    avversariDi(g) {
+      const mia = this.squadre[g];
+      const out = [];
+      for (let i = 0; i < this.nGioc; i++) if (this.squadre[i] !== mia) out.push(i);
+      return out;
+    }
+
+    compagnoDi(g) {
+      const mia = this.squadre[g];
+      for (let i = 0; i < this.nGioc; i++) {
+        if (i !== g && this.squadre[i] === mia) return i;
+      }
+      return null;
+    }
+
+    squadraDi(g) { return this.squadre[g]; }
+
+    /* Punti totali per squadra (a due giocatori: i totali dei giocatori). */
+    totaliSquadra() {
+      const t = [0, 0];
+      for (let g = 0; g < this.nGioc; g++) t[this.squadre[g]] += this.stato.totali[g];
+      return t;
+    }
 
     puntiMeld(giocatore) {
       return this.stato.melds[giocatore].reduce((a, m) => a + m.punti, 0);
@@ -729,7 +773,8 @@
     }
     puoChiudere(giocatore) {
       const s = this.stato;
-      return s.pozzettoPreso[giocatore] && this.contaBurrachi(giocatore) >= 1;
+      /* il pozzetto è della squadra: a due giocatori squadra = giocatore */
+      return s.pozzettoPreso[this.squadre[giocatore]] && this.contaBurrachi(giocatore) >= 1;
     }
 
     /* ---------------- pesca ---------------- */
@@ -930,10 +975,11 @@
       }
 
       const ultima = s.mani[giocatore].length === 1;
+      const squadra = this.squadre[giocatore];
 
-      if (ultima && !s.pozzettoPreso[giocatore]) {
+      if (ultima && !s.pozzettoPreso[squadra]) {
         // scarto dell'ultima carta per andare a pozzetto
-        if (!(s.pozzetti[giocatore] || []).length) {
+        if (!(s.pozzetti[squadra] || []).length) {
           return { ok: false, motivo: 'Non hai più carte e non hai un pozzetto: impossibile proseguire.' };
         }
         this._scartaCarta(giocatore, carta);
@@ -942,7 +988,7 @@
         return { ok: true, pozzetto: true, cartePozzetto: prese };
       }
 
-      if (ultima && s.pozzettoPreso[giocatore]) {
+      if (ultima && s.pozzettoPreso[squadra]) {
         // tentativo di chiusura
         if (isMatta(carta)) {
           return { ok: false, motivo: 'Non puoi chiudere scartando una matta (jolly o pinella). Pesca un\'altra carta.' };
@@ -971,7 +1017,7 @@
     _fineTurno() {
       const s = this.stato;
       if (s.finita) return;
-      s.turno = 1 - s.turno;
+      s.turno = (s.turno + 1) % this.nGioc;
       s.fase = 'pesca';
       s.monteBloccato = null;
       s.turniSmazzata = (s.turniSmazzata || 0) + 1;
@@ -998,20 +1044,24 @@
     /* ---------------- pozzetto ---------------- */
     _prendiPozzetto(giocatore) {
       const s = this.stato;
-      const stack = s.pozzetti[giocatore] || [];
+      /* il pozzetto è uno per squadra: lo prende il giocatore che resta
+       * senza carte, ma vale per entrambi i compagni */
+      const t = this.squadre[giocatore];
+      const stack = s.pozzetti[t] || [];
       if (!stack.length) return null;
-      s.pozzetti[giocatore] = [];
+      s.pozzetti[t] = [];
       for (const c of stack) s.mani[giocatore].push(c);
-      s.pozzettoPreso[giocatore] = true;
+      s.pozzettoPreso[t] = true;
       return stack;
     }
 
     /* Se la mano si è svuotata calando, il pozzetto si prende "in diretta". */
     _dopoManoSvuotata(giocatore, via) {
       const s = this.stato;
+      const t = this.squadre[giocatore];
       if (s.mani[giocatore].length > 0) return { pozzetto: false };
-      if (s.pozzettoPreso[giocatore]) return { pozzetto: false };
-      if (!(s.pozzetti[giocatore] || []).length) return { pozzetto: false };
+      if (s.pozzettoPreso[t]) return { pozzetto: false };
+      if (!(s.pozzetti[t] || []).length) return { pozzetto: false };
       const prese = this._prendiPozzetto(giocatore);
       s.ultimaAzione = s.ultimaAzione || {};
       s.ultimaAzione.pozzettoInDiretta = true;
@@ -1024,18 +1074,19 @@
      * @param {number} [burrachiProiettati] burrachi dopo la mossa in corso */
     _controllaManoDopoCalata(giocatore, restanti, burrachiProiettati) {
       const s = this.stato;
+      const t = this.squadre[giocatore];
       const burrachi = burrachiProiettati === undefined
         ? this.contaBurrachi(giocatore) : burrachiProiettati;
       if (restanti.length === 0) {
-        if (s.pozzettoPreso[giocatore]) {
+        if (s.pozzettoPreso[t]) {
           return { ok: false, motivo: 'Per chiudere devi scartare l\'ultima carta: non puoi calare tutte le carte.' };
         }
-        if (!(s.pozzetti[giocatore] || []).length) {
+        if (!(s.pozzetti[t] || []).length) {
           return { ok: false, motivo: 'Non puoi restare senza carte.' };
         }
         return { ok: true };
       }
-      if (s.pozzettoPreso[giocatore]) {
+      if (s.pozzettoPreso[t]) {
         if (restanti.every(isMatta)) {
           return { ok: false, motivo: 'Non puoi restare con sole matte in mano: devi tenere una carta da scartare.' };
         }
@@ -1049,21 +1100,24 @@
     /* ---------------- punteggi ---------------- */
     _calcolaPunteggi() {
       const s = this.stato;
+      const n = this.nGioc;
       const dettaglio = [];
-      const punti = [0, 0];
+      const punti = [];
+      for (let i = 0; i < n; i++) punti.push(0);
 
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < n; i++) {
         const meld = this.puntiMeld(i);
         const bonus = this.bonusMeld(i);
         punti[i] = meld + bonus;
         dettaglio.push({
           giocatore: i,
+          squadra: this.squadre[i],
           puntiCarte: meld,
           bonusBurraco: bonus,
           burrachi: this.contaBurrachi(i),
           chiusura: 0,
           carteInMano: this.puntiInMano(i),
-          penalePozzetto: s.pozzettoPreso[i] ? 0 : PENALE_POZZETTO,
+          penalePozzetto: s.pozzettoPreso[this.squadre[i]] ? 0 : PENALE_POZZETTO,
           totale: 0
         });
       }
@@ -1072,7 +1126,7 @@
       const annullata = s.chiusaDa === null && !s.pozzettoPreso[0] && !s.pozzettoPreso[1];
       if (annullata) {
         s.punteggiUltima = {
-          annullata: true, punti: [0, 0], dettaglio: dettaglio,
+          annullata: true, punti: punti.slice(), dettaglio: dettaglio,
           chiusaDa: null, smazzata: s.smazzata
         };
         s.log.push('Smazzata annullata: nessuno ha preso il pozzetto. Si ripete.');
@@ -1084,18 +1138,22 @@
         const v = s.chiusaDa;
         punti[v] += BONUS_CHIUSURA;
         dettaglio[v].chiusura = BONUS_CHIUSURA;
-        const avv = 1 - v;
-        const penale = dettaglio[avv].carteInMano + dettaglio[avv].penalePozzetto;
-        punti[avv] -= penale;
+        /* pagano gli avversari di chi chiude — a quattro giocatori sono due,
+         * il compagno di squadra non paga mai */
+        const avversari = this.avversariDi(v);
+        for (const avv of avversari) {
+          punti[avv] -= (dettaglio[avv].carteInMano + dettaglio[avv].penalePozzetto);
+        }
       } else {
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < n; i++) {
           punti[i] -= (dettaglio[i].carteInMano + dettaglio[i].penalePozzetto);
         }
       }
 
-      for (let i = 0; i < 2; i++) dettaglio[i].totale = punti[i];
-      s.totali[0] += punti[0];
-      s.totali[1] += punti[1];
+      for (let i = 0; i < n; i++) {
+        dettaglio[i].totale = punti[i];
+        s.totali[i] += punti[i];
+      }
       s.finita = true;
       s.fase = 'fine';
 
@@ -1106,19 +1164,22 @@
         chiusaDa: s.chiusaDa,
         smazzata: s.smazzata,
         senzaChiusura: s.chiusaDa === null,
-        totali: s.totali.slice()
+        totali: s.totali.slice(),
+        totaliSquadra: this.totaliSquadra()
       };
       s.storico.push(s.punteggiUltima);
 
-      // vittoria: chi raggiunge il target al termine della smazzata
-      if (s.totali[0] >= this.target || s.totali[1] >= this.target) {
-        if (s.totali[0] === s.totali[1]) {
+      // vittoria: la squadra che raggiunge il target al termine della smazzata
+      const tSq = this.totaliSquadra();
+      if (tSq[0] >= this.target || tSq[1] >= this.target) {
+        if (tSq[0] === tSq[1]) {
           s.vincitore = null;   // parità: si continua
         } else {
-          s.vincitore = s.totali[0] > s.totali[1] ? 0 : 1;
+          s.vincitore = tSq[0] > tSq[1] ? 0 : 1;
         }
       }
-      s.log.push('Smazzata conclusa. Punti smazzata: ' + punti[0] + ' / ' + punti[1]);
+      s.log.push('Smazzata conclusa. Punti smazzata: ' +
+        punti.map(function (v) { return v; }).join(' / '));
       return s.punteggiUltima;
     }
 
@@ -1196,7 +1257,7 @@
       const carta = s.mani[giocatore].find(c => c.id === idCarta);
       if (!carta) return true;
       if (s.monteBloccato === idCarta && s.mani[giocatore].length > 1) return true;
-      if (s.mani[giocatore].length === 1 && s.pozzettoPreso[giocatore]) {
+      if (s.mani[giocatore].length === 1 && s.pozzettoPreso[this.squadre[giocatore]]) {
         if (isMatta(carta)) return true;
         if (this.contaBurrachi(giocatore) < 1) return true;
       }
@@ -1208,7 +1269,7 @@
       const s = this.stato;
       const carta = s.mani[giocatore].find(c => c.id === idCarta);
       if (!carta) return false;
-      return s.mani[giocatore].length === 1 && s.pozzettoPreso[giocatore] &&
+      return s.mani[giocatore].length === 1 && s.pozzettoPreso[this.squadre[giocatore]] &&
         this.contaBurrachi(giocatore) >= 1 && !isMatta(carta);
     }
 

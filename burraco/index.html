@@ -7,7 +7,7 @@
   <meta name="description" content="Burraco italiano completo: gioca contro il computer o in due sullo stesso dispositivo, con tutte le regole ufficiali.">
   <title>Burraco — Giochi di Carte Italiani</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/burraco.css?v=12">
+  <link rel="stylesheet" href="css/burraco.css?v=13">
 </head>
 <body>
 
@@ -35,6 +35,20 @@
           <button class="scelta" data-modo="hotseat">
             <span class="titolo">👥 In due</span>
             <span class="nota">Stesso dispositivo</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="campo" id="campo-giocatori">
+        <label>Quanti giocatori</label>
+        <div class="scelte" id="scelta-giocatori">
+          <button class="scelta attiva" data-giocatori="2">
+            <span class="titolo">🎴 Due giocatori</span>
+            <span class="nota">Uno contro uno</span>
+          </button>
+          <button class="scelta" data-giocatori="4">
+            <span class="titolo">👥 Quattro giocatori</span>
+            <span class="nota">A squadre: tu e un compagno contro due computer</span>
           </button>
         </div>
       </div>
@@ -110,8 +124,8 @@
     <section class="area-avversario">
       <div class="etichetta-zona">
         <span id="etichetta-avversario">Avversario</span>
-        <span class="pill" id="pill-avversario"></span>
-        <span class="pill" id="pill-pozzetto-avv"></span>
+        <span class="pill" id="pill-1"></span>
+        <span class="pill" id="pill-pozzetto-1"></span>
       </div>
       <div class="mano-avversario" id="mano-avversario"></div>
     </section>
@@ -119,7 +133,7 @@
     <!-- Campo di gioco: le combinazioni dei due giocatori stanno ai lati,
          tallone e monte al centro. Così ognuno ha una colonna intera e lo
          spazio verticale non si litiga più tra le fasce. -->
-    <section class="campo-gioco">
+    <section class="campo-gioco" id="campo-gioco">
       <div class="colonna col-avv">
         <div class="etichetta-zona">
           <span>Le sue combinazioni</span>
@@ -147,7 +161,7 @@
       <div class="colonna col-mie">
         <div class="etichetta-zona">
           <span>Le tue combinazioni</span>
-          <span class="pill" id="pill-mie"></span>
+          <span class="pill" id="pill-0"></span>
         </div>
         <div class="lista-melds" id="melds-0"></div>
       </div>
@@ -282,8 +296,8 @@
     </div>
   </div>
 
-  <script src="js/burraco-engine.js?v=4"></script>
-  <script src="js/burraco-ai.js?v=4"></script>
-  <script src="js/burraco-ui.js?v=9"></script>
+  <script src="js/burraco-engine.js?v=5"></script>
+  <script src="js/burraco-ai.js?v=5"></script>
+  <script src="js/burraco-ui.js?v=10"></script>
 </body>
 </html>

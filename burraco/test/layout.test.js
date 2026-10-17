@@ -82,7 +82,7 @@ const PREPARA = function () {
         tavoloNascosto: document.getElementById('tavolo').hidden
       };
     });
-    verifica('ci sono le 4 etichette dei gruppi', avvio.etichette.length === 4, avvio.etichette.length);
+    verifica('ci sono le 5 etichette dei gruppi', avvio.etichette.length === 5, avvio.etichette.length);
     verifica('nessuna etichetta va a capo su due righe',
       avvio.etichette.every(function (e) { return e.h <= 20; }), avvio.etichette);
     verifica('le scelte restano larghe come il gruppo',

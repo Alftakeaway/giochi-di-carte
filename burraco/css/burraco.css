@@ -301,7 +301,8 @@ button { font-family: inherit; }
   overflow: hidden;
 }
 
-/* schermi larghi: il campo diventa una riga, tre colonne affiancate */
+/* schermi larghi: il campo diventa una riga — tre colonne a due giocatori,
+ * cinque a quattro (avversari | mazzetti | compagno e io) */
 @media (min-width: 721px) {
   .campo-gioco {
     flex-direction: row;
@@ -309,7 +310,7 @@ button { font-family: inherit; }
     align-items: stretch;
     padding: 6px 14px;
   }
-  .col-avv, .col-mie {
+  .col-avv, .col-mie, .col-comp {
     flex: 1 1 0;
     min-width: 0;
     overflow-y: auto;
@@ -365,12 +366,41 @@ button { font-family: inherit; }
 
 /* le colonne che scorrono mostrano una barra sottile, per far capire che c'è
  * altro contenuto sotto */
-.col-avv, .col-mie { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
-.col-avv::-webkit-scrollbar, .col-mie::-webkit-scrollbar { width: 8px; }
+.col-avv, .col-mie, .col-comp { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
+.col-avv::-webkit-scrollbar, .col-mie::-webkit-scrollbar, .col-comp::-webkit-scrollbar { width: 8px; }
 .col-avv::-webkit-scrollbar-thumb,
-.col-mie::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 8px; }
+.col-mie::-webkit-scrollbar-thumb,
+.col-comp::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 8px; }
 .col-avv::-webkit-scrollbar-track,
-.col-mie::-webkit-scrollbar-track { background: transparent; }
+.col-mie::-webkit-scrollbar-track,
+.col-comp::-webkit-scrollbar-track { background: transparent; }
+
+/* ------------------------------------------------------ quattro giocatori */
+/* A quattro giocatori le mani nascoste sono tre (due avversari e il
+ * compagno): ognuna con il proprio nome e il conto delle carte. */
+.mano-avversario .mano-bot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.mano-avversario .nome-bot {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: .75;
+  white-space: nowrap;
+}
+.mano-avversario .fila-bot { display: flex; align-items: center; min-height: var(--ch-back); }
+.quattro .mano-avversario {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 22px;
+}
+.quattro .punteggio-box .nome { max-width: 170px; }
+/* il compagno è un amico: la sua striscia si distingue dai due avversari */
+.quattro .col-comp > .etichetta-zona .pill { color: #a9e3ff; }
+.quattro .col-avv > .etichetta-zona .pill { color: #f0b27a; }
 
 /* ------------------------------------------------------------ le carte */
 /* La faccia è un'immagine (mazzo di dominio pubblico, vedi burraco-ui.js):
@@ -983,7 +1013,7 @@ body.trascinando .carta { cursor: grabbing; }
 /* finestre molto basse: il tavolo scorre e la mano resta ancorata in basso */
 @media (min-width: 721px) and (max-height: 620px) {
   .tavolo { overflow-y: auto; }
-  .col-avv, .col-mie { overflow: visible; }
+  .col-avv, .col-mie, .col-comp { overflow: visible; }
   .footer-tavolo { position: sticky; bottom: 0; z-index: 20; background: rgba(3, 26, 15, .96); }
 }
 
@@ -999,7 +1029,7 @@ body.trascinando .carta { cursor: grabbing; }
   /* su schermi piccoli il tavolo scorre e il piè di pagina resta ancorato */
   .tavolo { overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .campo-gioco { flex-direction: column; gap: 8px; }
-  .col-avv, .col-mie { overflow: visible; }
+  .col-avv, .col-mie, .col-comp { overflow: visible; }
   .centro-destra { width: 100%; max-height: none; }
   .notifica { font-size: 12px; padding: 7px 12px; }
   /* La barra non va a capo su nessuno schermo: con il ritorno a capo la

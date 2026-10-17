@@ -7,7 +7,7 @@
   <meta name="description" content="Burraco italiano completo: gioca contro il computer o in due sullo stesso dispositivo, con tutte le regole ufficiali.">
   <title>Burraco — Giochi di Carte Italiani</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/burraco.css?v=4">
+  <link rel="stylesheet" href="css/burraco.css?v=5">
 </head>
 <body>
 
@@ -114,32 +114,43 @@
         <span class="pill" id="pill-pozzetto-avv"></span>
       </div>
       <div class="mano-avversario" id="mano-avversario"></div>
-      <div class="lista-melds" id="melds-1"></div>
     </section>
 
-    <section class="area-centro">
-      <div class="mazzetti">
-        <div class="mazzetto" id="mazzetto-tallone">
-          <div class="pila" id="tallone-pila"></div>
-          <div class="didascalia" id="tallone-didascalia"><strong>Tallone</strong></div>
+    <!-- Campo di gioco: le combinazioni dei due giocatori stanno ai lati,
+         tallone e monte al centro. Così ognuno ha una colonna intera e lo
+         spazio verticale non si litiga più tra le fasce. -->
+    <section class="campo">
+      <div class="colonna col-avv">
+        <div class="etichetta-zona">
+          <span>Le sue combinazioni</span>
         </div>
-        <div class="mazzetto" id="mazzetto-monte">
-          <div class="pila" id="monte-pila"></div>
-          <div class="didascalia" id="monte-didascalia"><strong>Monte</strong></div>
-        </div>
+        <div class="lista-melds" id="melds-1"></div>
       </div>
-      <div class="centro-destra">
-        <div class="log-mosse" id="log-mosse"></div>
-        <div class="notifiche" id="notifiche" role="status" aria-live="polite"></div>
-      </div>
-    </section>
 
-    <section class="area-mie">
-      <div class="etichetta-zona">
-        <span>Le tue combinazioni</span>
-        <span class="pill" id="pill-mie"></span>
+      <div class="colonna col-centro">
+        <div class="mazzetti">
+          <div class="mazzetto" id="mazzetto-tallone">
+            <div class="pila" id="tallone-pila"></div>
+            <div class="didascalia" id="tallone-didascalia"><strong>Tallone</strong></div>
+          </div>
+          <div class="mazzetto" id="mazzetto-monte">
+            <div class="pila" id="monte-pila"></div>
+            <div class="didascalia" id="monte-didascalia"><strong>Monte</strong></div>
+          </div>
+        </div>
+        <div class="centro-destra">
+          <div class="log-mosse" id="log-mosse"></div>
+          <div class="notifiche" id="notifiche" role="status" aria-live="polite"></div>
+        </div>
       </div>
-      <div class="lista-melds" id="melds-0"></div>
+
+      <div class="colonna col-mie">
+        <div class="etichetta-zona">
+          <span>Le tue combinazioni</span>
+          <span class="pill" id="pill-mie"></span>
+        </div>
+        <div class="lista-melds" id="melds-0"></div>
+      </div>
     </section>
 
     <footer class="footer-tavolo">
@@ -280,8 +291,8 @@
     </div>
   </div>
 
-  <script src="js/burraco-engine.js?v=3"></script>
-  <script src="js/burraco-ai.js?v=3"></script>
-  <script src="js/burraco-ui.js?v=3"></script>
+  <script src="js/burraco-engine.js?v=4"></script>
+  <script src="js/burraco-ai.js?v=4"></script>
+  <script src="js/burraco-ui.js?v=4"></script>
 </body>
 </html>

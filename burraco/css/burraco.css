@@ -254,63 +254,79 @@ button { font-family: inherit; }
 .turno-badge.attesa { opacity: .7; }
 
 /* ---------------------------------------------------------------- aree */
-/* Le combinazioni sono pile verticali: le due aree di gioco si dividono lo
- * spazio disponibile e scorrono da sole, la fascia centrale resta compatta.
+/* Impianto del tavolo:
+ *   - in alto la mano coperta dell'avversario (striscia sottile)
+ *   - al centro il campo di gioco, diviso in tre colonne:
+ *         le combinazioni dell'avversario | tallone e monte | le tue
+ *   - in basso la tua mano e i comandi
  *
- * Regola d'oro: nessuna area può "rubare" lo spazio all'altra. L'area
- * dell'avversario cresce fino a un tetto (poi scorre al suo interno), la
- * fascia centrale prende sempre l'altezza del suo contenuto — altrimenti le
- * didascalie Tallone/Monte venivano tagliate — e l'area delle tue
- * combinazioni si tiene il resto con un minimo garantito. */
+ * Prima tallone e monte stavano in una fascia orizzontale in mezzo alle
+ * giocate: lì si incastrava tutto e a destra restava un deserto verde.
+ * Mettendoli al centro del campo le due colonne laterali prendono l'altezza
+ * che resta — e su un portatile basta per due pile complete. */
 .area-avversario {
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: 38vh;
-  padding: 6px 12px 4px;
+  flex: 0 0 auto;
+  padding: 5px 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
+  gap: 3px;
 }
-.area-centro {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+.campo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 12px;
+}
+.colonna {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.col-centro {
   align-items: center;
-  gap: 26px;
-  padding: 8px 14px;
-  /* visibile: prima con overflow:hidden le scritte sotto i mazzetti
-   * venivano tagliate a metà quando lo spazio si stringeva */
-  overflow: visible;
+  justify-content: center;
+  gap: 10px;
 }
 .centro-destra {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
-  gap: 8px;
-  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
   max-height: 100%;
   overflow: hidden;
 }
-.area-mie {
-  flex: 1 1 auto;
-  min-height: 104px;
-  padding: 4px 12px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+
+/* schermi larghi: il campo diventa una riga, tre colonne affiancate */
+@media (min-width: 721px) {
+  .campo {
+    flex-direction: row;
+    gap: 14px;
+    align-items: stretch;
+    padding: 6px 14px;
+  }
+  .col-avv, .col-mie {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+  .col-centro { flex: 0 0 272px; }
+  /* al centro del tavolo tallone e monte si vedono da lontano: un po' più
+   * grandi delle carte in mano, così il bersaglio del clic è comodo */
+  .col-centro .mazzetto .pila,
+  .col-centro .mazzetto .monte-vuoto {
+    width: calc(var(--cw) * 1.3);
+    height: calc(var(--ch) * 1.3);
+  }
+  .col-centro .mazzetto .didascalia { font-size: 12px; }
+  .col-centro .mazzetto .didascalia strong { font-size: 13px; }
 }
-/* Le tue combinazioni stanno appoggiate sopra la mano. Il margine automatico
- * le spinge in basso quando c'è spazio; quando non ce n'è vale 0, così la
- * pila resta raggiungibile scorrendo (con justify-content:flex-end, invece,
- * il contenuto più alto dell'area finiva fuori e spariva). */
-.area-mie > .etichetta-zona { margin-top: auto; }
 .footer-tavolo {
   flex: 0 0 auto;
   background: rgba(0, 0, 0, .2);
@@ -377,14 +393,14 @@ button { font-family: inherit; }
 }
 .etichetta-zona .ord-btn:focus-visible { outline: 2px solid var(--oro); outline-offset: 1px; }
 
-/* le aree che scorrono mostrano una barra sottile, per far capire che c'è
+/* le colonne che scorrono mostrano una barra sottile, per far capire che c'è
  * altro contenuto sotto */
-.area-avversario, .area-mie { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
-.area-avversario::-webkit-scrollbar, .area-mie::-webkit-scrollbar { width: 8px; }
-.area-avversario::-webkit-scrollbar-thumb,
-.area-mie::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 8px; }
-.area-avversario::-webkit-scrollbar-track,
-.area-mie::-webkit-scrollbar-track { background: transparent; }
+.col-avv, .col-mie { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
+.col-avv::-webkit-scrollbar, .col-mie::-webkit-scrollbar { width: 8px; }
+.col-avv::-webkit-scrollbar-thumb,
+.col-mie::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 8px; }
+.col-avv::-webkit-scrollbar-track,
+.col-mie::-webkit-scrollbar-track { background: transparent; }
 
 /* ------------------------------------------------------------ le carte */
 .carta {
@@ -922,9 +938,9 @@ body.trascinando .carta { cursor: grabbing; }
 .log-mosse {
   font-size: 12px;
   color: rgba(255, 255, 255, .72);
-  text-align: left;
+  text-align: center;
   min-height: 16px;
-  max-width: 460px;
+  max-width: 100%;
 }
 
 /* =========================================================================
@@ -932,7 +948,7 @@ body.trascinando .carta { cursor: grabbing; }
  * ========================================================================= */
 
 /* Schermi bassi (portatili 1366x768, 1280x720): le carte rimpiccioliscono
- * un po' così due combinazioni impilate entrano senza dover scorrere.
+ * un po', così anche su 720 px di altezza entrano due pile complete.
  * Solo sopra i 720px di larghezza, per non pestare i piedi alla versione
  * telefono qui sotto. */
 @media (min-width: 721px) and (max-height: 900px) {
@@ -949,26 +965,14 @@ body.trascinando .carta { cursor: grabbing; }
     --cw: 50px;
     --ch: 70px;
     --cw-meld: 44px;
-    --ch-meld: 38px;
-    --passo-meld: 14px;
+    --ch-meld: 46px;
+    --passo-meld: 15px;
   }
-  /* qualche pixel risparmiato in basso: serve a far stare la carta di
-   * traverso del burraco senza dover scorrere */
-  .mano { padding-top: 4px; }
-  .area-mano { padding: 4px 12px 0; }
-  .barra-azioni { padding: 3px 12px 5px; gap: 5px; }
-  .etichetta-zona { margin-bottom: 2px; }
-  .anteprima { padding: 1px 10px; font-size: 11.5px; }
-  .area-mie { gap: 4px; }
-  .meld { padding: 2px 4px 3px; }
-  .area-mie { padding: 2px 12px; }
-  .area-avversario { padding: 2px 12px 2px; }
 }
 /* finestre molto basse: il tavolo scorre e la mano resta ancorata in basso */
 @media (min-width: 721px) and (max-height: 620px) {
   .tavolo { overflow-y: auto; }
-  .area-avversario { max-height: none; overflow: visible; }
-  .area-mie { min-height: 0; overflow: visible; }
+  .col-avv, .col-mie { overflow: visible; }
   .footer-tavolo { position: sticky; bottom: 0; z-index: 20; background: rgba(3, 26, 15, .96); }
 }
 
@@ -983,16 +987,8 @@ body.trascinando .carta { cursor: grabbing; }
 
   /* su schermi piccoli il tavolo scorre e il piè di pagina resta ancorato */
   .tavolo { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .area-avversario { flex: 0 0 auto; max-height: none; }
-  .area-mie { flex: 1 0 auto; min-height: 0; max-height: none; overflow: visible; }
-  .area-centro {
-    flex: 0 0 auto;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 8px;
-    padding: 8px;
-    overflow: visible;
-  }
+  .campo { flex-direction: column; gap: 8px; }
+  .col-avv, .col-mie { overflow: visible; }
   .centro-destra { width: 100%; max-height: none; }
   .notifica { font-size: 12px; padding: 7px 12px; }
   .footer-tavolo {
@@ -1004,7 +1000,6 @@ body.trascinando .carta { cursor: grabbing; }
     box-shadow: 0 -8px 22px rgba(0, 0, 0, .45);
   }
   .barra-superiore .marchio { display: none; }
-  .area-centro { gap: 16px; padding: 4px 8px; }
   .mazzetti { gap: 14px; }
   .barra-superiore { padding: 6px 8px; gap: 6px; }
   .punteggio-box { padding: 4px 9px; font-size: 12px; }

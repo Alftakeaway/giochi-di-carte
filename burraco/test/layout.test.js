@@ -78,9 +78,9 @@ const PREPARA = function () {
     const m = await page.evaluate(function () {
       const r = e => { const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, h: b.height, l: b.left, r: b.right }; };
       const q = s => document.querySelector(s);
-      const centro = q('.area-centro');
-      const avv = q('.area-avversario');
-      const mie = q('.area-mie');
+      const centro = q('.col-centro');
+      const avv = q('.col-avv');
+      const mie = q('.col-mie');
       const didT = q('#tallone-didascalia');
       const didM = q('#monte-didascalia');
       const meldsAvv = Array.prototype.slice.call(document.querySelectorAll('#melds-1 .meld'));
@@ -88,14 +88,16 @@ const PREPARA = function () {
       const rc = r(centro), ra = r(avv), rm = r(mie);
       return {
         view: window.innerHeight,
+        larghezza: window.innerWidth,
         centro: rc, avv: ra, mie: rm,
         didT: r(didT), didM: r(didM),
+        pilaT: r(q('#tallone-pila')), pilaM: r(q('#monte-pila')),
         testoTallone: didT.textContent, testoMonte: didM.textContent,
-        /* ogni combinazione deve stare dentro la sua area, dall'alto */
+        /* ogni combinazione deve stare dentro la sua colonna */
         avvDentro: meldsAvv.every(function (el) { const b = r(el); return b.t >= ra.t - 1 && b.b <= ra.b + 1; }),
-        avvPrimaTop: meldsAvv.length ? r(meldsAvv[0]).t : null,
-        mieDentro: meldsMie.every(function (el) { const b = r(el); return b.t >= rm.t - 1; }),
-        miePrimaTop: meldsMie.length ? r(meldsMie[0]).t : null,
+        avvAltezze: meldsAvv.map(function (el) { return Math.round(r(el).h); }),
+        mieDentro: meldsMie.every(function (el) { const b = r(el); return b.t >= rm.t - 1 && b.b <= rm.b + 1; }),
+        mieAltezze: meldsMie.map(function (el) { return Math.round(r(el).h); }),
         footerBasso: r(q('.footer-tavolo')).b,
         traverso: document.querySelectorAll('#melds-0 .slot-traverso').length,
         ordBtns: Array.prototype.map.call(document.querySelectorAll('#ordinamento .ord-btn'), function (b) {
@@ -104,12 +106,13 @@ const PREPARA = function () {
       };
     });
 
-    verifica('la scritta Tallone sta dentro la fascia centrale', m.didT.t >= m.centro.t - 1 && m.didT.b <= m.centro.b + 1, m.didT);
-    verifica('la scritta Monte sta dentro la fascia centrale', m.didM.t >= m.centro.t - 1 && m.didM.b <= m.centro.b + 1, m.didM);
+    verifica('il tallone è al centro dello schermo', m.pilaT.l > m.larghezza / 8 && m.pilaT.r < m.larghezza * 7 / 8, m.pilaT);
+    verifica('la scritta Tallone sta dentro la colonna centrale', m.didT.t >= m.centro.t - 1 && m.didT.b <= m.centro.b + 1, m.didT);
+    verifica('la scritta Monte sta dentro la colonna centrale', m.didM.t >= m.centro.t - 1 && m.didM.b <= m.centro.b + 1, m.didM);
     verifica('il tallone mostra quante carte restano', /\d+/.test(m.testoTallone), m.testoTallone);
     verifica('il monte mostra quante carte ci sono', /\d+/.test(m.testoMonte), m.testoMonte);
-    verifica('le combinazioni dell\'avversario si vedono per intero', m.avvDentro, m.avvPrimaTop);
-    verifica('le tue combinazioni non finiscono sopra l\'area', m.mieDentro, m.miePrimaTop);
+    verifica('le combinazioni dell\'avversario si vedono per intero', m.avvDentro, m.avvAltezze);
+    verifica('le tue combinazioni si vedono per intero', m.mieDentro, m.mieAltezze);
     verifica('la mano non esce dallo schermo', m.footerBasso <= m.view + 1, { footer: m.footerBasso, view: m.view });
     verifica('il burraco mostra la carta di traverso', m.traverso >= 1, m.traverso);
     verifica('i tre comandi di ordinamento sono visibili', m.ordBtns.length === 3 && m.ordBtns.every(b => b.visibile), m.ordBtns);

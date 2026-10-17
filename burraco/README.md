@@ -40,6 +40,28 @@ L'ordine degli script è importante: `engine` → `ai` → `ui`.
 | Penalità | −100 pozzetto non preso, carte in mano sottratte a chi non chiude |
 | Partita | a 505 / 1005 / 2005 punti |
 
+## Disposizione del tavolo
+
+Tallone e monte stanno **al centro del tavolo**, tra le combinazioni dei due
+giocatori:
+
+```
+┌──────────────────────────────────────────────┐
+│  COMPUTER  ·  carte in mano (coperte)        │
+│ ┌───────────────┐ ┌────────┐ ┌─────────────┐ │
+│ │ le sue        │ │TALLONE │ │ le tue      │ │
+│ │ combinazioni  │ │ MONTE  │ │ combinazioni│ │
+│ └───────────────┘ └────────┘ └─────────────┘ │
+│  LA TUA MANO  ·  comandi                     │
+└──────────────────────────────────────────────┘
+```
+
+Prima i mazzetti stavano in una fascia orizzontale in mezzo alle giocate, con
+il registro a destra: lì si incastrava tutto e il resto del tavolo restava
+verde e vuoto. Mettendoli al centro, ogni giocatore ha una **colonna intera**
+di altezza, e su un portatile da 15,6" ci stanno due pile complete senza
+scorrere niente. Sui telefoni le tre colonne si impilano una sotto l'altra.
+
 ## Interfaccia
 
 - **Trascina una carta** dalla mano a una combinazione per attaccarla, o da una
@@ -68,9 +90,8 @@ L'ordine degli script è importante: `engine` → `ai` → `ui`.
   la striscia in alto con valore e seme. Nel burraco la prima carta è messa
   **di traverso in basso**; un timbro dice se è `PULITO`, `SEMIPULITO` o `SPORCO`.
 - Il tavolo si adatta all'altezza dello schermo: su un portatile 1366×768 le
-  carte e le strisce delle combinazioni rimpiccioliscono quel tanto che basta
-  per far vedere tutto, tallone e monte compresi, senza scorrere. Sotto i 620 px
-  di altezza la pagina scorre e la mano resta ancorata in basso.
+  carte rimpiccioliscono quel tanto che basta per far vedere tutto senza
+  scorrere; sotto i 620 px di altezza la pagina scorre e la mano resta ancorata.
 - Le matte calate mostrano al centro il valore che rappresentano (es. `J ♥`), così
   la sequenza si legge a colpo d'occhio; il filetto viola e lo sfondo lilla
   ricordano che la carta è un jolly o una pinella.

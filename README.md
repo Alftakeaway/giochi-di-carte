@@ -15,12 +15,25 @@ Sito web **reattivo (mobile-first)** in Vanilla HTML5, CSS3 e JavaScript (ES6, O
 ├─ index.html      Dashboard: scelta gioco → mazzo → modalità (Bot/P2P) → stanza P2P
 ├─ game.html       Tavolo da gioco universale
 ├─ css/style.css   Tappeto verde, carte responsive, flip 3D, animazioni
+├─ burraco/        Burraco completo, pagina autonoma (vedi burraco/README.md)
 └─ js/
    ├─ network.js   WebRTC / PeerJS (initPeer, connectToPeer, broadcastGameState, handleIncomingData)
-   ├─ engine.js    Carta, Mazzo (Fisher-Yates), GiocoBase → Scopa, Briscola, Burraco
+   ├─ engine.js    Carta, Mazzo (Fisher-Yates), GiocoBase → Scopa, Briscola
    ├─ bot.js       Intelligenza artificiale locale (mossaBotScopa/Briscola/Burraco)
    └─ ui.js        Rendering DOM, animaSpostamento, Controller
 ```
+
+### Il Burraco è una pagina a sé
+
+La carta **Burraco** della dashboard porta su `burraco/index.html`, un gioco autonomo
+riscritto da zero sul regolamento F.I.Bur.: motore delle regole separato e testato
+(149 controlli), avversario a tre livelli, trascinamento delle carte fra le
+combinazioni, combinazioni impilate in verticale con la carta di traverso sul
+burraco, punteggi a 505 / 1005 / 2005. Scopa e Briscola restano su `game.html`.
+
+Non tocca `js/engine.js`, `js/ui.js` né le variabili globali del sito: i nomi sono
+distinti (`BurracoEngine`, `BurracoAI`, `__burraco`), quindi i tre giochi convivono
+senza interferenze.
 
 ## Gioca
 

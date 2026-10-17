@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a5130">
+  <meta name="description" content="Burraco italiano completo: gioca contro il computer o in due sullo stesso dispositivo, con tutte le regole ufficiali.">
+  <title>Burraco — Giochi di Carte Italiani</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/burraco.css?v=2">
+</head>
+<body>
+
+  <!-- ================= SCHERMATA INIZIALE ================= -->
+  <div class="schermata-avvio" id="schermata-avvio">
+    <div class="avvio-card">
+      <div class="avvio-logo" aria-hidden="true">
+        <svg viewBox="0 0 40 44">
+          <path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="#c9a227"/>
+          <circle cx="4" cy="7" r="3.1" fill="#fff4c2"/>
+          <circle cx="20" cy="4" r="3.1" fill="#fff4c2"/>
+          <circle cx="36" cy="7" r="3.1" fill="#fff4c2"/>
+        </svg>
+      </div>
+      <h1>Burraco</h1>
+      <p class="sottotitolo">Regolamento italiano · 2 mazzi da 52 + 4 jolly · partita a 2005 punti</p>
+
+      <div class="campo">
+        <label>Modalità</label>
+        <div class="scelte" id="scelta-modo">
+          <button class="scelta attiva" data-modo="cpu">
+            <span class="titolo">🤖 Contro il computer</span>
+            <span class="nota">Gioca in singolo</span>
+          </button>
+          <button class="scelta" data-modo="hotseat">
+            <span class="titolo">👥 In due</span>
+            <span class="nota">Stesso dispositivo</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="campo" id="campo-livello">
+        <label>Difficoltà del computer</label>
+        <div class="scelte" id="scelta-livello">
+          <button class="scelta" data-livello="facile">
+            <span class="titolo">Facile</span>
+            <span class="nota">Per imparare</span>
+          </button>
+          <button class="scelta attiva" data-livello="normale">
+            <span class="titolo">Normale</span>
+            <span class="nota">Sfida equilibrata</span>
+          </button>
+          <button class="scelta" data-livello="difficile">
+            <span class="titolo">Difficile</span>
+            <span class="nota">Gioca sul serio</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Durata della partita</label>
+        <div class="scelte" id="scelta-target">
+          <button class="scelta" data-target="505">
+            <span class="titolo">505</span>
+            <span class="nota">Partita breve</span>
+          </button>
+          <button class="scelta" data-target="1005">
+            <span class="titolo">1005</span>
+            <span class="nota">Media</span>
+          </button>
+          <button class="scelta attiva" data-target="2005">
+            <span class="titolo">2005</span>
+            <span class="nota">Partita classica</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Nomi dei giocatori</label>
+        <div class="scelte">
+          <input id="nome-0" class="scelta" style="text-align:left;padding:11px 14px" value="Tu" maxlength="14" aria-label="Nome giocatore 1">
+          <input id="nome-1" class="scelta" style="text-align:left;padding:11px 14px" value="Computer" maxlength="14" aria-label="Nome giocatore 2">
+        </div>
+      </div>
+
+      <div class="avvio-azioni">
+        <button class="btn btn-oro btn-grande" id="btn-avvia">▶ Inizia a giocare</button>
+        <button class="btn btn-grande" id="btn-regole-avvio" style="flex:0 0 auto">📖 Regole</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAVOLO ================= -->
+  <div class="tavolo" id="tavolo" hidden>
+    <header class="barra-superiore">
+      <button class="btn btn-icona" id="btn-menu" title="Menu">☰</button>
+      <div class="marchio">
+        <svg viewBox="0 0 40 44" aria-hidden="true">
+          <path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="#e0bb52"/>
+          <circle cx="4" cy="7" r="3.1" fill="#fff4c2"/>
+          <circle cx="20" cy="4" r="3.1" fill="#fff4c2"/>
+          <circle cx="36" cy="7" r="3.1" fill="#fff4c2"/>
+        </svg>
+        <span>Burraco</span>
+      </div>
+      <div class="punteggi" id="punteggi"></div>
+      <div class="turno-badge" id="turno-badge">—</div>
+    </header>
+
+    <section class="area-avversario">
+      <div class="etichetta-zona">
+        <span id="etichetta-avversario">Avversario</span>
+        <span class="pill" id="pill-avversario"></span>
+        <span class="pill" id="pill-pozzetto-avv"></span>
+      </div>
+      <div class="mano-avversario" id="mano-avversario"></div>
+      <div class="lista-melds" id="melds-1"></div>
+    </section>
+
+    <section class="area-centro">
+      <div class="mazzetti">
+        <div class="mazzetto" id="mazzetto-tallone">
+          <div class="pila" id="tallone-pila"></div>
+          <div class="didascalia" id="tallone-didascalia"><strong>Tallone</strong></div>
+        </div>
+        <div class="mazzetto" id="mazzetto-monte">
+          <div class="pila" id="monte-pila"></div>
+          <div class="didascalia" id="monte-didascalia"><strong>Monte</strong></div>
+        </div>
+      </div>
+      <div class="centro-destra">
+        <div class="log-mosse" id="log-mosse"></div>
+        <div class="notifiche" id="notifiche" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="area-mie">
+      <div class="etichetta-zona">
+        <span>Le tue combinazioni</span>
+        <span class="pill" id="pill-mie"></span>
+      </div>
+      <div class="lista-melds" id="melds-0"></div>
+    </section>
+
+    <footer class="footer-tavolo">
+      <div class="area-mano">
+        <div class="etichetta-zona">
+          <span id="etichetta-mano">La tua mano</span>
+          <span class="pill" id="pill-mano"></span>
+          <span class="pill" id="pill-pozzetto-mio"></span>
+          <button class="pill pill-ordinamento" id="toggle-ordine" type="button"
+                  title="Cambia il modo in cui sono ordinate le carte in mano">
+            <span id="toggle-ordine-testo">per combinazioni</span>
+          </button>
+        </div>
+        <div class="mano" id="mano-giocatore"></div>
+      </div>
+
+      <div class="barra-azioni" id="barra-azioni"></div>
+    </footer>
+  </div>
+
+  <!-- ================= OVERLAY: FINE SMAZZATA / PARTITA ================= -->
+  <div class="overlay" id="overlay-fine" hidden>
+    <div class="box">
+      <h2 id="fine-titolo">Smazzata conclusa</h2>
+      <div class="sottotitolo" id="fine-sottotitolo"></div>
+      <div id="fine-contenuto"></div>
+      <div class="azioni" id="fine-azioni"></div>
+    </div>
+  </div>
+
+  <!-- ================= OVERLAY: CONSEGNA DISPOSITIVO ================= -->
+  <div class="overlay" id="overlay-consegna" hidden>
+    <div class="box" style="max-width:420px">
+      <h2 id="consegna-titolo">Passa il dispositivo</h2>
+      <div class="sottotitolo" id="consegna-testo"></div>
+      <div class="azioni">
+        <button class="btn btn-oro btn-grande" id="btn-consegna">👌 Sono pronto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= OVERLAY: REGOLE ================= -->
+  <div class="overlay" id="overlay-regole" hidden>
+    <div class="box regole">
+      <h2>Regole del Burraco</h2>
+      <div class="sottotitolo">Regolamento italiano (F.I.Bur.)</div>
+      <div class="scroll">
+        <h3>Obiettivo</h3>
+        <p>Realizzare combinazioni e sequenze per accumulare punti. Si gioca a smazzate successive: vince chi per primo raggiunge il punteggio obiettivo (505, 1005 o 2005).</p>
+
+        <h3>Mazzo e distribuzione</h3>
+        <ul>
+          <li>Due mazzi francesi da 52 carte più 4 jolly: <strong>108 carte</strong>.</li>
+          <li>11 carte a testa, più due <em>pozzetti</em> da 11 carte (uno per giocatore) e una carta scoperta sul <em>monte</em>.</li>
+          <li>Il resto forma il <em>tallone</em>.</li>
+        </ul>
+
+        <h3>Il turno</h3>
+        <ul>
+          <li><strong>1.</strong> Pesca una carta dal tallone <em>oppure</em> raccogli tutto il monte degli scarti.</li>
+          <li><strong>2.</strong> Cala nuove combinazioni o attacca carte ai tuoi giochi.</li>
+          <li><strong>3.</strong> Scarta una carta (obbligatorio).</li>
+        </ul>
+        <p>Se il monte è formato da una sola carta, quella carta non può essere riscartata nello stesso turno.</p>
+
+        <h3>Combinazioni</h3>
+        <ul>
+          <li><strong>Gruppo:</strong> almeno 3 carte dello stesso valore, anche di semi diversi (essendoci due mazzi, al massimo 2 carte per seme). Non si possono calare gruppi di soli 2.</li>
+          <li><strong>Sequenza:</strong> almeno 3 carte consecutive dello stesso seme.</li>
+          <li><strong>Matte:</strong> jolly e pinelle (tutti i 2). Massimo <strong>una matta</strong> per combinazione; due solo se nella sequenza c'è la pinella del seme stesso al posto naturale del 2.</li>
+          <li>Una matta non esce mai dal gioco: se possiedi la carta naturale che rappresenta, puoi <strong>sostituirla</strong> e la matta si sposta all'estremità restando calata.</li>
+          <li>Le combinazioni si dispongono sul tavolo <strong>impilate in verticale</strong>: di ogni carta resta visibile l'angolo con valore e seme.</li>
+        </ul>
+
+        <h3>Spostare una carta da una combinazione all'altra</h3>
+        <ul>
+          <li><strong>Trascina</strong> la carta da una combinazione a un'altra: se ci entra viene integrata subito, e i punti delle due combinazioni si aggiornano.</li>
+          <li>In alternativa <strong>tocca</strong> la carta e poi la combinazione di destinazione (comodo sul telefono).</li>
+          <li>La combinazione di partenza deve restare valida e con almeno 3 carte; un burraco non si può scomporre.</li>
+          <li>La mano si ordina da sola mettendo vicine le carte che formano già un tris o una scala: il pulsante <em>per combinazioni / per seme</em> cambia ordinamento.</li>
+        </ul>
+
+        <h3>Burraco</h3>
+        <p>Una combinazione o sequenza di almeno <strong>7 carte</strong>. La prima carta del burraco si mette <strong>di traverso in basso</strong>, così si riconosce a colpo d'occhio.</p>
+        <ul>
+          <li><strong>Pulito</strong> (+200): nessuna matta.</li>
+          <li><strong>Semipulito</strong> (+150): contiene solo pinelle, nessun jolly.</li>
+          <li><strong>Sporco</strong> (+100): contiene almeno un jolly.</li>
+        </ul>
+
+        <h3>Pozzetto</h3>
+        <p>Quando resti senza carte prendi il tuo pozzetto. Se lo hai svuotando la mano con una calata lo giochi subito (<em>in diretta</em>); se lo hai svuotando con lo scarto lo giochi dal turno successivo. Una matta può essere scartata per andare a pozzetto.</p>
+
+        <h3>Chiusura</h3>
+        <p>Si chiude scartando l'ultima carta, che <strong>non può essere una matta</strong>, dopo aver realizzato almeno un burraco e aver preso il pozzetto. Bonus <strong>+100</strong>.</p>
+        <p>Se nessuno chiude, la smazzata finisce quando restano 2 carte nel tallone. Se nessuno ha preso il pozzetto la smazzata viene ripetuta.</p>
+
+        <h3>Punteggi delle carte</h3>
+        <table>
+          <tr><td>Jolly</td><td>30</td></tr>
+          <tr><td>Pinella (2)</td><td>20</td></tr>
+          <tr><td>Asso</td><td>15</td></tr>
+          <tr><td>Re, Donna, Fante, 10, 9, 8</td><td>10</td></tr>
+          <tr><td>7, 6, 5, 4, 3</td><td>5</td></tr>
+        </table>
+
+        <h3>Bonus e penalità</h3>
+        <table>
+          <tr><td>Chiusura</td><td>+100</td></tr>
+          <tr><td>Burraco pulito</td><td>+200</td></tr>
+          <tr><td>Burraco semipulito</td><td>+150</td></tr>
+          <tr><td>Burraco sporco</td><td>+100</td></tr>
+          <tr><td>Pozzetto non preso</td><td>−100</td></tr>
+          <tr><td>Carte rimaste in mano all'avversario che chiude</td><td>sottratte</td></tr>
+        </table>
+      </div>
+      <div class="azioni">
+        <button class="btn btn-oro btn-grande" id="btn-chiudi-regole">Ho capito</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= OVERLAY: MENU ================= -->
+  <div class="overlay" id="overlay-menu" hidden>
+    <div class="box" style="max-width:420px">
+      <h2>Menu</h2>
+      <div class="sottotitolo">Partita in corso</div>
+      <div class="azioni" style="flex-direction:column">
+        <button class="btn btn-primario" id="btn-menu-regole">📖 Regole</button>
+        <button class="btn" id="btn-menu-riprendi">↩ Torna al tavolo</button>
+        <button class="btn btn-pericolo" id="btn-menu-nuova">🔄 Nuova partita</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/burraco-engine.js?v=1"></script>
+  <script src="js/burraco-ai.js?v=1"></script>
+  <script src="js/burraco-ui.js?v=1"></script>
+</body>
+</html>

@@ -32,7 +32,7 @@
         <button class="carta-gioco" data-gioco="burraco">
           <span class="icona">🃏</span>
           <span class="nome">Burraco</span>
-          <span class="desc">Forma combinazioni e sequenze, fai almeno un Burraco e chiudi a 2000 punti</span>
+          <span class="desc">Forma combinazioni e sequenze, fai almeno un Burraco e chiudi a 505, 1005 o 2005 punti</span>
         </button>
       </div>
     </section>
@@ -92,6 +92,12 @@
     document.querySelectorAll('.carta-gioco').forEach(btn => {
       btn.addEventListener('click', () => {
         stato.gioco = btn.dataset.gioco;
+        /* Il Burraco ha una pagina sua (regolamento completo, trascinamento
+           delle carte, avversario a 3 livelli): si apre direttamente. */
+        if (stato.gioco === 'burraco') {
+          location.href = 'burraco/';
+          return;
+        }
         document.querySelectorAll('.carta-gioco').forEach(b => b.classList.toggle('attiva', b === btn));
         stato.mazzo = null; // azzera la scelta precedente
         aggiornaPassoMazzo();

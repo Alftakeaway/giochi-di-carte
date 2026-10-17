@@ -1,0 +1,916 @@
+/* =========================================================================
+ * burraco.css — Foglio di stile del tavolo da Burraco
+ * ========================================================================= */
+
+:root {
+  --verde-1: #052e1b;
+  --verde-2: #0a5130;
+  --verde-3: #0d6b3d;
+  --verde-4: #128049;
+  --oro: #e0bb52;
+  --oro-scuro: #a8862c;
+  --carta: #fbfbf7;
+  --testo: #f2f6f2;
+  --testo-scuro: #14251b;
+  --rosso: #c62828;
+  --nero: #1d1d1d;
+  --bordo: rgba(255, 255, 255, .16);
+  --vetro: rgba(255, 255, 255, .08);
+  --vetro-forte: rgba(255, 255, 255, .16);
+  --ombra: 0 2px 6px rgba(0, 0, 0, .35);
+  --cw: 62px;
+  --ch: 88px;
+  --cw-meld: 56px;
+  --ch-meld: 64px;
+  --passo-meld: 18px;
+  --cw-back: 34px;
+  --ch-back: 48px;
+  --raggio: 9px;
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* Qualsiasi elemento con l'attributo hidden deve sparire davvero: senza
+ * questo, le regole display:flex degli overlay annullano [hidden]. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--font);
+  color: var(--testo);
+  background: var(--verde-1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 42%, var(--verde-3) 0%, var(--verde-2) 42%, var(--verde-1) 100%);
+  overflow: hidden;
+}
+
+button { font-family: inherit; }
+
+/* =========================================================================
+ * SCHERMATA INIZIALE
+ * ========================================================================= */
+.schermata-avvio {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 40;
+}
+.avvio-card {
+  width: 100%;
+  max-width: 560px;
+  background: rgba(4, 34, 20, .82);
+  border: 1px solid var(--bordo);
+  border-radius: 18px;
+  padding: 26px 26px 22px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .5);
+  backdrop-filter: blur(6px);
+}
+.avvio-logo { text-align: center; line-height: 1; }
+.avvio-logo svg {
+  width: 56px;
+  height: auto;
+  filter: drop-shadow(0 6px 16px rgba(224, 187, 82, .45));
+}
+.avvio-card h1 {
+  margin: 8px 0 4px;
+  font-size: 30px;
+  text-align: center;
+  letter-spacing: .5px;
+  background: linear-gradient(180deg, #fff 20%, var(--oro) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.avvio-card .sottotitolo {
+  margin: 0 0 22px;
+  text-align: center;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, .68);
+}
+.campo { margin-bottom: 18px; }
+.campo > label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, .55);
+  margin-bottom: 8px;
+}
+.scelte { display: flex; gap: 8px; flex-wrap: wrap; }
+.scelta {
+  flex: 1 1 0;
+  min-width: 108px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  border: 1px solid var(--bordo);
+  background: var(--vetro);
+  color: var(--testo);
+  cursor: pointer;
+  text-align: center;
+  transition: .16s;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.scelta:hover { background: var(--vetro-forte); }
+.scelta.attiva {
+  background: linear-gradient(180deg, var(--verde-4), var(--verde-2));
+  border-color: var(--oro);
+  box-shadow: 0 0 0 1px rgba(224, 187, 82, .35), 0 6px 18px rgba(0, 0, 0, .3);
+}
+.scelta .titolo { display: block; font-weight: 600; }
+.scelta .nota { display: block; font-size: 11px; opacity: .65; margin-top: 2px; }
+.avvio-azioni { display: flex; gap: 10px; margin-top: 22px; }
+
+/* =========================================================================
+ * BOTTONI
+ * ========================================================================= */
+.btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--bordo);
+  background: var(--vetro);
+  color: var(--testo);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+}
+.btn:hover:not(:disabled) { background: var(--vetro-forte); }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn-primario {
+  background: linear-gradient(180deg, var(--verde-4), var(--verde-2));
+  border-color: rgba(224, 187, 82, .45);
+}
+.btn-primario:hover:not(:disabled) { filter: brightness(1.12); }
+.btn-oro {
+  background: linear-gradient(180deg, #f0cf6d, var(--oro-scuro));
+  border-color: #fff3c4;
+  color: #2c1e00;
+}
+.btn-oro:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-pericolo { border-color: rgba(220, 90, 90, .5); }
+.btn-grande { flex: 1; padding: 14px 20px; font-size: 16px; }
+.btn-icona { padding: 8px 11px; }
+
+/* =========================================================================
+ * STRUTTURA DEL TAVOLO
+ * ========================================================================= */
+.tavolo {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.barra-superiore {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, .28);
+  border-bottom: 1px solid var(--bordo);
+  flex: 0 0 auto;
+}
+.barra-superiore .marchio {
+  font-weight: 700;
+  letter-spacing: .5px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.barra-superiore .marchio span { color: var(--oro); }
+.barra-superiore .marchio svg { width: 17px; height: auto; display: block; }
+.punteggi {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+}
+.punteggio-box {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-radius: 9px;
+  background: var(--vetro);
+  border: 1px solid var(--bordo);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.punteggio-box.attivo {
+  border-color: var(--oro);
+  background: rgba(224, 187, 82, .16);
+}
+.punteggio-box .nome { opacity: .7; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.punteggio-box .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.punteggio-box .delta { font-size: 11px; font-weight: 700; }
+.punteggio-box .delta.positivo { color: #7ee2a8; }
+.punteggio-box .delta.negativo { color: #ff9b9b; }
+
+.turno-badge {
+  padding: 5px 12px;
+  border-radius: 9px;
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--vetro);
+  border: 1px solid var(--bordo);
+  white-space: nowrap;
+}
+.turno-badge.mio { background: rgba(126, 226, 168, .18); border-color: rgba(126, 226, 168, .5); }
+.turno-badge.attesa { opacity: .7; }
+
+/* ---------------------------------------------------------------- aree */
+/* Le combinazioni sono pile verticali: le due aree di gioco si dividono lo
+ * spazio disponibile e scorrono da sole, la fascia centrale resta compatta. */
+.area-avversario {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 8px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+.area-centro {
+  flex: 1 1 auto;
+  min-height: 112px;
+  max-height: 236px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 26px;
+  padding: 8px 14px;
+  overflow: hidden;
+}
+.centro-destra {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+.area-mie {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.footer-tavolo {
+  flex: 0 0 auto;
+  background: rgba(0, 0, 0, .2);
+}
+.area-mano {
+  flex: 0 0 auto;
+  padding: 6px 12px 2px;
+  border-top: 1px solid var(--bordo);
+}
+
+.etichetta-zona {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, .45);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.etichetta-zona .pill {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: var(--vetro);
+  border: 1px solid var(--bordo);
+  color: rgba(255, 255, 255, .8);
+}
+/* interruttore dell'ordine delle carte in mano */
+.etichetta-zona .pill-ordinamento {
+  margin-left: auto;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.etichetta-zona .pill-ordinamento:hover {
+  border-color: rgba(111, 214, 255, .7);
+  background: rgba(111, 214, 255, .14);
+  color: #cdefff;
+}
+
+/* ------------------------------------------------------------ le carte */
+.carta {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--cw);
+  height: var(--ch);
+  border-radius: var(--raggio);
+  background: linear-gradient(165deg, #ffffff 0%, #f1f3ee 100%);
+  border: 1px solid #c8d0c9;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .38);
+  color: var(--nero);
+  user-select: none;
+  overflow: hidden;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.carta.rossa { color: var(--rosso); }
+.carta .angolo {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: .95;
+  font-weight: 700;
+}
+.carta .angolo.alto { top: 3px; left: 4px; }
+.carta .angolo.basso { bottom: 3px; right: 4px; transform: rotate(180deg); }
+.carta .angolo .rango { font-size: 15px; }
+.carta .angolo .seme { font-size: 11px; }
+.carta .centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  opacity: .92;
+}
+.carta.coperta {
+  background:
+    repeating-linear-gradient(45deg, #0e4f8d 0 5px, #0a3c6d 5px 10px);
+  border-color: #0a3f70;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .45), inset 0 0 0 1.5px rgba(255, 255, 255, .22);
+}
+.carta.coperta .angolo, .carta.coperta .centro { display: none; }
+.carta.jolly .centro { font-size: 26px; padding: 6px; }
+.carta.jolly .jolly-svg { width: 74%; height: auto; display: block; }
+.carta.jolly .etichetta-jolly {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  color: #7b1fa2;
+}
+.carta .badge-matta {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #7b1fa2;
+  color: #fff;
+  letter-spacing: .3px;
+}
+
+.carta.selezionata {
+  transform: translateY(-14px);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, .5), 0 0 0 2px var(--oro);
+  z-index: 5;
+}
+.carta.cliccabile { cursor: pointer; }
+.carta.cliccabile:hover { transform: translateY(-6px); box-shadow: 0 8px 14px rgba(0, 0, 0, .45); }
+.carta.selezionata.cliccabile:hover { transform: translateY(-14px); }
+.carta.suggerita { box-shadow: 0 0 0 2px #6fd6ff, 0 0 14px rgba(111, 214, 255, .6); }
+.carta.appena-giocata { animation: pop .5s ease; }
+@keyframes pop {
+  0% { transform: scale(.6) translateY(-30px); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* ------------------------------------------------------------- le mani */
+.mano {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: calc(var(--ch) + 4px);
+  padding-top: 9px;
+}
+.mano .carta.cliccabile {
+  cursor: grab;
+  touch-action: none;
+}
+.mano .carta.cliccabile:active { cursor: grabbing; }
+
+/* Le carte che formano già un tris o una scala portano un filetto colorato
+ * in alto: si vede subito cosa si può calare e cosa è sciolto. */
+.mano .carta.in-combinazione::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 1px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(224, 187, 82, .95), rgba(111, 214, 255, .9));
+  pointer-events: none;
+}
+/* stacco fra un blocco e l'altro */
+.mano .carta.inizio-blocco::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 10%;
+  bottom: 10%;
+  width: 1px;
+  background: rgba(255, 255, 255, .16);
+  pointer-events: none;
+}
+.mano-avversario {
+  display: flex;
+  align-items: center;
+  min-height: var(--ch-back);
+  padding-left: 2px;
+}
+.mano-avversario .carta {
+  width: var(--cw-back);
+  height: var(--ch-back);
+  border-radius: 6px;
+}
+
+/* ---------------------------------------------------------- i pozzetti */
+.pozzetto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: var(--vetro);
+  border: 1px solid var(--bordo);
+  font-size: 11.5px;
+}
+.pozzetto .carte-pozzetto { display: flex; }
+.pozzetto .carte-pozzetto .carta {
+  width: 22px;
+  height: 31px;
+  border-radius: 4px;
+  margin-left: -14px;
+}
+.pozzetto .carte-pozzetto .carta:first-child { margin-left: 0; }
+.pozzetto.preso { opacity: .5; }
+
+/* ---------------------------------------------------------- tallone/monte */
+.mazzetti { display: flex; align-items: center; gap: 22px; }
+.mazzetto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+}
+.mazzetto.cliccabile { cursor: pointer; }
+.mazzetto .pila {
+  position: relative;
+  width: var(--cw);
+  height: var(--ch);
+}
+.mazzetto .pila .carta { position: absolute; top: 0; left: 0; }
+.mazzetto.cliccabile .pila:hover { transform: translateY(-4px); }
+.mazzetto .pila { transition: transform .15s; }
+.mazzetto .didascalia {
+  font-size: 11px;
+  color: rgba(255, 255, 255, .72);
+  text-align: center;
+  line-height: 1.3;
+}
+.mazzetto .didascalia strong { display: block; font-size: 12.5px; color: #fff; }
+.mazzetto.evidenziato .pila {
+  box-shadow: 0 0 0 2px var(--oro), 0 0 20px rgba(224, 187, 82, .45);
+  border-radius: var(--raggio);
+}
+.monte-vuoto {
+  width: var(--cw);
+  height: var(--ch);
+  border-radius: var(--raggio);
+  border: 2px dashed rgba(255, 255, 255, .22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, .35);
+  text-align: center;
+}
+
+/* -------------------------------------------------------- combinazioni */
+.lista-melds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: flex-start;
+}
+.vuoto {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, .3);
+  padding: 8px 2px;
+  font-style: italic;
+}
+
+/* Una combinazione è una pila verticale: le carte si sovrappongono e resta
+ * visibile solo l'angolo con valore e seme. */
+.meld {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px 5px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--bordo);
+  position: relative;
+  transition: border-color .18s, box-shadow .18s, background .18s, transform .15s;
+}
+.meld .testata {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  min-height: 12px;
+}
+.meld .testata .pt { font-size: 9.5px; font-weight: 700; color: rgba(255, 255, 255, .82); }
+.meld .testata .timbro {
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  color: var(--oro);
+}
+.meld.pulito .testata .timbro { color: #ffd964; }
+.meld.semipulito .testata .timbro { color: #a9e3ff; }
+.meld.sporco .testata .timbro { color: #f0b27a; }
+
+.meld .pila-meld {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.meld .pila-meld > * + * {
+  margin-top: calc(var(--passo-meld) - var(--ch-meld));
+}
+
+.meld .carta {
+  width: var(--cw-meld);
+  height: var(--ch-meld);
+  border-radius: 5px;
+  position: relative;
+}
+.meld .carta .angolo .rango { font-size: 12px; }
+.meld .carta .angolo .seme { font-size: 9px; }
+/* impilata resta scoperto solo il bordo superiore: valore e seme devono
+ * stare sulla stessa riga per essere leggibili */
+.meld .carta .angolo.alto {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 2px;
+  top: 2px;
+  left: 3px;
+}
+.meld .carta .centro { font-size: 20px; }
+.meld .carta .etichetta-jolly { font-size: 6.5px; bottom: 2px; }
+/* nella pila il timbro MATTA ruberebbe lo spazio del valore: la matta si
+ * riconosce dal filetto viola a sinistra */
+.meld .carta .badge-matta { display: none; }
+.meld .carta.matta-figurata {
+  box-shadow: inset 3px 0 0 rgba(123, 31, 162, .8), inset 0 0 0 1.5px rgba(123, 31, 162, .45);
+}
+
+
+/* la carta di traverso in basso: è il segno del burraco */
+.meld .slot-traverso {
+  position: relative;
+  width: var(--ch-meld);
+  height: var(--cw-meld);
+}
+.meld .slot-traverso .carta.di-traverso {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.meld.burraco {
+  border-color: rgba(224, 187, 82, .75);
+  background: rgba(224, 187, 82, .1);
+  box-shadow: 0 0 14px rgba(224, 187, 82, .22);
+}
+.meld.semipulito {
+  border-color: rgba(169, 227, 255, .7);
+  background: rgba(111, 214, 255, .08);
+  box-shadow: 0 0 14px rgba(111, 214, 255, .2);
+}
+.meld.sporco {
+  border-color: rgba(240, 178, 122, .7);
+  background: rgba(240, 178, 122, .08);
+  box-shadow: 0 0 14px rgba(240, 178, 122, .2);
+}
+.meld.target {
+  border-color: #6fd6ff;
+  box-shadow: 0 0 0 2px rgba(111, 214, 255, .55), 0 0 20px rgba(111, 214, 255, .35);
+  cursor: pointer;
+  animation: pulsa 1.4s infinite;
+}
+.meld.target:hover { background: rgba(111, 214, 255, .16); }
+@keyframes pulsa {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(111, 214, 255, .5), 0 0 14px rgba(111, 214, 255, .3); }
+  50% { box-shadow: 0 0 0 3px rgba(111, 214, 255, .85), 0 0 26px rgba(111, 214, 255, .55); }
+}
+/* matta calata: mostra il valore che rappresenta, con un contorno viola
+ * che la distingue a colpo d'occhio dalle carte naturali */
+.carta.matta-figurata {
+  background: linear-gradient(160deg, #fbf7ff 0%, #f0e6fb 100%);
+  box-shadow: inset 0 0 0 1.5px rgba(123, 31, 162, .55);
+}
+.carta.matta-figurata .angolo,
+.carta.matta-figurata .centro { color: #7b1fa2; }
+
+/* --------------------------------------------------- trascinamento carte */
+/* Una carta si prende con il mouse o con il dito e si lascia sulla
+ * combinazione che la deve ricevere. */
+.carta.spostabile {
+  cursor: grab;
+  touch-action: none;
+}
+.carta.spostabile:active { cursor: grabbing; }
+
+body.trascinando {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+body.trascinando .carta { cursor: grabbing; }
+
+/* la carta che resta al suo posto mentre la si trascina */
+.carta.trascinata {
+  opacity: .3;
+  filter: saturate(.4);
+}
+
+/* il fantasma che segue il puntatore */
+.ghost-drag {
+  position: fixed !important;
+  z-index: 9999;
+  width: var(--cw);
+  height: var(--ch);
+  margin: 0 !important;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-5deg) scale(1.08);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, .55), 0 0 0 2px rgba(111, 214, 255, .75);
+  opacity: .97;
+  animation: none !important;
+}
+
+/* la combinazione da cui è partita la carta */
+.meld.origine {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, .45);
+  box-shadow: none;
+  background: rgba(255, 255, 255, .03);
+}
+
+/* la combinazione su cui si sta per lasciare la carta */
+.meld.sotto {
+  transform: scale(1.04);
+  border-color: #9dffbe;
+  background: rgba(157, 255, 190, .16);
+  box-shadow: 0 0 0 2px rgba(157, 255, 190, .7), 0 0 24px rgba(157, 255, 190, .45);
+  animation: none;
+}
+
+/* carta scelta con un tocco, in attesa della combinazione di destinazione */
+.carta.scelta-per-spostare {
+  outline: 2px solid #9dffbe;
+  outline-offset: 1px;
+  box-shadow: 0 0 14px rgba(157, 255, 190, .6);
+}
+
+/* ------------------------------------------------------------ barra azioni */
+.barra-azioni {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 6px 12px 10px;
+  background: rgba(0, 0, 0, .3);
+  border-top: 1px solid var(--bordo);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+.barra-azioni .spazio { flex: 1 1 auto; }
+.anteprima {
+  flex: 1 1 100%;
+  text-align: center;
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  min-height: 0;
+  transition: .15s;
+}
+.anteprima.valida { background: rgba(126, 226, 168, .16); color: #a8f0c6; }
+.anteprima.non-valida { background: rgba(255, 155, 155, .14); color: #ffc4c4; }
+.anteprima.guida { color: rgba(255, 255, 255, .5); font-size: 12px; }
+.anteprima:empty { display: none; }
+
+/* --------------------------------------------------------------- overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 18, 10, .84);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 60;
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+.overlay[hidden] { display: none; }
+.box {
+  width: 100%;
+  max-width: 620px;
+  background: rgba(6, 40, 24, .96);
+  border: 1px solid var(--bordo);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+}
+.box h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  text-align: center;
+}
+.box .sottotitolo { text-align: center; font-size: 13px; color: rgba(255, 255, 255, .65); margin-bottom: 18px; }
+.box .azioni { display: flex; gap: 10px; margin-top: 18px; }
+.box .azioni .btn { flex: 1; }
+
+.tabella-punti {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 6px;
+}
+.tabella-punti th, .tabella-punti td {
+  padding: 7px 8px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255, 255, 255, .09);
+}
+.tabella-punti th:first-child, .tabella-punti td:first-child { text-align: left; }
+.tabella-punti thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: rgba(255, 255, 255, .5);
+}
+.tabella-punti tbody tr.totale td {
+  font-weight: 700;
+  font-size: 15px;
+  border-bottom: none;
+  padding-top: 10px;
+}
+.tabella-punti td.positivo { color: #7ee2a8; }
+.tabella-punti td.negativo { color: #ff9b9b; }
+.tabella-punti td.totale-parziale { font-weight: 700; color: #fff; }
+
+.regole h3 {
+  margin: 18px 0 6px;
+  font-size: 14px;
+  color: var(--oro);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.regole p, .regole li { font-size: 13.5px; line-height: 1.6; color: rgba(255, 255, 255, .88); }
+.regole ul { margin: 6px 0; padding-left: 20px; }
+.regole table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+.regole table td { padding: 4px 6px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.regole table td:last-child { text-align: right; font-weight: 700; }
+.regole .scroll { max-height: 60vh; overflow-y: auto; padding-right: 6px; }
+
+/* ------------------------------------------------------------ notifiche */
+/* Gli avvisi vivono dentro la fascia centrale, in colonna accanto ai
+ * mazzetti: non coprono mai le carte in gioco né i punteggi. */
+.notifiche {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-height: 0;
+  overflow: hidden;
+  max-width: 100%;
+}
+.notifica {
+  padding: 9px 14px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: min(100%, 460px);
+  background: rgba(8, 46, 28, .92);
+  border: 1px solid var(--bordo);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .4);
+  animation: entra .22s ease;
+  text-align: left;
+}
+.notifica.errore { background: rgba(94, 22, 22, .92); border-color: rgba(255, 155, 155, .45); }
+.notifica.ok { background: rgba(16, 78, 45, .92); border-color: rgba(126, 226, 168, .45); }
+.notifica.oro { background: rgba(74, 58, 10, .95); border-color: var(--oro); color: #ffeeb4; }
+@keyframes entra {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------------------------------------------------------- log mosse */
+.log-mosse {
+  font-size: 12px;
+  color: rgba(255, 255, 255, .72);
+  text-align: left;
+  min-height: 16px;
+  max-width: 460px;
+}
+
+/* =========================================================================
+ * RESPONSIVE
+ * ========================================================================= */
+@media (max-width: 720px) {
+  :root {
+    --cw: 52px;
+    --ch: 74px;
+    --cw-meld: 38px;
+    --ch-meld: 54px;
+    --passo-meld: 16px;
+  }
+
+  /* su schermi piccoli il tavolo scorre e il piè di pagina resta ancorato */
+  .tavolo { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .area-avversario { flex: 0 0 auto; max-height: none; }
+  .area-mie { flex: 1 0 auto; min-height: 0; max-height: none; overflow: visible; }
+  .area-centro {
+    flex: 0 0 auto;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 8px;
+    padding: 8px;
+    overflow: visible;
+  }
+  .centro-destra { width: 100%; max-height: none; }
+  .notifica { font-size: 12px; padding: 7px 12px; }
+  .footer-tavolo {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: rgba(3, 26, 15, .96);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 -8px 22px rgba(0, 0, 0, .45);
+  }
+  .barra-superiore .marchio { display: none; }
+  .area-centro { gap: 16px; padding: 4px 8px; }
+  .mazzetti { gap: 14px; }
+  .barra-superiore { padding: 6px 8px; gap: 6px; }
+  .punteggio-box { padding: 4px 9px; font-size: 12px; }
+  .punteggio-box .nome { max-width: 62px; }
+  .turno-badge { font-size: 11.5px; padding: 4px 9px; }
+  .btn { padding: 9px 13px; font-size: 13px; }
+  .meld .carta .centro { font-size: 17px; }
+}
+
+@media (max-width: 420px) {
+  :root { --cw: 44px; --ch: 63px; --cw-meld: 34px; --ch-meld: 48px; --passo-meld: 14px; }
+  /* a 390px il nome del giocatore serve più del delta dell'ultima smazzata */
+  .punteggio-box { padding: 4px 7px; gap: 5px; }
+  .punteggio-box .nome { max-width: 68px; font-size: 11px; }
+  .punteggio-box .delta { display: none; }
+  .turno-badge { font-size: 11px; padding: 4px 7px; }
+  .barra-azioni { gap: 6px; padding: 6px 8px 10px; }
+  .barra-azioni .btn { padding: 8px 10px; font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

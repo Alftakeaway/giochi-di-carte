@@ -1,8 +1,11 @@
-# Build stage
-FROM rust:1-slim AS build
+# Build stage: versione Rust pinnata a 1.99 (uguale a quella usata in locale, che
+# compila correttamente). Il tag "1" fluttuante può risolvere un toolchain diverso
+# e causare errori a cascata su tutte le crate.
+FROM rust:1.99 AS build
 WORKDIR /app
 COPY . .
-RUN cargo build --release
+# Build pulita: rimuove eventuali artefatti target/ trascinati dal context.
+RUN rm -rf target && cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim

@@ -462,17 +462,25 @@ button { font-family: inherit; }
   box-shadow: 0 2px 5px rgba(0, 0, 0, .45), inset 0 0 0 1.5px rgba(255, 255, 255, .22);
 }
 .carta.coperta .angolo, .carta.coperta .centro { display: none; }
-.carta.jolly .centro { font-size: 26px; padding: 6px; }
-.carta.jolly .jolly-svg { width: 74%; height: auto; display: block; }
+/* Il jolly: corona in alto e scritta JOLLY subito sotto, in modo che la
+ * parola non finisca addosso al segno in basso a sinistra (capitava:
+ * il segno copriva la J). Corona e scritta sono in percentuale della
+ * carta, così restano al loro posto su tutte le dimensioni. */
+.carta.jolly .centro {
+  font-size: 26px;
+  padding: calc(var(--ch) * 0.19) 6px 6px;
+  align-items: flex-start;
+}
+.carta.jolly .jolly-svg { width: 55%; height: auto; display: block; }
 .carta.jolly .etichetta-jolly {
   position: absolute;
-  bottom: 4px;
+  bottom: calc(var(--cw) * 0.33);
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 8.5px;
+  font-size: calc(var(--cw) * 0.14);
   font-weight: 800;
-  letter-spacing: .8px;
+  letter-spacing: .5px;
   color: #7b1fa2;
 }
 
@@ -687,6 +695,10 @@ button { font-family: inherit; }
 }
 .meld .carta .centro { font-size: 20px; }
 .meld .carta .etichetta-jolly { font-size: 6.5px; bottom: 2px; }
+/* nelle combinazioni la corona torna al centro (lì non c'è la scritta
+ * JOLLY a farle compagnia) e un po' più piccola, per non toccare i segni */
+.meld .carta.jolly .centro { padding: 6px; align-items: center; }
+.meld .carta.jolly .jolly-svg { width: 48%; }
 /* il segno jolly degli angoli, in versione piccola per le carte impilate */
 .meld .carta .matta-angolo { width: 19%; aspect-ratio: 40 / 44; opacity: .9; }
 .meld .carta .matta-angolo.alto { top: 1px; right: 2px; }

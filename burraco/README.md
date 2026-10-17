@@ -88,8 +88,9 @@ scorrere niente. Sui telefoni le tre colonne si impilano una sotto l'altra.
   seme non viene ripetuto su tutta la carta.
 - Le **pinelle** portano agli angoli il segno del jolly — in alto a destra e in
   basso a sinistra a testa in giù — **nero o rosso secondo il seme**, come nelle
-  carte italiane. I **jolly** hanno lo stesso segno ma colorato (viola e oro) e
-  la scritta JOLLY in basso. Il bollino «MATTA» è stato eliminato: copriva il
+  carte italiane. I **jolly** hanno lo stesso segno ma colorato (viola e oro): la
+  corona in alto, la scritta JOLLY subito sotto e sopra il segno in basso, così
+  non si coprono a vicenda. Il bollino «MATTA» è stato eliminato: copriva il
   numero e non serviva, il segno agli angoli dice già tutto.
 - Le combinazioni sono **impilate in verticale** e di ogni carta resta visibile
   la striscia in alto con valore e seme. Nel burraco la prima carta è messa
@@ -113,7 +114,7 @@ node test/simulazione.test.js   # 200 partite AI vs AI, invarianti su ogni smazz
 node test/browser.test.js       # gioca partite vere in Chromium (richiede playwright-core)
 node test/chiusura.test.js      # chiusura end-to-end: click reali e punti assegnati
 node test/drag.test.js          # trascinamento, pile verticali, tre tipi di burraco (44 controlli)
-node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento, carte, mano che non salta (72 controlli)
+node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento, carte, mano che non salta (73 controlli)
 node test/dettaglio.js          # primo piano delle carte (solo controllo visivo)
 node test/anteprima.js          # schermate del tavolo (solo controllo visivo)
 ```

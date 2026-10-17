@@ -8,6 +8,7 @@
  *   - la scritta guida che a ogni pescata faceva saltare su la mano
  *   - il bollino MATTA che copriva il numero, sostituito dai segni jolly
  *     agli angoli (numero sceso di un altro 10%)
+ *   - la scritta JOLLY che copriva il segno in basso a sinistra
  *
  * Uso: node test/layout.test.js   (richiede playwright-core) */
 const path = require('path');
@@ -146,6 +147,21 @@ const PREPARA = function () {
           };
         }),
         badge: document.querySelectorAll('.badge-matta').length,
+        /* rettangoli reali del jolly in mano: la scritta non deve toccare
+         * né il segno in basso a sinistra né la corona, e la corona non
+         * deve toccare il segno in alto a destra */
+        jollyRects: (function () {
+          const el = document.querySelector('#mano-giocatore .carta.jolly');
+          if (!el) return null;
+          const rr = s => { const e = el.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, l: b.left, r: b.right }; };
+          const tocca = (a, c) => a && c && a.l < c.r - 0.5 && c.l < a.r - 0.5 && a.t < c.b - 0.5 && c.t < a.b - 0.5;
+          const parola = rr('.etichetta-jolly'), basso = rr('.matta-angolo.basso'),
+            corona = rr('.jolly-svg'), alto = rr('.matta-angolo.alto');
+          return {
+            parola: parola, basso: basso, corona: corona, alto: alto,
+            sovrapposizioni: [tocca(parola, basso), tocca(parola, corona), tocca(corona, alto)].filter(Boolean).length
+          };
+        })(),
         anteprimaPos: (function () {
           const a = q('#anteprima');
           return a ? getComputedStyle(a).position : null;
@@ -182,6 +198,9 @@ const PREPARA = function () {
       m.carteMano.every(function (c) { return c.id === 'h2d' || c.id === 'hj' || c.nMarc === 0; }),
       m.carteMano.filter(function (c) { return c.nMarc > 0; }).map(function (c) { return c.id; }));
     verifica('l\'anteprima è fuori dal flusso della barra', m.anteprimaPos === 'absolute', m.anteprimaPos);
+    verifica('sul jolly la scritta non copre né il segno in basso né la corona',
+      m.jollyRects && m.jollyRects.sovrapposizioni === 0,
+      m.jollyRects && { parola: m.jollyRects.parola, basso: m.jollyRects.basso, corona: m.jollyRects.corona, alto: m.jollyRects.alto });
     verifica('i tre comandi di ordinamento sono visibili', m.ordBtns.length === 3 && m.ordBtns.every(b => b.visibile), m.ordBtns);
     verifica('all\'inizio è attivo «Combinazioni»',
       m.ordBtns.filter(b => b.attivo).map(b => b.ordine).join(',') === 'combinazioni', m.ordBtns);

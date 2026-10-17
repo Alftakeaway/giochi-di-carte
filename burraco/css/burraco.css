@@ -18,13 +18,13 @@
   --vetro: rgba(255, 255, 255, .08);
   --vetro-forte: rgba(255, 255, 255, .16);
   --ombra: 0 2px 6px rgba(0, 0, 0, .35);
-  --cw: 74px;
-  --ch: 106px;
-  --cw-meld: 66px;
-  --ch-meld: 92px;
-  --passo-meld: 20px;
-  --cw-back: 34px;
-  --ch-back: 48px;
+  --cw: 104px;
+  --ch: 148px;
+  --cw-meld: 92px;
+  --ch-meld: 129px;
+  --passo-meld: 28px;
+  --cw-back: 48px;
+  --ch-back: 67px;
   --raggio: 9px;
   --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
@@ -994,20 +994,20 @@ body.trascinando .carta { cursor: grabbing; }
  * telefono qui sotto. */
 @media (min-width: 721px) and (max-height: 900px) {
   :root {
-    --cw: 67px;
-    --ch: 94px;
-    --cw-meld: 64px;
-    --ch-meld: 90px;
-    --passo-meld: 18px;
+    --cw: 94px;
+    --ch: 132px;
+    --cw-meld: 90px;
+    --ch-meld: 126px;
+    --passo-meld: 25px;
   }
 }
 @media (min-width: 721px) and (max-height: 790px) {
   :root {
-    --cw: 60px;
-    --ch: 84px;
-    --cw-meld: 60px;
-    --ch-meld: 84px;
-    --passo-meld: 17px;
+    --cw: 84px;
+    --ch: 118px;
+    --cw-meld: 84px;
+    --ch-meld: 118px;
+    --passo-meld: 24px;
   }
 }
 /* finestre molto basse: il tavolo scorre e la mano resta ancorata in basso */
@@ -1019,11 +1019,11 @@ body.trascinando .carta { cursor: grabbing; }
 
 @media (max-width: 720px) {
   :root {
-    --cw: 62px;
-    --ch: 89px;
-    --cw-meld: 54px;
-    --ch-meld: 76px;
-    --passo-meld: 15px;
+    --cw: 87px;
+    --ch: 125px;
+    --cw-meld: 76px;
+    --ch-meld: 106px;
+    --passo-meld: 21px;
   }
 
   /* su schermi piccoli il tavolo scorre e il piè di pagina resta ancorato */
@@ -1056,7 +1056,7 @@ body.trascinando .carta { cursor: grabbing; }
 }
 
 @media (max-width: 420px) {
-  :root { --cw: 53px; --ch: 76px; --cw-meld: 48px; --ch-meld: 67px; --passo-meld: 14px; }
+  :root { --cw: 74px; --ch: 106px; --cw-meld: 67px; --ch-meld: 94px; --passo-meld: 20px; }
   /* a 390px il nome del giocatore serve più del delta dell'ultima smazzata */
   .punteggio-box { padding: 4px 7px; gap: 5px; }
   .punteggio-box .nome { max-width: 68px; font-size: 11px; }

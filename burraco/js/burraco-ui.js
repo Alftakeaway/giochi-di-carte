@@ -90,12 +90,28 @@
     return a.valore - b.valore;
   }
 
+  /* Ordinamento «per numero»: asso, 2, 3 … re; a parità di valore si
+   * raccolgono i semi nello stesso ordine. I jolly chiudono la fila. */
+  function perValoreESeme(a, b) {
+    if (a.jolly !== b.jolly) return a.jolly ? 1 : -1;
+    if (a.valore !== b.valore) return a.valore - b.valore;
+    const sa = SEME_ORDINE[a.seme] === undefined ? 9 : SEME_ORDINE[a.seme];
+    const sb = SEME_ORDINE[b.seme] === undefined ? 9 : SEME_ORDINE[b.seme];
+    return sa - sb;
+  }
+
   /* Dispone la mano in blocchi: prima le combinazioni che si possono già
    * calare (tris e scale, con le matte al posto giusto), poi le carte
    * sciolte. Serve a vedere a colpo d'occhio cosa si ha in mano. */
   function raggruppaMano(carte) {
+    /* «per numero» e «per seme» sono ordinamenti semplici: un unico blocco */
+    if (ui.ordineMano === 'numero') {
+      return [{ carte: carte.slice().sort(perValoreESeme), tipo: 'resto', punti: 0 }];
+    }
+    if (ui.ordineMano === 'seme') {
+      return [{ carte: carte.slice().sort(perSemeEValore), tipo: 'resto', punti: 0 }];
+    }
     const sciolte = carte.slice().sort(perSemeEValore);
-    if (ui.ordineMano !== 'combinazioni') return [{ carte: sciolte, tipo: 'resto', punti: 0 }];
 
     let proposte = [];
     try { proposte = E.suggerisciCombinazioni(carte, 80) || []; } catch (e) { proposte = []; }
@@ -136,6 +152,15 @@
 
   function ordinaMano(carte) {
     return raggruppaMano(carte).reduce(function (acc, b) { return acc.concat(b.carte); }, []);
+  }
+
+  /* Accende il bottone dell'ordinamento attivo. */
+  function aggiornaOrdinamento() {
+    $$('#ordinamento .ord-btn').forEach(function (btn) {
+      const attivo = btn.dataset.ordine === ui.ordineMano;
+      btn.classList.toggle('attivo', attivo);
+      btn.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+    });
   }
 
   /* =====================================================================
@@ -311,7 +336,11 @@
       v.textContent = 'esaurito';
       pilaT.appendChild(v);
     }
-    $('#tallone-didascalia').innerHTML = '<strong>Tallone</strong>' + (nT ? carte(nT) : 'esaurito');
+    /* nome e quantità sulla stessa riga: su schermi bassi la seconda riga
+     * era la prima cosa a sparire */
+    $('#tallone-didascalia').innerHTML = '<strong>Tallone</strong>' +
+      '<span class="conta">' + (nT ? '· ' + nT : '· esaurito') + '</span>';
+    $('#tallone-didascalia').title = nT ? nT + ' carte nel tallone' : 'Tallone esaurito';
     const mt = $('#mazzetto-tallone');
     mt.classList.toggle('cliccabile', possoPescare && nT > 0);
     mt.classList.toggle('evidenziato', possoPescare && nT > 0 && !s.monte.length);
@@ -338,7 +367,9 @@
         pilaM.appendChild(el);
       }
     }
-    $('#monte-didascalia').innerHTML = '<strong>Monte</strong>' + (n ? carte(n) : 'vuoto');
+    $('#monte-didascalia').innerHTML = '<strong>Monte</strong>' +
+      '<span class="conta">' + (n ? '· ' + n : '· vuoto') + '</span>';
+    $('#monte-didascalia').title = n ? n + ' carte sul monte' : 'Monte vuoto';
     const mm = $('#mazzetto-monte');
     const utile = possoPescare && n > 0;
     mm.classList.toggle('cliccabile', utile);
@@ -1199,14 +1230,17 @@
     $('#btn-regole-avvio').addEventListener('click', function () { $('#overlay-regole').hidden = false; });
     $('#btn-chiudi-regole').addEventListener('click', function () { $('#overlay-regole').hidden = true; });
 
-    /* ordine delle carte in mano: per combinazioni possibili o per seme */
-    $('#toggle-ordine').addEventListener('click', function () {
-      if (!ui.partita) return;
-      ui.ordineMano = ui.ordineMano === 'combinazioni' ? 'seme' : 'combinazioni';
-      $('#toggle-ordine-testo').textContent =
-        ui.ordineMano === 'combinazioni' ? 'per combinazioni' : 'per seme';
-      render();
+    /* ordine delle carte in mano: combinazioni possibili, numero o seme */
+    $$('#ordinamento .ord-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!ui.partita) return;
+        if (ui.ordineMano === btn.dataset.ordine) return;
+        ui.ordineMano = btn.dataset.ordine;
+        aggiornaOrdinamento();
+        render();
+      });
     });
+    aggiornaOrdinamento();
 
     $('#btn-menu').addEventListener('click', function () { $('#overlay-menu').hidden = false; });
     $('#btn-menu-riprendi').addEventListener('click', function () { $('#overlay-menu').hidden = true; });

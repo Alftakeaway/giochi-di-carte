@@ -58,11 +58,19 @@ L'ordine degli script è importante: `engine` → `ai` → `ui`.
 - Si può pescare anche toccando direttamente il tallone o il monte.
 - La mano si **ordina da sola**: le carte che formano già un tris o una scala
   stanno vicine, in blocchi separati, con un filetto colorato in alto; le carte
-  sciolte restano in fondo. Il pulsante **per combinazioni / per seme** cambia
-  ordinamento.
+  sciolte restano in fondo.
+- In alto a destra della mano ci sono tre comandi con un clic:
+  **Combinazioni** (default), **Numero** (dall'asso al re) e **Seme**.
+- Le carte disegnano il **numero in grande nell'angolo** e il seme al centro:
+  così si legge il valore senza avvicinare gli occhi, e il seme non viene
+  ripetuto su tutta la carta.
 - Le combinazioni sono **impilate in verticale** e di ogni carta resta visibile
-  l'angolo con valore e seme. Nel burraco la prima carta è messa **di traverso
-  in basso**; un timbro dice se è `PULITO`, `SEMIPULITO` o `SPORCO`.
+  la striscia in alto con valore e seme. Nel burraco la prima carta è messa
+  **di traverso in basso**; un timbro dice se è `PULITO`, `SEMIPULITO` o `SPORCO`.
+- Il tavolo si adatta all'altezza dello schermo: su un portatile 1366×768 le
+  carte e le strisce delle combinazioni rimpiccioliscono quel tanto che basta
+  per far vedere tutto, tallone e monte compresi, senza scorrere. Sotto i 620 px
+  di altezza la pagina scorre e la mano resta ancorata in basso.
 - Le matte calate mostrano al centro il valore che rappresentano (es. `J ♥`), così
   la sequenza si legge a colpo d'occhio; il filetto viola e lo sfondo lilla
   ricordano che la carta è un jolly o una pinella.
@@ -75,6 +83,7 @@ node test/simulazione.test.js   # 400 partite AI vs AI, invarianti su ogni smazz
 node test/browser.test.js       # gioca partite vere in Chromium (richiede playwright-core)
 node test/chiusura.test.js      # chiusura end-to-end: click reali e punti assegnati
 node test/drag.test.js          # trascinamento, pile verticali, tre tipi di burraco (44 controlli)
+node test/layout.test.js        # niente tagliato sui laptop: didascalie, combinazioni, ordinamento (38 controlli)
 node test/dettaglio.js          # primo piano delle carte (solo controllo visivo)
 node test/anteprima.js          # schermate del tavolo (solo controllo visivo)
 ```
@@ -93,11 +102,12 @@ I test del browser cliccano e trascinano la vera interfaccia (non chiamano il
 motore): sono quelli che hanno scoperto i difetti invisibili ai test unitari —
 la schermata iniziale che intercettava i click, il pulsante «Cala» attivo su
 mosse che il motore avrebbe rifiutato, gli avvisi che coprivano le carte, il
-clic che scattava anche dopo un trascinamento.
+clic che scattava anche dopo un trascinamento, le scritte Tallone/Monte tagliate
+sui portatili.
 
 Ultimo esito: 149/149 controlli sul motore, 400 partite simulate senza errori,
-14/14 controlli sulla chiusura, 44/44 sul trascinamento e sui burraco, 0 errori
-in console nel browser.
+14/14 sulla chiusura, 44/44 sul trascinamento e sui burraco, 38/38 sul layout,
+0 errori in console nel browser.
 
 ## Integrazione nel sito esistente
 

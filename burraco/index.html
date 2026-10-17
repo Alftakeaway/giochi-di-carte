@@ -7,7 +7,7 @@
   <meta name="description" content="Burraco italiano completo: gioca contro il computer o in due sullo stesso dispositivo, con tutte le regole ufficiali.">
   <title>Burraco — Giochi di Carte Italiani</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/burraco.css?v=3">
+  <link rel="stylesheet" href="css/burraco.css?v=4">
 </head>
 <body>
 
@@ -148,10 +148,14 @@
           <span id="etichetta-mano">La tua mano</span>
           <span class="pill" id="pill-mano"></span>
           <span class="pill" id="pill-pozzetto-mio"></span>
-          <button class="pill pill-ordinamento" id="toggle-ordine" type="button"
-                  title="Cambia il modo in cui sono ordinate le carte in mano">
-            <span id="toggle-ordine-testo">per combinazioni</span>
-          </button>
+          <div class="ordinamento" id="ordinamento" role="group" aria-label="Ordina le carte in mano">
+            <button class="ord-btn attivo" type="button" data-ordine="combinazioni"
+                    title="Mette vicine le carte che formano già tris o scale">Combinazioni</button>
+            <button class="ord-btn" type="button" data-ordine="numero"
+                    title="Ordina per valore, dall'asso al re">Numero</button>
+            <button class="ord-btn" type="button" data-ordine="seme"
+                    title="Raggruppa per seme">Seme</button>
+          </div>
         </div>
         <div class="mano" id="mano-giocatore"></div>
       </div>
@@ -219,7 +223,7 @@
           <li><strong>Trascina</strong> la carta da una combinazione a un'altra: se ci entra viene integrata subito, e i punti delle due combinazioni si aggiornano.</li>
           <li>In alternativa <strong>tocca</strong> la carta e poi la combinazione di destinazione (comodo sul telefono).</li>
           <li>La combinazione di partenza deve restare valida e con almeno 3 carte; un burraco non si può scomporre.</li>
-          <li>La mano si ordina da sola mettendo vicine le carte che formano già un tris o una scala: il pulsante <em>per combinazioni / per seme</em> cambia ordinamento.</li>
+          <li>La mano si ordina da sola mettendo vicine le carte che formano già un tris o una scala. In basso a destra, sopra le carte, i tre comandi <strong>Combinazioni</strong>, <strong>Numero</strong> e <strong>Seme</strong> cambiano ordinamento con un clic.</li>
         </ul>
 
         <h3>Burraco</h3>
@@ -276,8 +280,8 @@
     </div>
   </div>
 
-  <script src="js/burraco-engine.js?v=2"></script>
-  <script src="js/burraco-ai.js?v=2"></script>
-  <script src="js/burraco-ui.js?v=2"></script>
+  <script src="js/burraco-engine.js?v=3"></script>
+  <script src="js/burraco-ai.js?v=3"></script>
+  <script src="js/burraco-ui.js?v=3"></script>
 </body>
 </html>

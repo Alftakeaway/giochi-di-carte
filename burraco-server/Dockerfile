@@ -1,7 +1,7 @@
-# Build stage: versione Rust pinnata a 1.99 (uguale a quella usata in locale, che
-# compila correttamente). Il tag "1" fluttuante può risolvere un toolchain diverso
-# e causare errori a cascata su tutte le crate.
-FROM rust:1.99 AS build
+# Build stage: versione Rust pinnata ESATTAMENTE a 1.99.1, identica a quella
+# usata in locale (che compila i test 6/6). Il tag "1.99" fluttuante può
+# risolvere una patch più nuova con regressioni e causare errori a cascata.
+FROM rust:1.99.1-slim AS build
 WORKDIR /app
 COPY . .
 # Build pulita: rimuove eventuali artefatti target/ trascinati dal context.

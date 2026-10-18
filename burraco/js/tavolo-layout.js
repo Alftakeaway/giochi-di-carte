@@ -12,29 +12,19 @@
    const area=team.querySelector('.approved-rows'), melds=[...area.querySelectorAll('.meld')];
    for(let i=0;i<2;i++)rows.push({area,items:melds.slice(i*8,i*8+8),index:i});
   }
-  let base=innerWidth<=700?74:innerWidth<=1100?84:90;
+  const base=innerWidth<=700?74:innerWidth<=1100?84:90;
   const gap=4;let rowGap=94;
+  // Reserve eight columns even when only one combination has been laid.
+  let cw=90;
   for(const row of rows){
-   if(!row.items.length)continue;
-   const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
-   base=Math.min(base,Math.floor((row.area.clientWidth-gap*(row.items.length-1)-2)/weights));
+   const actual=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
+   const capacity=Math.max(8.405,actual);
+   cw=Math.min(cw,(row.area.clientWidth-7*gap-4)/capacity);
+   // Two complete thirteen-card burrachi, with readable short groups.
+   cw=Math.min(cw,(row.area.clientHeight/2-23)/2.6,row.area.clientHeight/2-121);
   }
-  base=Math.max(42,base);
-  let cw=base*1.07*1.03*1.02*Math.pow(1.01,3);
   for(const row of rows){
-   if(!row.items.length)continue;
-   const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
-   cw=Math.min(cw,(row.area.clientWidth-2)/weights);
-  }
-  for(const row of rows)for(const m of row.items){
-   const n=m.querySelector('.pila-meld').children.length;
-   if(n<7)cw=Math.min(cw,(row.area.clientHeight/2-23)/(1.4+(n-1)*.24));
-  }
-  // Empty space between rows must yield before rank/suit strips collapse.
-  for(const row of rows)for(const m of row.items){
-   const n=m.querySelector('.pila-meld').children.length,bur=m.classList.contains('burraco');
-   const strip=Math.min(26,n>=7?8:cw*.24);
-   const needed=21+(bur?cw+2:cw*1.4)+(n-1)*strip;
+   const needed=Math.max(23+cw*2.6,121+cw);
    rowGap=Math.min(rowGap,Math.max(0,row.area.clientHeight-2*needed));
   }
   const hw=base*Math.pow(1.2,3);

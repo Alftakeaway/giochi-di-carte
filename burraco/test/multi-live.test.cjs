@@ -1,0 +1,20 @@
+'use strict';
+const E=require('../js/burraco-engine.js'),assert=require('node:assert/strict');
+const base=process.env.TEST_SERVER_URL||'ws://127.0.0.1:3150';
+const wait=async(fn)=>{const start=Date.now();while(!fn()){if(Date.now()-start>20000)throw Error('Timed out waiting for server state');await new Promise(r=>setTimeout(r,25))}};
+async function connect(query){const c={ws:new WebSocket(base+'/ws'+query),state:null,seat:null,room:null,version:0,error:null};c.ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.type==='welcome'){c.seat=m.seat;c.room=m.room}if(m.type==='state'){c.state=m.state;c.version++}if(m.type==='error'){c.error=m.msg;c.version++}});await wait(()=>c.room||c.error);if(c.error)throw Error(c.error);return c}
+async function act(c,action){const old=c.version;c.error=null;c.ws.send(JSON.stringify({type:'action',action}));await wait(()=>c.version>old);return !c.error}
+(async()=>{const cs=[];try{cs.push(await connect('?players=4&humans=0,1,2,3'));for(let i=1;i<4;i++)cs.push(await connect('?room='+cs[0].room));await wait(()=>cs.every(c=>c.state));assert.ok(cs[0].state.multiAttach,'Server must support atomic multiple attachments');for(let turn=0;turn<100;turn++){
+ const snapshot=cs.find(c=>c.state&&c.state.turno===c.seat&&c.state.fase==='pesca');if(!snapshot){await new Promise(r=>setTimeout(r,30));continue}const c=snapshot,who=c.seat;assert.ok(await act(c,{tipo:'pesca',sorgente:'tallone'}),c.error);let st=c.state,hand=st.seats[who].hand,partner=(who+2)%4;
+ for(const [i,m] of st.seats[partner].melds.entries())for(let x=0;x<hand.length;x++)for(let y=x+1;y<hand.length;y++){
+ const cards=[hand[y],hand[x]];if(!E.provaLegaturaMultipla(m,cards)||hand.length<4)continue;
+ const count=m.slots.length,n=hand.length;
+ if(await act(c,{tipo:'lega',indice:i,ids:cards.map(c=>c.id),proprietario:partner})){
+  assert.equal(c.state.seats[partner].melds[i].slots.length,count+2);assert.equal(c.state.seats[who].hand.length,n-2);
+  await wait(()=>cs.every(peer=>peer.state.seats[partner].melds[i].slots.length===count+2));
+  console.log('PASS REAL SERVER: atomic two-card attachment to partner',partner,'from seat',who,'; both cards removed together; all four clients synchronized');return;
+ }
+ }
+ for(const sug of E.suggerisciCombinazioni(hand,20)){if(sug.ids.length>=hand.length-1)continue;if(await act(c,{tipo:'cala',ids:sug.ids}))break}
+ hand=c.state.seats[who].hand;let discarded=false;for(const card of hand){if(await act(c,{tipo:'scarta',id:card.id})){discarded=true;break}}if(!discarded)throw Error('No legal discard: '+c.error);if(c.state.finita)break;await wait(()=>cs.every(peer=>peer.state.turno===c.state.turno));
+ }throw Error('No partner attachment found in this deal');}finally{for(const c of cs)c.ws.close()}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -180,13 +180,11 @@
   const NOME_FILE_RANGO = { 1: 'Ace', 11: 'Jack', 12: 'Queen', 13: 'King' };
   const NOME_FILE_SEME = { cuori: 'Hearts', quadri: 'Diamonds', fiori: 'Clubs', picche: 'Spades' };
 
-  /* Percorso senza estensione dell'immagine che rappresenta la carta.
-   * Una matta calata mostra la carta che rappresenta (valore e seme
-   * passati nelle opzioni), non il 2 o il jolly che è in realtà. */
+  /* Mostra sempre la carta fisica, anche quando usata come matta. */
   function fileFaccia(carta, o) {
     if (carta.jolly) return 'img/carte/Joker_red';
-    const valore = (o && o.wild && o.valoreRappresentato) ? o.valoreRappresentato : carta.valore;
-    const seme = (o && o.seme) || carta.seme;
+    const valore = carta.valore;
+    const seme = carta.seme;
     const r = NOME_FILE_RANGO[valore] || String(valore);
     return 'img/carte/' + r + '_of_' + (NOME_FILE_SEME[seme] || 'Spades');
   }
@@ -223,18 +221,6 @@
       return el;
     }
 
-    if (o.wild && o.valoreRappresentato) {
-      /* matta dentro una combinazione: mostra la carta che rappresenta,
-       * con il velo viola che la distingue dalle carte naturali */
-      el.classList.add('matta-figurata');
-      const alt = (carta.nomeLungo || 'Matta') + ' che vale come ' +
-        (E.RANGO_CORTO[o.valoreRappresentato] || o.valoreRappresentato) +
-        (E.SIMBOLO[o.seme] || '');
-      el.innerHTML = facciaHtml(fileFaccia(carta, o), alt) + veloMatta();
-      if (o.titolo) el.title = o.titolo;
-      return el;
-    }
-
     if (carta.jolly) {
       el.classList.add('matta');
       el.innerHTML = facciaHtml(fileJolly(carta), 'Jolly') + veloMatta();
@@ -242,9 +228,7 @@
       return el;
     }
 
-    if (carta.valore === 2) el.classList.add('matta');
-    el.innerHTML = facciaHtml(fileFaccia(carta, o), carta.nomeLungo || '') +
-      (carta.valore === 2 ? veloMatta() : '');
+    el.innerHTML = facciaHtml(fileFaccia(carta, o), carta.nomeLungo || '');
     if (o.titolo) el.title = o.titolo;
     return el;
   }
@@ -1089,7 +1073,7 @@
     const p = ui.partita;
     const s = p.stato;
     if (s.finita || s.fase !== 'gioco' || ui.botInCorso) return;
-    if (carteSelezionate().length === 1) { onClicMeld(g, indice); return; }
+    if (carteSelezionate().length >= 1) { onClicMeld(g, indice); return; }
     if(g!==ui.manoVisibile)return;
     if (ui.spostamento) {
       /* sto già spostando una carta: toccare un'altra combinazione vuol dire
@@ -1129,8 +1113,8 @@
       return;
     }
     const sel = carteSelezionate();
-    if (sel.length !== 1) return;
-    esegui(function () { return p.lega(indice, sel[0].id, g); }, 'lega');
+    if (!sel.length) return;
+    esegui(function () { return p.legaMolte(indice, sel.map(c=>c.id), g); }, 'lega');
   }
 
   /* Esegue un'azione sul motore, gestendo errori e aggiornamento della vista. */
@@ -1669,16 +1653,13 @@
     }
 
     const sel = carteSelezionate();
-    if (sel.length !== 1) return;
-    const partner=p.squadre.findIndex((t,g)=>g!==ui.manoVisibile&&t===p.squadre[ui.manoVisibile]);
-    if(partner>=0)for(const m of $$('#melds-'+partner+' .meld')){
-      const target=p.stato.melds[partner][Number(m.dataset.indice)];
-      if(target&&E.provaLegatura(target,sel[0]))m.classList.add('target');
+    if (!sel.length) return;
+    for(const m of $$('.meld')){
+      const owner=Number(m.dataset.giocatore);if(p.squadre[owner]!==p.squadre[ui.manoVisibile])continue;
+      const target=p.stato.melds[owner][Number(m.dataset.indice)];
+      if(target&&E.provaLegaturaMultipla(target,sel))m.classList.add('target');
     }
-    const compatibili = p.meldsCompatibili(ui.manoVisibile, sel[0].id);
-    contenitori.forEach(function (el) {
-      if (compatibili.indexOf(Number(el.dataset.indice)) >= 0) el.classList.add('target');
-    });
+
   }
 
   /* =====================================================================

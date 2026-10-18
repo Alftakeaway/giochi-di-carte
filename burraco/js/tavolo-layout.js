@@ -106,7 +106,7 @@
   const cala=nativeButtons.find(b=>b.textContent.includes('Cala'))||make('Cala',!(playing&&selected.length>=3),()=>run('cala',[selected],'cala'));
   const scarta=nativeButtons.find(b=>b.textContent.includes('Scarta')||b.textContent.includes('Chiudi la smazzata'))||make('Scarta',!(playing&&selected.length===1),()=>run('scarta',[selected[0]],'scarta'));
   if(!scarta.textContent.includes('Chiudi'))scarta.textContent='Scarta';cala.textContent='Cala';
-  const lega=make('Lega',!(playing&&selected.length===1),()=>{root.dataset.lega='true';const target=field.querySelector('.meld.target');if(target)target.focus();const status=byId('log-mosse');if(status)status.textContent='Scegli una combinazione tua o del compagno per legare la carta.';});
+  const lega=make('Lega',!(playing&&selected.length>=1),()=>{root.dataset.lega='true';const target=field.querySelector('.meld.target');if(target)target.focus();const status=byId('log-mosse');if(status)status.textContent='Scegli una combinazione tua o del compagno per legare la carta.';});
   const badge=byId('turno-badge');badge.textContent=p.stato.finita?'Smazzata finita':active?'È il tuo turno':'Attendi il turno';badge.classList.toggle('layout-active',active);
   const preview=bar.querySelector('#anteprima');
   bar.replaceChildren(tallone,monte,cala,lega,scarta,badge);if(preview)bar.append(preview);
@@ -135,7 +135,7 @@
   }
   if(!root.dataset.layoutEvents){
    root.dataset.layoutEvents='true';
-   root.addEventListener('click',ev=>{const m=ev.target.closest('.meld');if(!m||root.dataset.lega!=='true')return;const c=current;const owner=Number(m.dataset.giocatore);if(c.p.squadre[owner]!==c.p.squadre[c.ui.manoVisibile])return;const id=[...c.ui.selezione][0];if(!id)return;ev.stopImmediatePropagation();root.dataset.lega='';const idx=Number(m.dataset.indice);if(c.options.lega)c.options.lega(idx,id,owner);else window.__burraco.azione(()=>c.p.lega(idx,id,owner),'lega');},true);
+   root.addEventListener('click',ev=>{const m=ev.target.closest('.meld');if(!m||root.dataset.lega!=='true')return;const c=current;const owner=Number(m.dataset.giocatore);if(c.p.squadre[owner]!==c.p.squadre[c.ui.manoVisibile])return;const ids=[...c.ui.selezione];if(!ids.length)return;ev.stopImmediatePropagation();root.dataset.lega='';const idx=Number(m.dataset.indice);if(c.options.lega)c.options.lega(idx,ids,owner);else window.__burraco.azione(()=>c.p.legaMolte(idx,ids,owner),'lega');},true);
   }
   schedule();
  }

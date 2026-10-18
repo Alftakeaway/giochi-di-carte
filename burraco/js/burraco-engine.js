@@ -224,9 +224,9 @@
    *   - wild   : true se la carta è una matta che copre quella posizione
    */
   function verificaSlotsSequenza(slots, seme) {
-    if (!slots || slots.length < 3) return false;
+    if (!slots || slots.length < 3 || slots.length > 13) return false;
     const valori = slots.map(s => s.valore);
-    if (valori[0] < 1 || valori[valori.length - 1] > 13) return false;
+    if (valori[0] < 1 || valori[valori.length - 1] > 14 || (valori[0] === 1 && valori.includes(14))) return false;
     for (let i = 1; i < valori.length; i++) {
       if (valori[i] !== valori[i - 1] + 1) return false;
     }
@@ -241,7 +241,7 @@
         // quando occupa la posizione del 2 (s.valore === 2)
         if (isJolly(s.carta)) return false;
         if (s.carta.seme !== seme) return false;
-        if (s.carta.valore !== s.valore) return false;
+        if (s.carta.valore !== (s.valore===14?1:s.valore)) return false;
       }
     }
     const naturali = slots.filter(s => !s.wild);
@@ -315,7 +315,7 @@
         }
         const naturals = altriDelSeme.concat(natDue);
         const wilds = jollys.concat(altri, wildDue);
-        const slots = provaSequenza(naturals, wilds, seme);
+        const slots = provaSequenza(naturals, wilds, seme) || provaSequenza(naturals, wilds, seme, true);
         if (slots) {
           if (!migliore ||
               slots.length > migliore.length ||
@@ -330,9 +330,9 @@
   }
 
   /* Prova a disporre naturals + wilds su una scala consecutiva del seme dato. */
-  function provaSequenza(naturals, wilds, seme) {
+  function provaSequenza(naturals, wilds, seme, assoAlto) {
     if (naturals.length < 2) return null;
-    const valori = naturals.map(c => c.valore).sort((a, b) => a - b);
+    const valori = naturals.map(c => c.valore===1&&assoAlto?14:c.valore).sort((a, b) => a - b);
     for (let i = 1; i < valori.length; i++) {
       if (valori[i] === valori[i - 1]) return null;   // valori duplicati
     }
@@ -348,7 +348,7 @@
 
     let extra = W - buchi;
     const perValore = new Map();
-    for (const c of naturals) perValore.set(c.valore, c);
+    for (const c of naturals) perValore.set(c.valore===1&&assoAlto?14:c.valore, c);
     const pool = wilds.slice();
     const slots = [];
 
@@ -483,6 +483,7 @@
     const seme = nuovi.filter(s => !s.wild)[0].carta.seme;
     const min = nuovi[0].valore;
     const max = nuovi[nuovi.length - 1].valore;
+    const valore=carta.valore===1&&min>1?14:carta.valore;
 
     const provaComeMatta = function () {
       const copia = clonaSlots(slots);
@@ -500,12 +501,12 @@
 
     // estensione naturale (vale anche per la pinella del seme al posto del 2)
     if (!isJolly(carta) && carta.seme === seme) {
-      if (carta.valore === max + 1) {
-        nuovi.push({ carta: carta, valore: carta.valore, wild: false });
+      if (valore === max + 1) {
+        nuovi.push({ carta: carta, valore: valore, wild: false });
         if (verificaSlotsSequenza(nuovi, seme)) return nuovi;
       }
-      if (carta.valore === min - 1) {
-        nuovi.unshift({ carta: carta, valore: carta.valore, wild: false });
+      if (valore === min - 1) {
+        nuovi.unshift({ carta: carta, valore: valore, wild: false });
         if (verificaSlotsSequenza(nuovi, seme)) return nuovi;
       }
     }
@@ -515,10 +516,10 @@
 
     // SOSTITUZIONE: la carta naturale prende il posto di una matta, che
     // viene spostata a un'estremità restando calata.
-    const idx = nuovi.findIndex(s => s.wild && s.valore === carta.valore);
+    const idx = nuovi.findIndex(s => s.wild && s.valore === valore);
     if (idx >= 0) {
       const matta = nuovi[idx].carta;
-      nuovi[idx] = { carta: carta, valore: carta.valore, wild: false };
+      nuovi[idx] = { carta: carta, valore: valore, wild: false };
       const nMax = nuovi[nuovi.length - 1].valore;
       const nMin = nuovi[0].valore;
       if (nMax + 1 <= 13) nuovi.push({ carta: matta, valore: nMax + 1, wild: true });
@@ -558,6 +559,20 @@
     return { slots: slots, sostituzione: !!sostituzione };
   }
 
+  function provaLegaturaMultipla(meld, carte) {
+    if(!carte.length||carte.length>13||new Set(carte.map(c=>c.id)).size!==carte.length)return null;
+    const seen=new Set();
+    function visit(m,rest,sostituzione){
+      if(!rest.length)return {slots:m.slots,sostituzione};
+      const key=m.slots.map(s=>s.carta.id+':'+s.valore+':'+s.wild).join('|')+'/'+rest.map(c=>c.id).sort().join('|');
+      if(seen.has(key))return null;seen.add(key);
+      for(const c of rest){const next=provaLegatura(m,c);if(!next)continue;
+        const result=visit({...m,slots:next.slots},rest.filter(x=>x.id!==c.id),sostituzione||next.sostituzione);if(result)return result;
+      }return null;
+    }
+    return visit(meld,carte.slice().sort((a,b)=>Number(isMatta(a))-Number(isMatta(b))),false);
+  }
+
   /* ---------------------------------------------------------------------
    * SUGGERIMENTI / GENERAZIONE COMBINAZIONI (usata da AI e suggerimenti UI)
    * ------------------------------------------------------------------- */
@@ -594,6 +609,7 @@
         if (!perVal.has(c.valore)) perVal.set(c.valore, []);
         perVal.get(c.valore).push(c);
       }
+      if(perVal.has(1))perVal.set(14,perVal.get(1));
       const valori = Array.from(perVal.keys()).sort((a, b) => a - b);
       for (let i = 0; i < valori.length; i++) {
         for (let j = i; j < valori.length; j++) {
@@ -847,7 +863,8 @@
     }
 
     /* ---------------- legatura ---------------- */
-    lega(indiceMeld, idCarta, proprietario) {
+    lega(indiceMeld, idCarta, proprietario) {return this.legaMolte(indiceMeld,[idCarta],proprietario);}
+    legaMolte(indiceMeld, ids, proprietario) {
       const s = this.stato;
       if (s.fase !== 'gioco') return { ok: false, motivo: 'Devi prima pescare una carta.' };
       const giocatore = s.turno;
@@ -855,13 +872,14 @@
       if (!Number.isInteger(destinazione) || destinazione < 0 || destinazione >= this.nGioc || this.squadre[destinazione] !== this.squadre[giocatore]) return {ok:false,motivo:'Puoi legare solo ai giochi della tua squadra.'};
       const meld = s.melds[destinazione][indiceMeld];
       if (!meld) return { ok: false, motivo: 'Combinazione inesistente.' };
-      const carta = s.mani[giocatore].find(c => c.id === idCarta);
-      if (!carta) return { ok: false, motivo: 'Carta non in mano.' };
+      if(!Array.isArray(ids)||!ids.length||ids.length>13||new Set(ids).size!==ids.length)return {ok:false,motivo:'Seleziona carte diverse da legare.'};
+      const carte=ids.map(id=>s.mani[giocatore].find(c=>c.id===id));
+      if(carte.some(c=>!c))return {ok:false,motivo:'Carta non in mano.'};
+      const carta=carte[0];
+      const prova = provaLegaturaMultipla(meld, carte);
+      if (!prova) return { ok: false, motivo: ids.length===1?motivoLegatura(meld,carta):'Le carte selezionate non si possono legare tutte a questa combinazione.' };
 
-      const prova = provaLegatura(meld, carta);
-      if (!prova) return { ok: false, motivo: motivoLegatura(meld, carta) };
-
-      const restanti = s.mani[giocatore].filter(c => c.id !== idCarta);
+      const restanti = s.mani[giocatore].filter(c => !ids.includes(c.id));
       const diventeraBurraco = prova.slots.length >= 7 && !meld.burraco;
       const controllo = this._controllaManoDopoCalata(
         giocatore, restanti, this.contaBurrachiSquadra(giocatore) + (diventeraBurraco ? 1 : 0));
@@ -1347,6 +1365,7 @@
     bonusBurraco: bonusBurraco,
     nomeBurraco: nomeBurraco,
     provaLegatura: provaLegatura,
+    provaLegaturaMultipla: provaLegaturaMultipla,
     suggerisciCombinazioni: suggerisciCombinazioni,
     verificaSlotsSequenza: verificaSlotsSequenza,
     verificaSlotsGruppo: verificaSlotsGruppo

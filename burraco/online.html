@@ -99,7 +99,7 @@
       <div class="card">
         <h2>La tua mano</h2>
         <div class="mano" id="hand"></div>
-        <p class="help">Clicca le carte per selezionarle. Con 3+ carte premi <b>Cala</b>; con 1 carta <b>Scarta</b>. Per legare, seleziona 1 carta e clicca una delle tue combinazioni qui sotto.</p>
+        <p class="help">Clicca le carte per selezionarle. Con 3+ carte premi <b>Cala</b>; con 1 carta <b>Scarta</b>. Per legare, seleziona una o più carte e clicca una combinazione tua o del compagno.</p>
       </div>
       <div class="card">
         <h2>Tavolo</h2>
@@ -232,7 +232,7 @@ function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
 function scartaSel(){ if(sel.size===1){ act({tipo:'scarta',id:[...sel][0]}); } }
 function act(obj){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'action',action:obj})); else status('Non connesso.','err'); }
 </script>
-<script src="js/tavolo-layout.js?v=2"></script>
-<script src="js/tavolo-online-layout.js?v=2"></script>
+<script src="js/tavolo-layout.js?v=3"></script>
+<script src="js/tavolo-online-layout.js?v=3"></script>
 </body>
 </html>

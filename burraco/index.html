@@ -234,7 +234,9 @@
         <h3>Combinazioni</h3>
         <ul>
           <li><strong>Gruppo:</strong> almeno 3 carte dello stesso valore, anche di semi diversi (essendoci due mazzi, al massimo 2 carte per seme). Non si possono calare gruppi di soli 2.</li>
-          <li><strong>Sequenza:</strong> almeno 3 carte consecutive dello stesso seme.</li>
+          <li><strong>Sequenza:</strong> almeno 3 carte consecutive dello stesso seme. L’asso può stare all’inizio (A-2-3) oppure alla fine (Q-K-A), ma non a entrambe le estremità: A-2-…-K-A non è valido.</li>
+          <li><strong>Lega:</strong> seleziona una o più carte e tocca una combinazione tua o del compagno. Le carte vengono aggiunte insieme solo se la mossa è interamente valida.</li>
+          <li>Le pinelle restano visibili come 2 del proprio seme anche quando sostituiscono un’altra carta.</li>
           <li><strong>Matte:</strong> jolly e pinelle (tutti i 2). Massimo <strong>una matta</strong> per combinazione; due solo se nella sequenza c'è la pinella del seme stesso al posto naturale del 2.</li>
           <li>Una matta non esce mai dal gioco: se possiedi la carta naturale che rappresenta, puoi <strong>sostituirla</strong> e la matta si sposta all'estremità restando calata.</li>
           <li>Le carte in mano si dispongono in <strong>fila dritta, accavallate</strong> ma non a ventaglio; le combinazioni sul tavolo restano <strong>pile verticali</strong>, una carta sull'altra. Di ogni carta è sempre visibile l'angolo in alto a sinistra con valore e seme.</li>
@@ -302,9 +304,9 @@
     </div>
   </div>
 
-  <script src="js/burraco-engine.js?v=6"></script>
+  <script src="js/burraco-engine.js?v=7"></script>
   <script src="js/burraco-ai.js?v=5"></script>
-  <script src="js/tavolo-layout.js?v=2"></script>
-  <script src="js/burraco-ui.js?v=12"></script>
+  <script src="js/tavolo-layout.js?v=3"></script>
+  <script src="js/burraco-ui.js?v=13"></script>
 </body>
 </html>

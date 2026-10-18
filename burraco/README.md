@@ -217,3 +217,16 @@ il cambio 4→1 con una sola carta: entrambe le fonti di pesca funzionano e lo
 scarto è disabilitato prima della pesca. Il blocco segnalato con una sola carta
 non è stato riprodotto nella versione corrente; nessuna pesca aggiuntiva è
 abilitata dopo aver già pescato nello stesso turno.
+
+
+### Asso alto, legature multiple e pinelle visibili
+
+Q-K-A è valido; A-2-…-K-A è vietato, così come una sequenza oltre 13 carte.
+L’asso alto usa internamente lo slot 14 ma rimane fisicamente un asso da 15 punti.
+Lega accetta `ids` per una mossa con più carte: il motore cerca un ordine valido,
+valuta la mano residua e applica la mossa solo dopo aver validato tutto. Nessuna
+carta si sposta se la mossa complessiva non è valida. Il precedente campo `id`
+rimane compatibile. Il client richiede `multiAttach` prima di inviare più carte.
+Pinelle sempre rappresentate con il valore 2 e il seme originale; nessun velo
+viola per i 2. I tooltip spiegano l’eventuale valore sostituito.
+Test: ace-multi.test.cjs, multi-pinella-ui.test.cjs e test Rust corrispondenti.

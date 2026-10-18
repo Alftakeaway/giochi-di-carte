@@ -95,6 +95,7 @@ impl Room {
             if let Some(tx) = senders.get(&seat) {
                 let mut s = p.public_state(seat);
                 s["teamMelds"]=json!(true);
+                s["multiAttach"]=json!(true);
                 let _ = tx.send(json!({ "type": "state", "state": s }).to_string());
             }
         }
@@ -122,9 +123,9 @@ fn apply_action(p: &mut Partita, act: &Value) -> Result<(), String> {
         }
         "lega" => {
             let indice = act["indice"].as_u64().ok_or("indice mancante")? as usize;
-            let id = act["id"].as_str().ok_or("id mancante")?.to_string();
+            let ids=if let Some(raw)=act.get("ids"){raw.as_array().ok_or("ids non validi")?.iter().map(|v|v.as_str().map(str::to_string).ok_or("id non valido")).collect::<Result<Vec<_>,_>>()?}else{vec![act["id"].as_str().ok_or("id mancante")?.to_string()]};
             let owner=match act.get("proprietario") {None=>p.stato.turno,Some(v)=>v.as_u64().ok_or("Destinazione non valida")? as usize};
-            p.lega_a(indice, &id, owner)
+            p.lega_molte(indice, &ids, owner)
         }
         "scarta" => {
             let id = act["id"].as_str().ok_or("id mancante")?.to_string();
@@ -396,7 +397,7 @@ pub async fn run() {
     let rooms: Arc<RoomMap> = Arc::new(RoomMap::new(HashMap::new()));
     let app = Router::new()
         .route("/", get(index))
-        .route("/capabilities", get(|| async { axum::Json(json!({"version":3,"players":[2,4],"customHumanSeats":true,"teamMelds":true})) }))
+        .route("/capabilities", get(|| async { axum::Json(json!({"version":4,"players":[2,4],"customHumanSeats":true,"teamMelds":true,"multiAttach":true})) }))
         .layer(tower_http::cors::CorsLayer::permissive())
         .route("/healthz", get(|| async { (StatusCode::OK, "ok") }))
         .route("/favicon.ico", get(|| async { (StatusCode::NO_CONTENT, "") }))

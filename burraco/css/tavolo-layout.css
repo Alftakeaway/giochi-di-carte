@@ -82,3 +82,5 @@ body.layout-online.show-online-connection>.wrap .grid,body.layout-online.show-on
 .approved-board #barra-azioni{grid-column:auto;grid-row:auto}
 .approved-board #mano-giocatore>.carta{min-height:0!important;height:70px!important}
 .approved-board .meld.burraco>.pila-meld>.carta{clip-path:inset(0 0 max(0px,calc(100% - var(--layout-step))) 0)}
+.approved-board #barra-azioni>.btn{padding-left:10px;padding-right:10px}
+@media(max-width:700px){.approved-board #barra-azioni{max-width:calc(100vw - 12px);flex-wrap:wrap;justify-content:center;width:390px}.approved-board #barra-azioni>.btn{padding:4px 6px}}

@@ -48,7 +48,7 @@
   const ord=el('div','ordinamento');ord.id='ordinamento';for(const [v,t] of [['combinazioni','Combinazioni'],['numero','Numero'],['seme','Seme']]){const b=el('button','ord-btn'+(order===v?' attivo':''),t);b.type='button';b.onclick=()=>{order=v;render(last)};ord.append(b)}bar.append(ord);
   const fake={nGioc:st.nGioc,squadre:st.squadre,stato:{...st,mani:st.seats.map(s=>s.seat===seat?s.hand:Array(s.handCount).fill(null)),pozzettoPreso:st.pozzetti.map(p=>p.taken)}};
   const ui={manoVisibile:seat,selezione:sel,botInCorso:false,attesaConsegna:false};
-  window.BurracoApproved.decorate(fake,ui,{cala:()=>calaSel(),scarta:()=>scartaSel(),lega:(i,id)=>act({tipo:'lega',indice:i,id}),details:()=>showScores(st)});
+  window.BurracoApproved.decorate(fake,ui,{pescaTallone:()=>pesca('tallone'),prendiMonte:()=>pesca('monte'),cala:()=>calaSel(),scarta:()=>scartaSel(),lega:(i,id)=>act({tipo:'lega',indice:i,id}),details:()=>showScores(st)});
  }
  function showScores(st){let dlg=document.getElementById('online-scores');if(!dlg){dlg=el('dialog');dlg.id='online-scores';document.body.append(dlg)}dlg.replaceChildren(el('h2','',st.finita?'Smazzata conclusa':'Punteggi'),el('p','',st.totaliSquadra.map((v,i)=>(i===st.squadre[seat]?'Voi: ':'Loro: ')+v).join(' · ')));if(st.finita&&st.vincitore==null){const next=el('button','btn','Smazzata successiva');next.onclick=()=>{act({tipo:'next'});dlg.close()};dlg.append(next)}const close=el('button','btn','Chiudi');close.onclick=()=>dlg.close();dlg.append(close);dlg.showModal()}
  document.getElementById('btn-menu').onclick=()=>document.body.classList.toggle('show-online-connection');

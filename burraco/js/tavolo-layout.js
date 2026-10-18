@@ -71,23 +71,27 @@
   const api=options||{};
   const run=(method,args,type)=>{if(api[method])return api[method](...(args||[]));return window.__burraco.azione(()=>p[method](...(args||[])),type||method)};
   const make=(text,disabled,fn)=>{const b=node('button','btn',text);b.type='button';b.disabled=disabled;b.onclick=fn;return b};
+  const drawing=active&&p.stato.fase==='pesca';
+  const tallone=make('Pesca dal tallone',!drawing||!(p.stato.tallone?.length||p.stato.talloneCount),()=>run('pescaTallone',[],'pesca'));
+  const monte=make('Prendi il monte',!drawing||!p.stato.monte.length,()=>run('prendiMonte',[],'pesca'));
   const cala=nativeButtons.find(b=>b.textContent.includes('Cala'))||make('Cala',!(playing&&selected.length>=3),()=>run('cala',[selected],'cala'));
   const scarta=nativeButtons.find(b=>b.textContent.includes('Scarta')||b.textContent.includes('Chiudi la smazzata'))||make('Scarta',!(playing&&selected.length===1),()=>run('scarta',[selected[0]],'scarta'));
   if(!scarta.textContent.includes('Chiudi'))scarta.textContent='Scarta';cala.textContent='Cala';
   const lega=make('Lega',!(playing&&selected.length===1),()=>{root.dataset.lega='true';const target=field.querySelector('.meld.target');if(target)target.focus();const status=byId('log-mosse');if(status)status.textContent='Scegli una tua combinazione per legare la carta.';});
   const badge=byId('turno-badge');badge.textContent=p.stato.finita?'Smazzata finita':active?'È il tuo turno':'Attendi il turno';badge.classList.toggle('layout-active',active);
   const preview=bar.querySelector('#anteprima');
-  bar.replaceChildren(cala,lega,scarta,badge);if(preview)bar.append(preview);
+  bar.replaceChildren(tallone,monte,cala,lega,scarta,badge);if(preview)bar.append(preview);
   const bots=[...byId('mano-avversario').querySelectorAll('.mano-bot')];
   const labels=others.map((g,i)=>({g,text:'Avv. '+(i+1)}));
   for(const [i,cls] of ['west','east'].entries()){
-   const side=field.querySelector('.'+cls),item=labels[i];side.textContent=item?item.text+' · '+p.stato.mani[item.g].length+' carte':'';
+   const side=field.querySelector('.'+cls),item=count===2?null:labels[i];side.textContent=item?item.text+' · '+p.stato.mani[item.g].length+' carte':'';
   }
   const header=root.querySelector('.barra-superiore');
   let comp=header.querySelector('.approved-partner');if(!comp){comp=node('div','approved-partner');header.append(comp);}
   const partnerBot=partner!==null?bots.find(b=>b.dataset.layoutSeat===String(partner))||bots[others.indexOf(partner)]:null;
   comp.replaceChildren();
-  if(partner!==null){comp.append(node('span','', 'Compagno · '+p.stato.mani[partner].length+' carte'));for(let i=0;i<Math.min(5,p.stato.mani[partner].length);i++){const im=node('img');im.src='img/carte/retro.webp';im.alt='Carta coperta';comp.append(im)}}
+  const opposite=partner!==null?partner:count===2?others[0]:null;
+  if(opposite!==null){comp.append(node('span','', (partner!==null?'Compagno':'Avversario')+' · '+p.stato.mani[opposite].length+' carte'));for(let i=0;i<Math.min(5,p.stato.mani[opposite].length);i++){const im=node('img');im.src='img/carte/retro.webp';im.alt='Carta coperta';comp.append(im)}}
   for(let g=0;g<count;g++){
    for(const m of byId('melds-'+g)?.querySelectorAll('.meld')||[]){
     m.setAttribute('tabindex','0');m.dataset.layoutName=g===me?'Tu':g===partner?'Comp.':labels.find(x=>x.g===g)?.text||'Avv.';

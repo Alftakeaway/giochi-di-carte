@@ -17,6 +17,11 @@
   let cw=base*1.07*1.03*1.02*Math.pow(1.01,3);
   const enemy=root.querySelector('.approved-team.theirs');
   for(const line of lines){const melds=[...line.querySelectorAll('.meld')];if(!melds.length)continue;const span=melds.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);const edge=line.closest('.ours')&&enemy?enemy.getBoundingClientRect().left-4:innerWidth-4;cw=Math.min(cw,(edge-line.getBoundingClientRect().left-2)/span);}
+  // Reserve a readable rank-and-suit strip, rather than squeezing it to 8px.
+  for(const line of lines)for(const m of line.querySelectorAll('.meld')){
+   const n=m.querySelector('.pila-meld').children.length;
+   cw=Math.min(cw,(line.clientHeight-21)/((n-1)*.28+(m.classList.contains('burraco')?1.02:1.4)));
+  }
   const hw=base*Math.pow(1.2,3), ch=cw*1.4;
   root.style.setProperty('--layout-cw',cw+'px');root.style.setProperty('--layout-hw',hw+'px');
   for(const line of lines){const melds=[...line.querySelectorAll('.meld')];
@@ -25,7 +30,7 @@
    for(const m of melds){
     const pile=m.querySelector('.pila-meld'), cards=[...pile.children], bur=m.classList.contains('burraco');
     const room=line.clientHeight-19-(bur?cw+2:ch);
-    const step=Math.min(26,Math.max(8,Math.floor(room/Math.max(1,cards.length-1))));
+    const step=Math.min(cw*.28,Math.max(1,room/Math.max(1,cards.length-1)));
     m.style.setProperty('--layout-step',step+'px');
     m.style.width=(bur?cw*1.405:cw)+'px';m.style.height=((cards.length-1)*step+(bur?cw+2:ch))+'px';
     cards.forEach((c,i)=>{c.style.top=(i*step)+'px';c.style.marginTop='0';});
@@ -39,6 +44,7 @@
   current={p,ui,options:options||{}};const root=byId('tavolo'),field=byId('campo-gioco'),footer=root.querySelector('.footer-tavolo');
   root.classList.add('approved-board');
   const me=ui.manoVisibile, count=p.nGioc, partner=count===4?(me+2)%4:null;
+  root.classList.toggle('layout-two',count===2);
   const others=Array.from({length:count},(_,i)=>i).filter(g=>g!==me&&g!==partner);
   if(!field.querySelector('.approved-teams')){
    const oldDraw=footer.querySelector('.approved-draw');if(oldDraw)oldDraw.remove();

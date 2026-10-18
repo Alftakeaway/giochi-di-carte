@@ -81,3 +81,4 @@ body.layout-online.show-online-connection>.wrap .grid,body.layout-online.show-on
 .approved-board #mano-giocatore>.carta{padding:0;border:0;display:block;box-sizing:border-box}
 .approved-board #barra-azioni{grid-column:auto;grid-row:auto}
 .approved-board #mano-giocatore>.carta{min-height:0!important;height:70px!important}
+.approved-board .meld.burraco>.pila-meld>.carta{clip-path:inset(0 0 max(0px,calc(100% - var(--layout-step))) 0)}

@@ -26,6 +26,7 @@
     const pile=m.querySelector('.pila-meld'), cards=[...pile.children], bur=m.classList.contains('burraco');
     const room=line.clientHeight-19-(bur?cw+2:ch);
     const step=Math.min(26,Math.max(8,Math.floor(room/Math.max(1,cards.length-1))));
+    m.style.setProperty('--layout-step',step+'px');
     m.style.width=(bur?cw*1.405:cw)+'px';m.style.height=((cards.length-1)*step+(bur?cw+2:ch))+'px';
     cards.forEach((c,i)=>{c.style.top=(i*step)+'px';c.style.marginTop='0';});
    }

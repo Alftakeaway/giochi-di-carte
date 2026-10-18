@@ -93,7 +93,8 @@ impl Room {
         let senders = self.senders.lock().unwrap();
         for &seat in &self.human_seats {
             if let Some(tx) = senders.get(&seat) {
-                let s = p.public_state(seat);
+                let mut s = p.public_state(seat);
+                s["teamMelds"]=json!(true);
                 let _ = tx.send(json!({ "type": "state", "state": s }).to_string());
             }
         }
@@ -122,7 +123,8 @@ fn apply_action(p: &mut Partita, act: &Value) -> Result<(), String> {
         "lega" => {
             let indice = act["indice"].as_u64().ok_or("indice mancante")? as usize;
             let id = act["id"].as_str().ok_or("id mancante")?.to_string();
-            p.lega(indice, &id)
+            let owner=match act.get("proprietario") {None=>p.stato.turno,Some(v)=>v.as_u64().ok_or("Destinazione non valida")? as usize};
+            p.lega_a(indice, &id, owner)
         }
         "scarta" => {
             let id = act["id"].as_str().ok_or("id mancante")?.to_string();
@@ -394,7 +396,7 @@ pub async fn run() {
     let rooms: Arc<RoomMap> = Arc::new(RoomMap::new(HashMap::new()));
     let app = Router::new()
         .route("/", get(index))
-        .route("/capabilities", get(|| async { axum::Json(json!({"version":2,"players":[2,4],"customHumanSeats":true})) }))
+        .route("/capabilities", get(|| async { axum::Json(json!({"version":3,"players":[2,4],"customHumanSeats":true,"teamMelds":true})) }))
         .layer(tower_http::cors::CorsLayer::permissive())
         .route("/healthz", get(|| async { (StatusCode::OK, "ok") }))
         .route("/favicon.ico", get(|| async { (StatusCode::NO_CONTENT, "") }))
@@ -421,4 +423,16 @@ mod modes_tests {
  #[test] fn all_combinations(){for n in [2,4] {for mask in 1..(1usize<<n) {if mask&1==0 {continue}let humans=(0..n).filter(|i|mask&(1<<i)!=0).collect::<Vec<_>>();let params=HashMap::from([("players".into(),n.to_string()),("humans".into(),humans.iter().map(|v|v.to_string()).collect::<Vec<_>>().join(","))]);let (players,seats,level)=room_options(&params).unwrap();assert_eq!(seats,humans);let r=Room::new(players,seats,&level);*r.started.lock().unwrap()=true;r.step(None).unwrap();assert!(r.human_seats.contains(&r.partita.lock().unwrap().stato.turno));}}}
  #[test] fn defaults_compatible(){let (n,s,_)=room_options(&HashMap::new()).unwrap();assert_eq!(n,4);assert_eq!(s,vec![0,2]);}
  #[test] fn rejects_invalid(){for raw in ["","1","0,0","0,4","-1"]{assert!(room_options(&HashMap::from([("humans".into(),raw.into())])).is_err())}}
+}
+
+#[cfg(test)]
+mod partner_action_tests {
+ use super::*;use crate::engine::{Carta,Seme,Fase};
+ #[test] fn wire_action_uses_partner_destination(){
+  let mut p=Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(31)});
+  p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=(3..=5).map(|v|Carta::new(&format!("h{v}"),v,Some(Seme::Cuori),false)).collect();p.stato.mani[2].push(Carta::new("extra",9,Some(Seme::Picche),false));
+  p.cala(&vec!["h3".into(),"h4".into(),"h5".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![Carta::new("h6",6,Some(Seme::Cuori),false),Carta::new("keep",9,Some(Seme::Quadri),false)];
+  assert!(apply_action(&mut p,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":1})).is_err());
+  apply_action(&mut p,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":2})).unwrap();assert_eq!(p.stato.melds[2][0].slots.len(),4);assert_eq!(p.stato.mani[0].len(),1);
+ }
 }

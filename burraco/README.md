@@ -199,3 +199,21 @@ composizioni con browser separati e un giro completo di turni.
 Il rilascio del backend richiede un riavvio Render: le stanze attive sono in
 memoria e vanno perse. Pubblicare solo dopo conferma e a partite concluse.
 Dockerfile, dipendenze, porte e protocollo delle azioni sono invariati.
+
+
+### Giochi del compagno e ultima carta
+
+Lega accetta una destinazione facoltativa `proprietario` (indice del posto).
+Se omessa mantiene il comportamento precedente; il motore verifica che il
+proprietario sia della stessa squadra. Le carte restano nelle combinazioni
+del compagno, mentre vengono rimosse dalla mano del giocatore di turno.
+Burraco e chiusura sono valutati per squadra, senza duplicare i punti dei giochi.
+Il client attende il supporto `teamMelds` del server prima di inviare una
+destinazione diversa dal proprio posto. Test: team-rules.test.cjs,
+team-ui.test.cjs e test Rust per motore e comando ricevuto dal server.
+
+La pesca dipende dalla fase del turno, non dal numero di carte. I test riproducono
+il cambio 4→1 con una sola carta: entrambe le fonti di pesca funzionano e lo
+scarto è disabilitato prima della pesca. Il blocco segnalato con una sola carta
+non è stato riprodotto nella versione corrente; nessuna pesca aggiuntiva è
+abilitata dopo aver già pescato nello stesso turno.

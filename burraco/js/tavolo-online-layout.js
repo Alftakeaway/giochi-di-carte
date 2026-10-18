@@ -13,12 +13,16 @@
   if(c?.valore===2){const veil=el('span','velo-matta');d.append(veil)}
   return d;
  }
+ function attach(i,id,owner){
+  if(owner!==seat&&!last.teamMelds){status('Il server sta aggiornando i giochi di squadra: riprova fra poco.','err');return}
+  act({tipo:'lega',indice:i,id,proprietario:owner});
+ }
  function meld(m,g,i){
   const d=el('div','meld'+(m.burraco?' burraco '+(m.pulito?'pulito':m.semipulito?'semipulito':'sporco'):''));d.dataset.giocatore=g;d.dataset.indice=i;
   const head=el('div','testata');if(m.burraco)head.append(el('span','timbro','★'));d.append(head);
   const pile=el('div','pila-meld');
   const slots=m.slots.slice().reverse();slots.forEach((s,idx)=>{const c=card(s.carta);c.style.zIndex=String(100+idx);if(m.burraco&&idx===slots.length-1){const holder=el('div','slot-traverso');c.classList.add('di-traverso');holder.style.zIndex='200';holder.append(c);pile.append(holder)}else pile.append(c)});d.append(pile);
-  d.addEventListener('click',()=>{if(g!==seat||!myTurn()||last.fase!=='gioco'||sel.size!==1)return;act({tipo:'lega',indice:i,id:[...sel][0]})});
+  d.addEventListener('click',()=>{if(last.squadre[g]!==last.squadre[seat]||!myTurn()||last.fase!=='gioco'||sel.size!==1)return;attach(i,[...sel][0],g)});
   return d;
  }
  const root=el('div','tavolo');root.id='tavolo';root.hidden=true;
@@ -48,7 +52,7 @@
   const ord=el('div','ordinamento');ord.id='ordinamento';for(const [v,t] of [['combinazioni','Combinazioni'],['numero','Numero'],['seme','Seme']]){const b=el('button','ord-btn'+(order===v?' attivo':''),t);b.type='button';b.onclick=()=>{order=v;render(last)};ord.append(b)}bar.append(ord);
   const fake={nGioc:st.nGioc,squadre:st.squadre,stato:{...st,mani:st.seats.map(s=>s.seat===seat?s.hand:Array(s.handCount).fill(null)),pozzettoPreso:st.pozzetti.map(p=>p.taken)}};
   const ui={manoVisibile:seat,selezione:sel,botInCorso:false,attesaConsegna:false};
-  window.BurracoApproved.decorate(fake,ui,{pescaTallone:()=>pesca('tallone'),prendiMonte:()=>pesca('monte'),cala:()=>calaSel(),scarta:()=>scartaSel(),lega:(i,id)=>act({tipo:'lega',indice:i,id}),details:()=>showScores(st)});
+  window.BurracoApproved.decorate(fake,ui,{pescaTallone:()=>pesca('tallone'),prendiMonte:()=>pesca('monte'),cala:()=>calaSel(),scarta:()=>scartaSel(),lega:(i,id,owner)=>attach(i,id,owner),details:()=>showScores(st)});
  }
  function showScores(st){let dlg=document.getElementById('online-scores');if(!dlg){dlg=el('dialog');dlg.id='online-scores';document.body.append(dlg)}dlg.replaceChildren(el('h2','',st.finita?'Smazzata conclusa':'Punteggi'),el('p','',st.totaliSquadra.map((v,i)=>(i===st.squadre[seat]?'Voi: ':'Loro: ')+v).join(' · ')));if(st.finita&&st.vincitore==null){const next=el('button','btn','Smazzata successiva');next.onclick=()=>{act({tipo:'next'});dlg.close()};dlg.append(next)}const close=el('button','btn','Chiudi');close.onclick=()=>dlg.close();dlg.append(close);dlg.showModal()}
  document.getElementById('btn-menu').onclick=()=>document.body.classList.toggle('show-online-connection');

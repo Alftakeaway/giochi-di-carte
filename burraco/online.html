@@ -232,7 +232,7 @@ function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
 function scartaSel(){ if(sel.size===1){ act({tipo:'scarta',id:[...sel][0]}); } }
 function act(obj){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'action',action:obj})); else status('Non connesso.','err'); }
 </script>
-<script src="js/tavolo-layout.js?v=1"></script>
-<script src="js/tavolo-online-layout.js?v=1"></script>
+<script src="js/tavolo-layout.js?v=2"></script>
+<script src="js/tavolo-online-layout.js?v=2"></script>
 </body>
 </html>

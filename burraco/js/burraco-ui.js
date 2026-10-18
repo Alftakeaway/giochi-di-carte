@@ -923,6 +923,10 @@
         out.push(i);
       }
     });
+    if(daMeld===null||daMeld===undefined){
+      const partner=p.squadre.findIndex((t,g)=>g!==ui.manoVisibile&&t===p.squadre[ui.manoVisibile]);
+      if(partner>=0)for(const [i,m] of p.stato.melds[partner].entries())if(E.provaLegatura(m,carta))out.push(partner+':'+i);
+    }
     return out;
   }
 
@@ -979,13 +983,15 @@
       setTimeout(function () { ui.sopprimiClic = false; }, 60);
       chiudiTrascinamento(att);
       const meldEl = elementoMeldSotto(e.clientX, e.clientY);
-      if (meldEl && att.bersagli.indexOf(Number(meldEl.dataset.indice)) >= 0) {
-        eseguiSpostamento(att, Number(meldEl.dataset.indice));
+      const dest=meldEl?(Number(meldEl.dataset.giocatore)===ui.manoVisibile?Number(meldEl.dataset.indice):meldEl.dataset.giocatore+':'+meldEl.dataset.indice):null;
+      if (meldEl && att.bersagli.indexOf(dest) >= 0) {
+        eseguiSpostamento(att, dest);
       } else if (meldEl) {
         const idx = Number(meldEl.dataset.indice);
         if (att.daMeld === null) {
-          esegui(function () { return ui.partita.lega(idx, att.carta.id); }, 'lega');
+          esegui(function () { return ui.partita.lega(idx, att.carta.id,Number(meldEl.dataset.giocatore)); }, 'lega');
         } else {
+          if(Number(meldEl.dataset.giocatore)!==ui.manoVisibile){render();return;}
           const giudizio = ui.partita.valutaSpostamento(att.daMeld, att.carta.id, idx);
           notifica(giudizio.motivo || 'Spostamento non consentito.', 'errore', 3200);
         }
@@ -1032,8 +1038,9 @@
   }
 
   function mostraBersagli(indici, daMeld) {
-    $$('#melds-0 .meld').forEach(function (el) {
-      const i = Number(el.dataset.indice);
+    $$('.meld').forEach(function (el) {
+      const owner=Number(el.dataset.giocatore);
+      const i = owner===ui.manoVisibile?Number(el.dataset.indice):owner+':'+el.dataset.indice;
       if (indici.indexOf(i) >= 0) el.classList.add('target');
       if (daMeld !== null && i === daMeld) el.classList.add('origine');
     });
@@ -1042,22 +1049,22 @@
   function elementoMeldSotto(x, y) {
     const el = document.elementFromPoint(x, y);
     if (!el || !el.closest) return null;
-    const meld = el.closest('#melds-0 .meld');
-    return meld || null;
+    const meld = el.closest('.meld');
+    return meld && ui.partita.squadre[Number(meld.dataset.giocatore)]===ui.partita.squadre[ui.manoVisibile] ? meld : null;
   }
 
   function aggiornaSotto(t, x, y) {
     const meld = elementoMeldSotto(x, y);
-    const idx = meld ? Number(meld.dataset.indice) : null;
+    const idx = meld ? (Number(meld.dataset.giocatore)===ui.manoVisibile?Number(meld.dataset.indice):meld.dataset.giocatore+':'+meld.dataset.indice) : null;
     if (t.sotto === idx) return;
     t.sotto = idx;
-    $$('#melds-0 .meld.sotto').forEach(function (el) { el.classList.remove('sotto'); });
+    $$('.meld.sotto').forEach(function (el) { el.classList.remove('sotto'); });
     if (meld && t.bersagli.indexOf(idx) >= 0) meld.classList.add('sotto');
   }
 
   function eseguiSpostamento(t, indiceDestinazione) {
     if (t.daMeld === null) {
-      esegui(function () { return ui.partita.lega(indiceDestinazione, t.carta.id); }, 'lega');
+      esegui(function () { const parts=String(indiceDestinazione).split(':');return ui.partita.lega(Number(parts[parts.length-1]),t.carta.id,parts.length===2?Number(parts[0]):ui.manoVisibile); }, 'lega');
     } else {
       esegui(function () { return ui.partita.sposta(t.daMeld, t.carta.id, indiceDestinazione); }, 'sposta');
     }
@@ -1083,6 +1090,7 @@
     const s = p.stato;
     if (s.finita || s.fase !== 'gioco' || ui.botInCorso) return;
     if (carteSelezionate().length === 1) { onClicMeld(g, indice); return; }
+    if(g!==ui.manoVisibile)return;
     if (ui.spostamento) {
       /* sto già spostando una carta: toccare un'altra combinazione vuol dire
        * "lasciala qui", toccare un'altra carta della stessa combinazione vuol
@@ -1112,16 +1120,17 @@
     if (ui.sopprimiClic) return;
     const p = ui.partita;
     const s = p.stato;
-    if (s.fase !== 'gioco' || ui.botInCorso) return;
+    if (s.fase !== 'gioco' || s.turno!==ui.manoVisibile || ui.botInCorso || p.squadre[g]!==p.squadre[ui.manoVisibile]) return;
     if (ui.spostamento) {
       const sp = ui.spostamento;
       ui.spostamento = null;
+      if(g!==ui.manoVisibile)return;
       esegui(function () { return p.sposta(sp.indiceMeld, sp.idCarta, indice); }, 'sposta');
       return;
     }
     const sel = carteSelezionate();
     if (sel.length !== 1) return;
-    esegui(function () { return p.lega(indice, sel[0].id); }, 'lega');
+    esegui(function () { return p.lega(indice, sel[0].id, g); }, 'lega');
   }
 
   /* Esegue un'azione sul motore, gestendo errori e aggiornamento della vista. */
@@ -1607,7 +1616,7 @@
       if (!meldEl) return;
       const g = Number(meldEl.dataset.giocatore);
       const idx = Number(meldEl.dataset.indice);
-      if (g !== ui.manoVisibile) return;
+      if (ui.partita.squadre[g] !== ui.partita.squadre[ui.manoVisibile]) return;
       const cartaEl = ev.target.closest('.meld .carta');
       if (cartaEl && cartaEl.dataset.id) {
         onClicCartaMeld(g, idx, cartaEl.dataset.id);
@@ -1638,7 +1647,7 @@
     if (!p) return;
     const s = p.stato;
     if (s.fase !== 'gioco' || s.turno !== ui.manoVisibile || ui.botInCorso) return;
-    const contenitori = $$('#melds-0 .meld');
+    const contenitori = $$('#melds-'+ui.manoVisibile+' .meld');
 
     if (ui.spostamento) {
       const carta = cartaDiMeld(ui.spostamento.indiceMeld, ui.spostamento.idCarta);
@@ -1661,6 +1670,11 @@
 
     const sel = carteSelezionate();
     if (sel.length !== 1) return;
+    const partner=p.squadre.findIndex((t,g)=>g!==ui.manoVisibile&&t===p.squadre[ui.manoVisibile]);
+    if(partner>=0)for(const m of $$('#melds-'+partner+' .meld')){
+      const target=p.stato.melds[partner][Number(m.dataset.indice)];
+      if(target&&E.provaLegatura(target,sel[0]))m.classList.add('target');
+    }
     const compatibili = p.meldsCompatibili(ui.manoVisibile, sel[0].id);
     contenitori.forEach(function (el) {
       if (compatibili.indexOf(Number(el.dataset.indice)) >= 0) el.classList.add('target');

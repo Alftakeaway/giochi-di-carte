@@ -771,10 +771,13 @@
     contaBurrachi(giocatore) {
       return this.stato.melds[giocatore].filter(m => m.burraco).length;
     }
+    contaBurrachiSquadra(giocatore) {
+      return this.stato.melds.reduce((n,ms,g)=>n+(this.squadre[g]===this.squadre[giocatore]?ms.filter(m=>m.burraco).length:0),0);
+    }
     puoChiudere(giocatore) {
       const s = this.stato;
       /* il pozzetto è della squadra: a due giocatori squadra = giocatore */
-      return s.pozzettoPreso[this.squadre[giocatore]] && this.contaBurrachi(giocatore) >= 1;
+      return s.pozzettoPreso[this.squadre[giocatore]] && this.contaBurrachiSquadra(giocatore) >= 1;
     }
 
     /* ---------------- pesca ---------------- */
@@ -820,7 +823,7 @@
 
       const restanti = s.mani[giocatore].filter(c => !carte.some(x => x.id === c.id));
       const controllo = this._controllaManoDopoCalata(
-        giocatore, restanti, this.contaBurrachi(giocatore) + (esito.burraco ? 1 : 0));
+        giocatore, restanti, this.contaBurrachiSquadra(giocatore) + (esito.burraco ? 1 : 0));
       if (!controllo.ok) return controllo;
 
       s.melds[giocatore].push({
@@ -844,11 +847,13 @@
     }
 
     /* ---------------- legatura ---------------- */
-    lega(indiceMeld, idCarta) {
+    lega(indiceMeld, idCarta, proprietario) {
       const s = this.stato;
       if (s.fase !== 'gioco') return { ok: false, motivo: 'Devi prima pescare una carta.' };
       const giocatore = s.turno;
-      const meld = s.melds[giocatore][indiceMeld];
+      const destinazione = proprietario === undefined ? giocatore : proprietario;
+      if (!Number.isInteger(destinazione) || destinazione < 0 || destinazione >= this.nGioc || this.squadre[destinazione] !== this.squadre[giocatore]) return {ok:false,motivo:'Puoi legare solo ai giochi della tua squadra.'};
+      const meld = s.melds[destinazione][indiceMeld];
       if (!meld) return { ok: false, motivo: 'Combinazione inesistente.' };
       const carta = s.mani[giocatore].find(c => c.id === idCarta);
       if (!carta) return { ok: false, motivo: 'Carta non in mano.' };
@@ -859,7 +864,7 @@
       const restanti = s.mani[giocatore].filter(c => c.id !== idCarta);
       const diventeraBurraco = prova.slots.length >= 7 && !meld.burraco;
       const controllo = this._controllaManoDopoCalata(
-        giocatore, restanti, this.contaBurrachi(giocatore) + (diventeraBurraco ? 1 : 0));
+        giocatore, restanti, this.contaBurrachiSquadra(giocatore) + (diventeraBurraco ? 1 : 0));
       if (!controllo.ok) return controllo;
 
       const eraBurraco = meld.burraco;
@@ -993,7 +998,7 @@
         if (isMatta(carta)) {
           return { ok: false, motivo: 'Non puoi chiudere scartando una matta (jolly o pinella). Pesca un\'altra carta.' };
         }
-        if (this.contaBurrachi(giocatore) < 1) {
+        if (this.contaBurrachiSquadra(giocatore) < 1) {
           return { ok: false, motivo: 'Per chiudere devi aver calato almeno un burraco (7 o più carte).' };
         }
         this._scartaCarta(giocatore, carta);
@@ -1076,7 +1081,7 @@
       const s = this.stato;
       const t = this.squadre[giocatore];
       const burrachi = burrachiProiettati === undefined
-        ? this.contaBurrachi(giocatore) : burrachiProiettati;
+        ? this.contaBurrachiSquadra(giocatore) : burrachiProiettati;
       if (restanti.length === 0) {
         if (s.pozzettoPreso[t]) {
           return { ok: false, motivo: 'Per chiudere devi scartare l\'ultima carta: non puoi calare tutte le carte.' };
@@ -1202,7 +1207,7 @@
       const carta = s.mani[giocatore].find(c => c.id === idCarta);
       if (!carta) return [];
       const restanti = s.mani[giocatore].filter(c => c.id !== idCarta);
-      const burrachi = this.contaBurrachi(giocatore);
+      const burrachi = this.contaBurrachiSquadra(giocatore);
       const out = [];
       const self = this;
       s.melds[giocatore].forEach(function (m, i) {
@@ -1226,7 +1231,7 @@
       const ids = new Set(lista.map(c => c.id));
       const restanti = s.mani[giocatore].filter(c => !ids.has(c.id));
       const controllo = this._controllaManoDopoCalata(
-        giocatore, restanti, this.contaBurrachi(giocatore) + (esito.burraco ? 1 : 0));
+        giocatore, restanti, this.contaBurrachiSquadra(giocatore) + (esito.burraco ? 1 : 0));
       return controllo.ok;
     }
 
@@ -1239,7 +1244,7 @@
       const ids = new Set(lista.map(c => c.id));
       const restanti = s.mani[giocatore].filter(c => !ids.has(c.id));
       const controllo = this._controllaManoDopoCalata(
-        giocatore, restanti, this.contaBurrachi(giocatore) + (esito.burraco ? 1 : 0));
+        giocatore, restanti, this.contaBurrachiSquadra(giocatore) + (esito.burraco ? 1 : 0));
       return controllo.ok ? null : controllo.motivo;
     }
 
@@ -1259,7 +1264,7 @@
       if (s.monteBloccato === idCarta && s.mani[giocatore].length > 1) return true;
       if (s.mani[giocatore].length === 1 && s.pozzettoPreso[this.squadre[giocatore]]) {
         if (isMatta(carta)) return true;
-        if (this.contaBurrachi(giocatore) < 1) return true;
+        if (this.contaBurrachiSquadra(giocatore) < 1) return true;
       }
       return false;
     }
@@ -1270,7 +1275,7 @@
       const carta = s.mani[giocatore].find(c => c.id === idCarta);
       if (!carta) return false;
       return s.mani[giocatore].length === 1 && s.pozzettoPreso[this.squadre[giocatore]] &&
-        this.contaBurrachi(giocatore) >= 1 && !isMatta(carta);
+        this.contaBurrachiSquadra(giocatore) >= 1 && !isMatta(carta);
     }
 
     /* ---------------- serializzazione (per salvataggio) ---------------- */

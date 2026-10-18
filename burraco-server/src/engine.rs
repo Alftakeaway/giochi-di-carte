@@ -851,7 +851,7 @@ impl Partita {
             None => return Err(motivo_non_valida(&carte)),
         };
         let restanti: Vec<Carta> = s.mani[g].iter().filter(|c| !ids.contains(&c.id)).cloned().collect();
-        let burrachi_pro = conta_burrachi(s, g) + if esito.burraco { 1 } else { 0 };
+        let burrachi_pro = conta_burrachi_squadra(s, &self.squadre, g) + if esito.burraco { 1 } else { 0 };
         if let Err(m) = controlla_mano_dopo_calata(s, &self.squadre, g, &restanti, burrachi_pro) {
             return Err(m);
         }
@@ -879,10 +879,14 @@ impl Partita {
 
     /* --- legatura --- */
     pub fn lega(&mut self, indice: usize, id: &str) -> Result<(), String> {
+        self.lega_a(indice,id,self.stato.turno)
+    }
+    pub fn lega_a(&mut self, indice: usize, id: &str, owner: usize) -> Result<(), String> {
         let s = &mut self.stato;
         if s.fase != Fase::Gioco { return Err("Devi prima pescare una carta.".to_string()); }
         let g = s.turno;
-        let meld = match s.melds[g].get(indice) {
+        if owner>=self.n_gioc || self.squadre[owner]!=self.squadre[g] {return Err("Puoi legare solo ai giochi della tua squadra.".into())}
+        let meld = match s.melds[owner].get(indice) {
             Some(m) => m.clone(),
             None => return Err("Combinazione inesistente.".to_string()),
         };
@@ -896,12 +900,12 @@ impl Partita {
         };
         let restanti: Vec<Carta> = s.mani[g].iter().filter(|c| c.id != id).cloned().collect();
         let diventa_burraco = nuovi_slots.len() >= 7 && !meld.burraco;
-        let burrachi_pro = conta_burrachi(s, g) + if diventa_burraco { 1 } else { 0 };
+        let burrachi_pro = conta_burrachi_squadra(s, &self.squadre, g) + if diventa_burraco { 1 } else { 0 };
         if let Err(m) = controlla_mano_dopo_calata(s, &self.squadre, g, &restanti, burrachi_pro) {
             return Err(m);
         }
         let era_burraco = meld.burraco;
-        let m = &mut s.melds[g][indice];
+        let m = &mut s.melds[owner][indice];
         m.slots = nuovi_slots;
         aggiorna_meld(m);
         s.mani[g] = restanti;
@@ -984,7 +988,7 @@ impl Partita {
             if carta.is_matta() {
                 return Err("Non puoi chiudere scartando una matta.".to_string());
             }
-            if conta_burrachi(s, g) < 1 {
+            if conta_burrachi_squadra(s, &self.squadre, g) < 1 {
                 return Err("Per chiudere devi aver calato almeno un burraco.".to_string());
             }
             scarta_carta(s, g, &carta);
@@ -1076,8 +1080,11 @@ fn punti_in_mano(stato: &Stato, g: usize) -> i32 {
 pub fn conta_burrachi(stato: &Stato, g: usize) -> usize {
     stato.melds[g].iter().filter(|m| m.burraco).count()
 }
+fn conta_burrachi_squadra(stato: &Stato, squadre: &[usize], g: usize) -> usize {
+    stato.melds.iter().enumerate().filter(|(i,_)|squadre[*i]==squadre[g]).map(|(_,ms)|ms.iter().filter(|m|m.burraco).count()).sum()
+}
 fn puo_chiudere(stato: &Stato, squadre: &[usize], g: usize) -> bool {
-    stato.pozzetto_preso[squadre[g]] && conta_burrachi(stato, g) >= 1
+    stato.pozzetto_preso[squadre[g]] && conta_burrachi_squadra(stato, squadre, g) >= 1
 }
 
 fn aggiorna_meld(meld: &mut Meld) {
@@ -1254,7 +1261,7 @@ fn cala_ammissibile(stato: &Stato, squadre: &[usize], g: usize, carte: &[Carta])
     let esito = match valida_combinazione(&lista) { Some(e) => e, None => return false };
     let ids: HashSet<String> = lista.iter().map(|c| c.id.clone()).collect();
     let restanti: Vec<Carta> = stato.mani[g].iter().filter(|c| !ids.contains(&c.id)).cloned().collect();
-    controlla_mano_dopo_calata(stato, squadre, g, &restanti, conta_burrachi(stato, g) + if esito.burraco { 1 } else { 0 }).is_ok()
+    controlla_mano_dopo_calata(stato, squadre, g, &restanti, conta_burrachi_squadra(stato, squadre, g) + if esito.burraco { 1 } else { 0 }).is_ok()
 }
 
 fn scarto_vietato(stato: &Stato, squadre: &[usize], g: usize, id: &str) -> bool {
@@ -1262,14 +1269,14 @@ fn scarto_vietato(stato: &Stato, squadre: &[usize], g: usize, id: &str) -> bool 
     if stato.monte_bloccato.as_deref() == Some(id) && stato.mani[g].len() > 1 { return true; }
     if stato.mani[g].len() == 1 && stato.pozzetto_preso[squadre[g]] {
         if carta.is_matta() { return true; }
-        if conta_burrachi(stato, g) < 1 { return true; }
+        if conta_burrachi_squadra(stato, squadre, g) < 1 { return true; }
     }
     false
 }
 
 fn chiude_con(stato: &Stato, squadre: &[usize], g: usize, id: &str) -> bool {
     let carta = match stato.mani[g].iter().find(|c| c.id == id) { Some(c) => c, None => return false };
-    stato.mani[g].len() == 1 && stato.pozzetto_preso[squadre[g]] && conta_burrachi(stato, g) >= 1 && !carta.is_matta()
+    stato.mani[g].len() == 1 && stato.pozzetto_preso[squadre[g]] && conta_burrachi_squadra(stato, squadre, g) >= 1 && !carta.is_matta()
 }
 
 fn carta_by_id(stato: &Stato, g: usize, id: &str) -> Carta {
@@ -1279,7 +1286,7 @@ fn carta_by_id(stato: &Stato, g: usize, id: &str) -> Carta {
 fn melds_compatibili(stato: &Stato, squadre: &[usize], g: usize, id: &str) -> Vec<usize> {
     let carta = match stato.mani[g].iter().find(|c| c.id == id) { Some(c) => c, None => return Vec::new() };
     let restanti: Vec<Carta> = stato.mani[g].iter().filter(|c| c.id != id).cloned().collect();
-    let burrachi = conta_burrachi(stato, g);
+    let burrachi = conta_burrachi_squadra(stato, squadre, g);
     let mut out = Vec::new();
     for (i, m) in stato.melds[g].iter().enumerate() {
         let prova = match prova_legatura(m, carta) { Some(x) => x, None => continue };
@@ -1326,4 +1333,31 @@ pub struct PartitaOpts {
     pub nomi: Option<Vec<String>>,
     pub giocatori: usize,
     pub seed: Option<u32>,
+}
+
+#[cfg(test)]
+mod team_regression_tests {
+ use super::*;
+ fn card(id:&str,v:u8,s:Seme)->Carta {Carta::new(id,v,Some(s),false)}
+ fn game()->Partita {Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(31)})}
+ #[test] fn attach_to_partner_and_reject_opponent(){
+  let mut p=game();p.stato.turno=2;p.stato.fase=Fase::Gioco;
+  p.stato.mani[2]=vec![card("h3",3,Seme::Cuori),card("h4",4,Seme::Cuori),card("h5",5,Seme::Cuori),card("extra",9,Seme::Picche)];
+  p.cala(&["h3".into(),"h4".into(),"h5".into()]).unwrap();
+  p.stato.turno=0;p.stato.mani[0]=vec![card("h6",6,Seme::Cuori),card("rest",9,Seme::Quadri)];
+  assert!(p.lega_a(0,"h6",1).is_err());assert_eq!(p.stato.mani[0].len(),2);
+  p.lega_a(0,"h6",2).unwrap();assert_eq!(p.stato.melds[2][0].slots.len(),4);assert_eq!(p.stato.mani[0].len(),1);assert!(p.stato.melds[0].is_empty());
+ }
+ #[test] fn partner_burraco_allows_team_close(){
+  let mut p=game();p.stato.turno=2;p.stato.fase=Fase::Gioco;
+  p.stato.mani[2]=(3..=9).map(|v|card(&format!("h{v}"),v,Seme::Cuori)).collect();p.stato.mani[2].push(card("extra",10,Seme::Picche));
+  p.cala(&(3..=9).map(|v|format!("h{v}")).collect::<Vec<_>>()).unwrap();
+  p.stato.turno=0;p.stato.pozzetto_preso[0]=true;p.stato.mani[0]=vec![card("last",10,Seme::Quadri)];
+  assert!(p.puo_chiudere(0));p.scarta("last").unwrap();assert!(p.stato.finita);
+ }
+ #[test] fn one_card_new_turn_can_draw_both_sources(){for monte in [false,true]{
+  let mut p=game();p.stato.turno=3;p.stato.fase=Fase::Gioco;p.stato.mani[0]=vec![card("last",7,Seme::Cuori)];p.stato.mani[3]=vec![card("discard",9,Seme::Quadri),card("keep",10,Seme::Picche)];
+  p.scarta("discard").unwrap();assert_eq!(p.stato.turno,0);assert_eq!(p.stato.fase,Fase::Pesca);assert_eq!(p.stato.mani[0].len(),1);
+  if monte {p.prendi_monte().unwrap()}else{p.pesca_tallone().unwrap()};assert!(p.stato.mani[0].len()>=2);assert_eq!(p.stato.fase,Fase::Gioco);
+ }}
 }

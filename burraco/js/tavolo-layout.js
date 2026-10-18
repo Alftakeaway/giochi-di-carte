@@ -70,6 +70,21 @@
    field.replaceChildren(teams,node('div','approved-side west'),node('div','approved-side east'));
    if(center){center.classList.add('approved-draw');footer.prepend(center);}
   }
+  const allMelds=p.stato.melds||p.stato.seats.map(s=>s.melds);
+  for(const own of [true,false]){
+   let cards=0,bonus=0;
+   for(let g=0;g<count;g++)if((p.squadre[g]===p.squadre[me])===own)for(const m of allMelds[g]){
+    cards+=Number(m.punti)||0;
+    if(m.burraco)bonus+=m.semipulito?150:m.pulito?200:100;
+   }
+   const heading=field.querySelector('.approved-team.'+(own?'ours':'theirs')+' h2');
+   let score=heading.querySelector('.approved-ground-score');
+   if(!score){score=node('span','approved-ground-score');score.setAttribute('aria-live','polite');score.append(node('strong'),node('span','approved-ground-detail'));heading.append(score);}
+   score.querySelector('strong').textContent='A terra: '+(cards+bonus);
+   score.querySelector('.approved-ground-detail').textContent=' · carte '+cards+' + bonus '+bonus;
+   score.title=cards+' punti carte + '+bonus+' bonus burraco = '+(cards+bonus)+' punti a terra';
+   score.setAttribute('aria-label',score.title);
+  }
   let tools=footer.querySelector('.approved-tools');if(!tools){tools=node('div','approved-tools');footer.append(tools);}
   const bar=byId('barra-azioni');footer.querySelector('.area-mano').append(bar);const nativeButtons=[...bar.querySelectorAll('button')];
   let ord=bar.querySelector('#ordinamento');if(!ord&&!tools.querySelector('#ordinamento')&&!options){ord=node('div','ordinamento');ord.id='ordinamento';for(const [value,label] of [['combinazioni','Combinazioni'],['numero','Numero'],['seme','Seme']]){const b=node('button','ord-btn',label);b.type='button';b.dataset.ordine=value;ord.append(b)}}if(ord){const old=tools.querySelector('#ordinamento');if(old)old.remove();tools.prepend(ord);}

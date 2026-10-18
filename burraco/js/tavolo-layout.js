@@ -13,7 +13,7 @@
    for(let i=0;i<2;i++)rows.push({area,items:melds.slice(i*8,i*8+8),index:i});
   }
   let base=innerWidth<=700?74:innerWidth<=1100?84:90;
-  const gap=4, rowGap=94;
+  const gap=4;let rowGap=94;
   for(const row of rows){
    if(!row.items.length)continue;
    const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
@@ -25,6 +25,17 @@
    if(!row.items.length)continue;
    const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
    cw=Math.min(cw,(row.area.clientWidth-2)/weights);
+  }
+  for(const row of rows)for(const m of row.items){
+   const n=m.querySelector('.pila-meld').children.length;
+   if(n<7)cw=Math.min(cw,(row.area.clientHeight/2-23)/(1.4+(n-1)*.24));
+  }
+  // Empty space between rows must yield before rank/suit strips collapse.
+  for(const row of rows)for(const m of row.items){
+   const n=m.querySelector('.pila-meld').children.length,bur=m.classList.contains('burraco');
+   const strip=Math.min(26,n>=7?8:cw*.24);
+   const needed=21+(bur?cw+2:cw*1.4)+(n-1)*strip;
+   rowGap=Math.min(rowGap,Math.max(0,row.area.clientHeight-2*needed));
   }
   const hw=base*Math.pow(1.2,3);
   root.style.setProperty('--layout-cw',cw+'px');root.style.setProperty('--layout-hw',hw+'px');

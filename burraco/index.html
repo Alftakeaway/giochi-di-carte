@@ -24,7 +24,7 @@
         </svg>
       </div>
       <h1>Burraco</h1>
-      <p class="sottotitolo">Regolamento italiano · 2 mazzi da 52 + 4 jolly · partita a 2005 punti</p>
+      <p class="sottotitolo">Regolamento italiano · 2 mazzi da 52 + 4 jolly · da 1 a 5 smazzate oppure a punti</p>
 
       <div class="campo">
         <label>Modalità</label>
@@ -75,7 +75,8 @@
 
       <div class="campo">
         <label>Durata della partita</label>
-        <div class="scelte" id="scelta-target">
+        <select id="scelta-durata" aria-label="Durata della partita"><option value="r1">1 smazzata</option><option value="r2">2 smazzate</option><option value="r3">3 smazzate</option><option value="r4">4 smazzate</option><option value="r5">5 smazzate</option><option value="p505">505 punti</option><option value="p1005">1005 punti</option><option value="p2005" selected>2005 punti</option></select>
+        <div class="scelte" id="scelta-target" style="display:none" hidden>
           <button class="scelta" data-target="505">
             <span class="titolo">505</span>
             <span class="nota">Partita breve</span>
@@ -214,7 +215,7 @@
       <div class="sottotitolo">Regolamento italiano (F.I.Bur.)</div>
       <div class="scroll">
         <h3>Obiettivo</h3>
-        <p>Realizzare combinazioni e sequenze per accumulare punti. Si gioca a smazzate successive: vince chi per primo raggiunge il punteggio obiettivo (505, 1005 o 2005).</p>
+        <p>Realizzare combinazioni e sequenze per accumulare punti. Scegli da 1 a 5 smazzate: vince chi totalizza più punti al termine del numero scelto; a pari punti la partita finisce in parità. Le smazzate annullate si ripetono. In alternativa puoi giocare a un punteggio obiettivo (505, 1005 o 2005).</p>
 
         <h3>Mazzo e distribuzione</h3>
         <ul>
@@ -236,8 +237,9 @@
           <li><strong>Gruppo:</strong> almeno 3 carte dello stesso valore, anche di semi diversi (essendoci due mazzi, al massimo 2 carte per seme). Non si possono calare gruppi di soli 2.</li>
           <li><strong>Sequenza:</strong> almeno 3 carte consecutive dello stesso seme. L’asso può stare all’inizio (A-2-3) oppure alla fine (Q-K-A), ma non a entrambe le estremità: A-2-…-K-A non è valido.</li>
           <li><strong>Lega:</strong> seleziona una o più carte e tocca una combinazione tua o del compagno. Le carte vengono aggiunte insieme solo se la mossa è interamente valida.</li>
+          <li>La squadra può aprire un solo gruppo per ciascun valore nella smazzata: le altre carte dello stesso valore vanno legate al gruppo già a terra, anche del compagno. Le scale possono essere separate.</li>
           <li>Le pinelle restano visibili come 2 del proprio seme anche quando sostituiscono un’altra carta.</li>
-          <li><strong>Matte:</strong> jolly e pinelle (tutti i 2). Massimo <strong>una matta</strong> per combinazione; due solo se nella sequenza c'è la pinella del seme stesso al posto naturale del 2.</li>
+          <li><strong>Matte:</strong> al massimo una carta usata come jolly. Nelle scale possono esserci due pinelle solo se una è il 2 naturale dello stesso seme; non sono consentite tre carte tra jolly e pinelle.</li>
           <li>Una matta non esce mai dal gioco: se possiedi la carta naturale che rappresenta, puoi <strong>sostituirla</strong> e la matta si sposta all'estremità restando calata.</li>
           <li>Le carte in mano si dispongono in <strong>fila dritta, accavallate</strong> ma non a ventaglio; le combinazioni sul tavolo restano <strong>pile verticali</strong>, una carta sull'altra. Di ogni carta è sempre visibile l'angolo in alto a sinistra con valore e seme.</li>
         </ul>
@@ -304,9 +306,9 @@
     </div>
   </div>
 
-  <script src="js/burraco-engine.js?v=7"></script>
+  <script src="js/burraco-engine.js?v=8"></script>
   <script src="js/burraco-ai.js?v=5"></script>
-  <script src="js/tavolo-layout.js?v=3"></script>
-  <script src="js/burraco-ui.js?v=13"></script>
+  <script src="js/tavolo-layout.js?v=4"></script>
+  <script src="js/burraco-ui.js?v=14"></script>
 </body>
 </html>

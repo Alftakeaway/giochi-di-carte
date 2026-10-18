@@ -247,8 +247,7 @@
     const naturali = slots.filter(s => !s.wild);
     if (naturali.length < 2) return false;
     const matte = slots.length - naturali.length;
-    const haPinellaNaturale = naturali.some(s => s.carta.valore === 2);
-    const maxMatte = haPinellaNaturale ? 2 : 1;
+    const maxMatte = 1;
     if (matte > maxMatte) return false;
     return true;
   }
@@ -341,8 +340,7 @@
     const span = max - min + 1;
     const buchi = span - naturals.length;
     const W = wilds.length;
-    const haPinellaNaturale = valori.indexOf(2) >= 0;
-    const maxMatte = haPinellaNaturale ? 2 : 1;
+    const maxMatte = 1;
     if (W > maxMatte) return null;
     if (W < buchi) return null;
 
@@ -467,7 +465,7 @@
       if (estranei.length) return 'In una sequenza tutte le carte devono essere dello stesso seme.';
     }
     if (matte > 2) return 'Troppe matte (jolly/pinelle) in questa sequenza.';
-    if (matte > 1) return 'Massimo 1 matta per sequenza (2 solo con la pinella del seme al posto giusto).';
+    if (matte > 1) return 'Massimo una carta sostitutiva; una seconda pinella è ammessa solo come 2 naturale del seme.';
     return 'Le carte non formano una sequenza consecutiva dello stesso seme.';
   }
 
@@ -663,6 +661,7 @@
      */
     constructor(opzioni) {
       const o = opzioni || {};
+      this.numeroSmazzate = Number.isInteger(o.smazzate) && o.smazzate >= 1 && o.smazzate <= 5 ? o.smazzate : null;
       this.target = TARGET_VALIDI.indexOf(o.target) >= 0 ? o.target : 2005;
       /* 2 giocatori (classico) oppure 4 a squadre: i compagni siedono di
        * fronte, quindi la squadra A è 0+2 e la squadra B è 1+3. */
@@ -699,6 +698,8 @@
         storico: [],
         chiusaDa: null,
         finita: false,
+        partitaFinita: false,
+        pareggio: false,
         vincitore: null,
         monteBloccato: null,
         ultimaAzione: null,
@@ -836,6 +837,7 @@
       }
       const esito = validaCombinazione(carte);
       if (!esito) return { ok: false, motivo: motivoNonValida(carte) };
+      if (this.gruppoGiaPresente(giocatore, esito)) return {ok:false,motivo:"Esiste già un tris di questo valore nella tua squadra: usa Lega."};
 
       const restanti = s.mani[giocatore].filter(c => !carte.some(x => x.id === c.id));
       const controllo = this._controllaManoDopoCalata(
@@ -1194,7 +1196,9 @@
 
       // vittoria: la squadra che raggiunge il target al termine della smazzata
       const tSq = this.totaliSquadra();
-      if (tSq[0] >= this.target || tSq[1] >= this.target) {
+      if (this.numeroSmazzate ? s.storico.length >= this.numeroSmazzate : (tSq[0] >= this.target || tSq[1] >= this.target)) {
+        s.partitaFinita = this.numeroSmazzate !== null || tSq[0] !== tSq[1];
+        s.pareggio = s.partitaFinita && tSq[0] === tSq[1];
         if (tSq[0] === tSq[1]) {
           s.vincitore = null;   // parità: si continua
         } else {
@@ -1211,7 +1215,7 @@
     smazzataSuccessiva() {
       const s = this.stato;
       if (!s.finita) return false;
-      if (s.vincitore !== null) return true;
+      if (s.partitaFinita || s.vincitore !== null) return true;
       this.nuovaSmazzata();
       return false;
     }
@@ -1241,11 +1245,15 @@
 
     /* True se la combinazione è valida E calarla lascia il giocatore in uno
      * stato giocabile (deve sempre restare una carta da scartare). */
+    gruppoGiaPresente(g, esito) {
+      return esito.tipo === "gruppo" && this.stato.melds.some((lista, owner) => this.squadre[owner] === this.squadre[g] && lista.some(m => m.tipo === "gruppo" && m.slots[0].valore === esito.slots[0].valore));
+    }
+
     calaAmmissibile(giocatore, carte) {
       const s = this.stato;
       const lista = (carte || []).filter(Boolean);
       const esito = validaCombinazione(lista);
-      if (!esito) return false;
+      if (!esito || this.gruppoGiaPresente(giocatore, esito)) return false;
       const ids = new Set(lista.map(c => c.id));
       const restanti = s.mani[giocatore].filter(c => !ids.has(c.id));
       const controllo = this._controllaManoDopoCalata(
@@ -1259,6 +1267,7 @@
       const lista = (carte || []).filter(Boolean);
       const esito = validaCombinazione(lista);
       if (!esito) return motivoNonValida(lista);
+      if(this.gruppoGiaPresente(giocatore,esito)) return "Esiste già un tris di questo valore nella tua squadra: usa Lega.";
       const ids = new Set(lista.map(c => c.id));
       const restanti = s.mani[giocatore].filter(c => !ids.has(c.id));
       const controllo = this._controllaManoDopoCalata(
@@ -1301,7 +1310,7 @@
       const s = this.stato;
       const card = c => ({ id: c.id, valore: c.valore, seme: c.seme, jolly: c.jolly });
       return JSON.stringify({
-        target: this.target, nomi: this.nomi,
+        target: this.target, smazzate: this.numeroSmazzate, nomi: this.nomi,
         stato: {
           smazzata: s.smazzata, mazziere: s.mazziere, turno: s.turno, fase: s.fase,
           tallone: s.tallone.map(card), monte: s.monte.map(card),

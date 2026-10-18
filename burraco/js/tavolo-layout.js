@@ -107,7 +107,7 @@
   const scarta=nativeButtons.find(b=>b.textContent.includes('Scarta')||b.textContent.includes('Chiudi la smazzata'))||make('Scarta',!(playing&&selected.length===1),()=>run('scarta',[selected[0]],'scarta'));
   if(!scarta.textContent.includes('Chiudi'))scarta.textContent='Scarta';cala.textContent='Cala';
   const lega=make('Lega',!(playing&&selected.length>=1),()=>{root.dataset.lega='true';const target=field.querySelector('.meld.target');if(target)target.focus();const status=byId('log-mosse');if(status)status.textContent='Scegli una combinazione tua o del compagno per legare la carta.';});
-  const badge=byId('turno-badge');badge.textContent=p.stato.finita?'Smazzata finita':active?'È il tuo turno':'Attendi il turno';badge.classList.toggle('layout-active',active);
+  const badge=byId('turno-badge');badge.textContent=p.stato.partitaFinita?'Partita finita':p.stato.finita?'Smazzata finita':active?'È il tuo turno':'Attendi il turno';badge.classList.toggle('layout-active',active);
   const preview=bar.querySelector('#anteprima');
   bar.replaceChildren(tallone,monte,cala,lega,scarta,badge);if(preview)bar.append(preview);
   const bots=[...byId('mano-avversario').querySelectorAll('.mano-bot')];
@@ -116,6 +116,7 @@
    const side=field.querySelector('.'+cls),item=count===2?null:labels[i];side.textContent=item?item.text+' · '+p.stato.mani[item.g].length+' carte':'';
   }
   const header=root.querySelector('.barra-superiore');
+  let progress=header.querySelector('.round-progress');if(!progress){progress=node('span','round-progress');header.append(progress)}const limit=p.numeroSmazzate||p.stato.smazzate;progress.textContent=limit?'Smazzata '+Math.min(limit,(p.stato.storico?.length??p.stato.smazzateCompletate??0)+(p.stato.finita?0:1))+'/'+limit:'';
   if(!header.querySelector('.approved-fullscreen')){
    const full=node('button','btn approved-fullscreen','⛶');full.type='button';
    const sync=()=>{const on=!!document.fullscreenElement;full.setAttribute('aria-label',on?'Esci da schermo intero':'Schermo intero');full.title=on?'Esci da schermo intero (Esc)':'Schermo intero';full.setAttribute('aria-pressed',String(on));full.textContent=on?'⛶ Esci':'⛶ Schermo intero';schedule()};

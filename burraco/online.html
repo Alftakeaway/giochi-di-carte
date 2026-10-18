@@ -76,6 +76,7 @@
     <div class="posti-config" id="online-config">
       <label>Posti al tavolo<select id="online-players"><option value="4">4 · a squadre</option><option value="2">2 · uno contro uno</option></select></label>
       <label>Difficoltà PC<select id="online-level"><option value="facile">Facile</option><option value="normale" selected>Normale</option><option value="difficile">Difficile</option></select></label>
+      <label>Durata<select id="online-duration"><option value="r1">1 smazzata</option><option value="r2">2 smazzate</option><option value="r3">3 smazzate</option><option value="r4">4 smazzate</option><option value="r5">5 smazzate</option><option value="p505">505 punti</option><option value="p1005">1005 punti</option><option value="p2005" selected>2005 punti</option></select></label>
       <div id="online-seats" class="posti-config"></div>
       <p>Squadra A: posti 1 e 3. Squadra B: posti 2 e 4. Gli umani entrano con il codice; i PC sono automatici.</p>
     </div>
@@ -145,12 +146,13 @@ function renderSeats(){const box=$('online-seats');box.replaceChildren();const n
 $('online-players').onchange=renderSeats;renderSeats();
 async function crea(){
  const players=Number($('online-players').value),humans=[...document.querySelectorAll('#online-seats select')].filter(s=>s.value==='human').map(s=>Number(s.dataset.seat)),level=$('online-level').value;
- const legacy=players===4&&humans.join(',')==='0,2'&&level==='normale';
+ const duration=$('online-duration').value;
+ const legacy=duration==='p2005'&&players===4&&humans.join(',')==='0,2'&&level==='normale';
  if(!legacy){
-  try{const base=$('server').value.trim().replace(/\/+$/,'').replace(/^ws/,'http');const response=await fetch(base+'/capabilities',{signal:AbortSignal.timeout(8000)});const caps=await response.json();if(!response.ok||!caps.customHumanSeats)throw new Error();}
+  try{const base=$('server').value.trim().replace(/\/+$/,'').replace(/^ws/,'http');const response=await fetch(base+'/capabilities',{signal:AbortSignal.timeout(8000)});const caps=await response.json();if(!response.ok||!caps.customHumanSeats||!caps.fixedRounds)throw new Error();}
   catch(e){status('Questo server non supporta ancora i posti personalizzati. La modalità attuale è 2 umani in squadra contro 2 PC.','err');return;}
  }
- creationOptions=legacy?'':'?'+new URLSearchParams({players:String(players),humans:humans.join(','),level});
+ creationOptions=legacy?'':'?'+new URLSearchParams({players:String(players),humans:humans.join(','),level,...(duration[0]==='r'?{rounds:duration.slice(1)}:{target:duration.slice(1)})});
  connetti(null);
 }
 function entra(){ const c=prompt("Codice stanza?"); if(c) connetti(c.toUpperCase()); }
@@ -224,7 +226,7 @@ function render(st){
   pz.innerHTML='Pozzetti: '+st.pozzetti.map(p=>p.count+(p.taken?'(preso)':'')).join(' · ');
   board.appendChild(pz);
 
-  $('btnNext').style.display=(st.finita && st.vincitore==null)?'inline-block':'none';
+  $('btnNext').style.display=(st.finita && !st.partitaFinita && st.vincitore==null)?'inline-block':'none';
 }
 
 function pesca(s){ act({tipo:'pesca',sorgente:s}); }
@@ -232,7 +234,7 @@ function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
 function scartaSel(){ if(sel.size===1){ act({tipo:'scarta',id:[...sel][0]}); } }
 function act(obj){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'action',action:obj})); else status('Non connesso.','err'); }
 </script>
-<script src="js/tavolo-layout.js?v=3"></script>
-<script src="js/tavolo-online-layout.js?v=3"></script>
+<script src="js/tavolo-layout.js?v=4"></script>
+<script src="js/tavolo-online-layout.js?v=4"></script>
 </body>
 </html>

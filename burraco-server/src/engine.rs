@@ -261,8 +261,7 @@ fn verifica_slots_sequenza(slots: &[Slot], seme: Seme) -> bool {
     let naturali: Vec<&Slot> = slots.iter().filter(|s| !s.wild).collect();
     if naturali.len() < 2 { return false; }
     let matte = slots.len() - naturali.len();
-    let ha_pinella = naturali.iter().any(|s| s.carta.valore == 2);
-    let max_matte = if ha_pinella { 2 } else { 1 };
+    let max_matte = 1;
     if matte > max_matte { return false; }
     true
 }
@@ -316,8 +315,7 @@ fn prova_sequenza(naturals: &[Carta], wilds: &[Carta], seme: Seme, asso_alto: bo
     let span = max - min + 1;
     let buchi = span - naturals.len() as u8;
     let w = wilds.len();
-    let ha_pinella = valori.contains(&2);
-    let max_matte = if ha_pinella { 2 } else { 1 };
+    let max_matte = 1;
     if w > max_matte as usize { return None; }
     if (w as u8) < buchi { return None; }
 
@@ -479,7 +477,7 @@ pub fn motivo_non_valida(carte: &[Carta]) -> String {
         if estranei > 0 { return "In una sequenza tutte le carte devono essere dello stesso seme.".to_string(); }
     }
     if matte > 2 { return "Troppe matte (jolly/pinelle) in questa sequenza.".to_string(); }
-    if matte > 1 { return "Massimo 1 matta per sequenza (2 solo con la pinella del seme al posto giusto).".to_string(); }
+    if matte > 1 { return "Massimo una carta sostitutiva; una seconda pinella è ammessa solo come 2 naturale del seme.".to_string(); }
     "Le carte non formano una sequenza consecutiva dello stesso seme.".to_string()
 }
 
@@ -701,6 +699,8 @@ pub struct Stato {
     pub storico: Vec<Value>,
     pub chiusa_da: Option<usize>,
     pub finita: bool,
+    pub limite_smazzate: Option<usize>,
+    pub partita_finita: bool,
     pub vincitore: Option<usize>,
     pub monte_bloccato: Option<String>,
     pub ultima_azione: Option<Value>,
@@ -736,7 +736,7 @@ impl Partita {
                 tallone: Vec::new(), monte: Vec::new(), mani: Vec::new(),
                 pozzetti: Vec::new(), pozzetto_preso: Vec::new(), melds: Vec::new(),
                 totali: Vec::new(), punteggi_ultima: None, storico: Vec::new(),
-                chiusa_da: None, finita: false, vincitore: None,
+                chiusa_da: None, finita: false, limite_smazzate: None, partita_finita: false, vincitore: None,
                 monte_bloccato: None, ultima_azione: None, log: Vec::new(),
                 num_meld: 0, turni_smazzata: 0, pozzetto_da_giocare: Vec::new(),
             },
@@ -748,6 +748,7 @@ impl Partita {
 
     pub fn nuova_partita(&mut self) {
         let n = self.n_gioc;
+        let limite = self.stato.limite_smazzate;
         self.stato = Stato {
             smazzata: 0, mazziere: 0, turno: 0, fase: Fase::Pesca,
             tallone: Vec::new(), monte: Vec::new(),
@@ -757,7 +758,7 @@ impl Partita {
             melds: rep_vec(n, Vec::new()),
             totali: zeri(n),
             punteggi_ultima: None, storico: Vec::new(),
-            chiusa_da: None, finita: false, vincitore: None,
+            chiusa_da: None, finita: false, limite_smazzate: limite, partita_finita: false, vincitore: None,
             monte_bloccato: None, ultima_azione: None, log: Vec::new(),
             num_meld: 0, turni_smazzata: 0, pozzetto_da_giocare: vec![false, false],
         };
@@ -863,6 +864,7 @@ impl Partita {
             Some(e) => e,
             None => return Err(motivo_non_valida(&carte)),
         };
+        if gruppo_gia_presente(s, &self.squadre, g, &esito) { return Err("Esiste già un tris di questo valore nella tua squadra: usa Lega.".into()); }
         let restanti: Vec<Carta> = s.mani[g].iter().filter(|c| !ids.contains(&c.id)).cloned().collect();
         let burrachi_pro = conta_burrachi_squadra(s, &self.squadre, g) + if esito.burraco { 1 } else { 0 };
         if let Err(m) = controlla_mano_dopo_calata(s, &self.squadre, g, &restanti, burrachi_pro) {
@@ -1016,7 +1018,7 @@ impl Partita {
     pub fn smazzata_successiva(&mut self) -> bool {
         let s = &self.stato;
         if !s.finita { return false; }
-        if s.vincitore.is_some() { return true; }
+        if s.partita_finita || s.vincitore.is_some() { return true; }
         self.nuova_smazzata();
         false
     }
@@ -1057,6 +1059,10 @@ impl Partita {
             "chiusaDa": s.chiusa_da,
             "finita": s.finita,
             "vincitore": s.vincitore,
+            "smazzate": s.limite_smazzate,
+            "smazzateCompletate": s.storico.len(),
+            "partitaFinita": s.partita_finita,
+            "pareggio": s.partita_finita && s.vincitore.is_none(),
             "punteggiUltima": s.punteggi_ultima,
             "log": s.log,
             "monteBloccato": s.monte_bloccato,
@@ -1261,16 +1267,22 @@ fn calcola_punteggi(stato: &mut Stato, squadre: &[usize], _n_gioc: usize, target
         "totaliSquadra": t_sq
     }));
     stato.storico.push(stato.punteggi_ultima.clone().unwrap());
-    if t_sq[0] >= target || t_sq[1] >= target {
+    if stato.limite_smazzate.map_or(t_sq[0] >= target || t_sq[1] >= target, |n| stato.storico.len() >= n) {
+        stato.partita_finita = stato.limite_smazzate.is_some() || t_sq[0] != t_sq[1];
         if t_sq[0] == t_sq[1] { stato.vincitore = None; }
         else { stato.vincitore = Some(if t_sq[0] > t_sq[1] { 0 } else { 1 }); }
     }
     stato.log.push(format!("Smazzata conclusa. Punti: {}", punti.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(" / ")));
 }
 
+fn gruppo_gia_presente(stato: &Stato, squadre: &[usize], g: usize, esito: &Esito) -> bool {
+    esito.tipo == MeldTipo::Gruppo && stato.melds.iter().enumerate().any(|(owner, lista)| squadre[owner] == squadre[g] && lista.iter().any(|m| m.tipo == MeldTipo::Gruppo && m.slots[0].valore == esito.slots[0].valore))
+}
+
 fn cala_ammissibile(stato: &Stato, squadre: &[usize], g: usize, carte: &[Carta]) -> bool {
     let lista: Vec<Carta> = carte.iter().filter(|c| c.id != "").cloned().collect();
     let esito = match valida_combinazione(&lista) { Some(e) => e, None => return false };
+    if gruppo_gia_presente(stato, squadre, g, &esito) { return false; }
     let ids: HashSet<String> = lista.iter().map(|c| c.id.clone()).collect();
     let restanti: Vec<Carta> = stato.mani[g].iter().filter(|c| !ids.contains(&c.id)).cloned().collect();
     controlla_mano_dopo_calata(stato, squadre, g, &restanti, conta_burrachi_squadra(stato, squadre, g) + if esito.burraco { 1 } else { 0 }).is_ok()
@@ -1381,4 +1393,15 @@ mod ace_multi_tests {
  fn sequence(vals:&[u8])->Esito{valida_combinazione(&vals.iter().enumerate().map(|(i,v)|card(&format!("s{i}"),*v)).collect::<Vec<_>>()).unwrap()}
  #[test] fn high_ace_no_wrap(){let high=sequence(&[12,13,1]);assert_eq!(high.slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![12,13,14]);let low=sequence(&(1..=13).collect::<Vec<_>>());assert!(lega_sequenza(&low.slots,&card("second_ace",1)).is_none());assert!(lega_sequenza(&sequence(&[10,11,12,13]).slots,&card("high_ace",1)).is_some());let mut two_aces=(1..=13).map(|v|card(&format!("v{v}"),v)).collect::<Vec<_>>();two_aces.push(card("second_ace",1));assert!(valida_combinazione(&two_aces).is_none());}
  #[test] fn batch_is_atomic_and_reorders(){let mut p=Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(17)});p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=vec![card("h3",3),card("h4",4),card("h5",5),card("keep",9)];p.cala(&["h3".into(),"h4".into(),"h5".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![card("six",6),card("seven",7),card("nine",9),card("ten",10)];let before=p.public_state(0);assert!(p.lega_molte(0,&["six".into(),"nine".into()],2).is_err());assert_eq!(p.public_state(0),before);p.lega_molte(0,&["seven".into(),"six".into()],2).unwrap();assert_eq!(p.stato.melds[2][0].slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![3,4,5,6,7]);assert_eq!(p.stato.mani[0].len(),2);}
+}
+
+#[cfg(test)]
+mod rounds_rules_tests {
+ use super::*;
+ fn c(id:&str,v:u8,s:Seme)->Carta{Carta::new(id,v,Some(s),false)}
+ fn game()->Partita{Partita::new(PartitaOpts{giocatori:4,target:505,seed:Some(7),nomi:None})}
+ #[test] fn matte_limit(){let mut cards=vec![c("2",2,Seme::Cuori),c("3",3,Seme::Cuori),c("4",4,Seme::Cuori),c("p",2,Seme::Picche)];assert!(valida_combinazione(&cards).is_some());cards.push(Carta::new("j",0,None,true));assert!(valida_combinazione(&cards).is_none());}
+ #[test] fn fixed_one_to_five(){for n in 1..=5{let mut p=game();p.stato.limite_smazzate=Some(n);for i in 0..n {p.stato.pozzetto_preso=vec![true,true];p.stato.chiusa_da=Some(0);p.stato.mani=rep_vec(4,Vec::new());p.stato.totali=vec![10000,0,0,0];calcola_punteggi(&mut p.stato,&p.squadre,4,p.target);assert_eq!(p.stato.partita_finita,i==n-1);assert_eq!(p.smazzata_successiva(),i==n-1);}assert_eq!(p.stato.vincitore,Some(0));}}
+ #[test] fn draw_and_cancelled(){let mut p=game();p.stato.limite_smazzate=Some(1);calcola_punteggi(&mut p.stato,&p.squadre,4,p.target);assert_eq!(p.stato.storico.len(),0);assert!(!p.smazzata_successiva());p.stato.pozzetto_preso=vec![true,true];p.stato.mani=rep_vec(4,Vec::new());calcola_punteggi(&mut p.stato,&p.squadre,4,p.target);assert!(p.stato.partita_finita);assert_eq!(p.stato.vincitore,None);assert!(p.smazzata_successiva());assert_eq!(p.public_state(0)["pareggio"],true);}
+ #[test] fn duplicate_partner_group_blocked(){let mut p=game();p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=vec![c("a",1,Seme::Cuori),c("b",1,Seme::Picche),c("c",1,Seme::Quadri),c("keep",9,Seme::Cuori)];p.cala(&["a".into(),"b".into(),"c".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![c("d",1,Seme::Cuori),c("e",1,Seme::Picche),c("f",1,Seme::Fiori),c("stay",10,Seme::Cuori)];let ids=vec!["d".into(),"e".into(),"f".into()];assert!(!p.cala_ammissibile(0,&p.stato.mani[0][0..3]));assert!(p.cala(&ids).is_err());p.lega_molte(0,&ids,2).unwrap();assert_eq!(p.stato.melds[2][0].slots.len(),6);}
 }

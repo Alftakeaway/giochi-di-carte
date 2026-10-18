@@ -144,7 +144,7 @@ sezione('Sequenze');
 
   // due matte solo con la pinella naturale del seme
   r = E.validaCombinazione([N(2, 'cuori'), N(3, 'cuori'), N(4, 'cuori'), JOLLY(), PIN('picche')]);
-  ok(r && r.matte === 2, 'eccezione: con il 2 naturale del seme sono ammesse 2 matte');
+  ok(r === null, '2 naturale più due matte rifiutato: massimo una sostituzione');
 
   r = E.validaCombinazione([N(5, 'cuori'), N(6, 'cuori'), N(7, 'cuori'), JOLLY(), PIN('picche')]);
   ok(r === null, 'senza il 2 naturale resta il limite di 1 matta');

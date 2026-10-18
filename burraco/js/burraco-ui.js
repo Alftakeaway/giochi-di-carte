@@ -1297,10 +1297,10 @@
       $('#fine-contenuto').innerHTML = tabellaPunteggi(pu);
     }
 
-    if (s.vincitore !== null) {
+    if (s.partitaFinita || s.vincitore !== null) {
       const box2 = document.createElement('div');
       box2.style.cssText = 'text-align:center;margin:16px 0 0;font-size:19px;font-weight:700;color:#f0cf6d';
-      box2.textContent = '🏆 ' + nomeSquadra(s.vincitore) + ' vince la partita!';
+      box2.textContent = s.pareggio ? 'Partita conclusa in parità.' : '🏆 ' + nomeSquadra(s.vincitore) + ' vince la partita!';
       $('#fine-contenuto').appendChild(box2);
 
       azioni.appendChild(pulsante('🔄 Nuova partita', 'btn-oro btn-grande', function () {
@@ -1371,17 +1371,18 @@
         let out = '<td>Squadra ' + (t === 0 ? 'vostra' : 'avversaria') + '</td>';
         for (let g = 0; g < n; g++) {
           out += p.squadre[g] === t
-            ? '<td class="totale-parziale">' + num(tSq[t]) + ' / ' + p.target + '</td>'
+            ? '<td class="totale-parziale">' + num(tSq[t]) + (p.numeroSmazzate ? '' : ' / '+p.target) + '</td>'
             : '<td style="opacity:.35">—</td>';
         }
         h += '<tr class="totale">' + out + '</tr>';
       }
     } else {
       h += '<tr class="totale"><td>Totale partita</td>' +
-        '<td class="totale-parziale">' + num(p.stato.totali[0]) + ' / ' + p.target + '</td>' +
-        '<td class="totale-parziale">' + num(p.stato.totali[1]) + ' / ' + p.target + '</td></tr>';
+        '<td class="totale-parziale">' + num(p.stato.totali[0]) + (p.numeroSmazzate ? '' : ' / '+p.target) + '</td>' +
+        '<td class="totale-parziale">' + num(p.stato.totali[1]) + (p.numeroSmazzate ? '' : ' / '+p.target) + '</td></tr>';
     }
     h += '</tbody></table>';
+    if(p.numeroSmazzate)h+='<p>'+p.stato.storico.length+' / '+p.numeroSmazzate+' smazzate completate</p>';
     return h;
   }
 
@@ -1454,7 +1455,7 @@
     const seats=ui.config.modo==='custom' ? ui.config.humanSeats || [0] : ui.config.modo==='cpu'?[0]:Array.from({length:n},(_,i)=>i);
     ui.config.humanSeats=seats;
     const nomi=Array.from({length:n},(_,g)=>seats.includes(g)?(g===0?($('#nome-0').value||'Giocatore 1'):g===1?($('#nome-1').value||'Giocatore 2'):'Giocatore '+(g+1)):'Computer '+(g+1));
-    ui.partita = new E.Partita({target:ui.config.target,nomi,giocatori:n});
+    ui.partita = new E.Partita({target:ui.config.target,smazzate:ui.config.smazzate,nomi,giocatori:n});
     ui.config.nomi = nomi;
     ui.selezione.clear();
     ui.attesaConsegna = false;
@@ -1523,6 +1524,7 @@
         ui.config.livello = b.dataset.livello;
       });
     });
+    $('#scelta-durata').addEventListener('change', function(){const v=this.value;ui.config.smazzate=v[0]==='r'?Number(v.slice(1)):null;if(v[0]==='p')ui.config.target=Number(v.slice(1));});
     $$('#scelta-target .scelta').forEach(function (b) {
       b.addEventListener('click', function () {
         $$('#scelta-target .scelta').forEach(function (x) { x.classList.remove('attiva'); });
@@ -1689,6 +1691,7 @@
         if (config.modo) ui.config.modo = config.modo;
         if (config.livello) ui.config.livello = config.livello;
         if (config.target) ui.config.target = config.target;
+        if (Object.hasOwn(config,"smazzate")) ui.config.smazzate=config.smazzate;
         if (config.giocatori) ui.config.giocatori = config.giocatori;
         if (config.nomi) ui.config.nomi = config.nomi.slice();
         ui.config.humanSeats=config.humanSeats?config.humanSeats.slice():null;

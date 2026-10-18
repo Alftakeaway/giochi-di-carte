@@ -149,6 +149,14 @@ fn gen_code(map: &mut HashMap<String, Arc<Room>>) -> String {
     }
 }
 
+fn duration_options(params: &HashMap<String,String>) -> Result<(i32,Option<usize>),String> {
+    let target=params.get("target").map(|v|v.parse::<i32>()).transpose().map_err(|_|"Punteggio non valido")?.unwrap_or(2005);
+    if ![505,1005,2005].contains(&target) {return Err("Punteggio non valido".into())}
+    let rounds=params.get("rounds").map(|v|v.parse::<usize>()).transpose().map_err(|_|"Numero smazzate non valido")?;
+    if rounds.is_some_and(|v| !(1..=5).contains(&v)) {return Err("Scegli da 1 a 5 smazzate".into())}
+    Ok((target,rounds))
+}
+
 fn room_options(params: &HashMap<String,String>) -> Result<(usize,Vec<usize>,String),String> {
     let n=match params.get("players").map(String::as_str) {None|Some("4")=>4,Some("2")=>2,_=>return Err("Scegli 2 o 4 posti".into())};
     let humans=if let Some(raw)=params.get("humans") {
@@ -173,8 +181,8 @@ async fn ws_handler(
         let mut map = rooms.lock().unwrap();
         match &room_code {
             None => {
-                match room_options(&params) {
-                    Ok((n,humans,level))=>{let code=gen_code(&mut map);let r=Arc::new(Room::new(n,humans,&level));map.insert(code.clone(),r.clone());Ok((r,code))},
+                match room_options(&params).and_then(|opts| duration_options(&params).map(|duration|(opts,duration))) {
+                    Ok(((n,humans,level),(target,rounds)))=>{let code=gen_code(&mut map);let r=Arc::new(Room::new(n,humans,&level));{let mut p=r.partita.lock().unwrap();p.target=target;p.stato.limite_smazzate=rounds;}map.insert(code.clone(),r.clone());Ok((r,code))},
                     Err(e)=>Err(e),
                 }
             }
@@ -379,7 +387,7 @@ function render(st){
     mt.appendChild(b);
   }
   board.appendChild(mt);
-  $('btnNext').style.display=(st.finita && st.vincitore==null)?'inline-block':'none';
+  $('btnNext').style.display=(st.finita && !st.partitaFinita && st.vincitore==null)?'inline-block':'none';
 }
 function pesca(s){ act({tipo:'pesca',sorgente:s}); }
 function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
@@ -397,7 +405,7 @@ pub async fn run() {
     let rooms: Arc<RoomMap> = Arc::new(RoomMap::new(HashMap::new()));
     let app = Router::new()
         .route("/", get(index))
-        .route("/capabilities", get(|| async { axum::Json(json!({"version":4,"players":[2,4],"customHumanSeats":true,"teamMelds":true,"multiAttach":true})) }))
+        .route("/capabilities", get(|| async { axum::Json(json!({"version":5,"fixedRounds":true,"players":[2,4],"customHumanSeats":true,"teamMelds":true,"multiAttach":true})) }))
         .layer(tower_http::cors::CorsLayer::permissive())
         .route("/healthz", get(|| async { (StatusCode::OK, "ok") }))
         .route("/favicon.ico", get(|| async { (StatusCode::NO_CONTENT, "") }))
@@ -436,4 +444,10 @@ mod partner_action_tests {
   assert!(apply_action(&mut p,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":1})).is_err());
   apply_action(&mut p,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":2})).unwrap();assert_eq!(p.stato.melds[2][0].slots.len(),4);assert_eq!(p.stato.mani[0].len(),1);
  }
+}
+
+#[cfg(test)]
+mod duration_tests {
+ use super::*;
+ #[test] fn validates_duration(){for n in 1..=5{assert_eq!(duration_options(&HashMap::from([("rounds".into(),n.to_string())])).unwrap().1,Some(n));}for n in ["0","6","abc"]{assert!(duration_options(&HashMap::from([("rounds".into(),n.into())])).is_err());}assert_eq!(duration_options(&HashMap::new()).unwrap(),(2005,None));assert_eq!(duration_options(&HashMap::from([("target".into(),"505".into())])).unwrap(),(505,None));}
 }

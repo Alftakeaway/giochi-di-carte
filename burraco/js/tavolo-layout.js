@@ -12,30 +12,35 @@
    const area=team.querySelector('.approved-rows'), melds=[...area.querySelectorAll('.meld')];
    for(let i=0;i<2;i++)rows.push({area,items:melds.slice(i*8,i*8+8),index:i});
   }
-  let cw=100;
-  const gap=4, rowGap=12;
+  let base=innerWidth<=700?74:innerWidth<=1100?84:90;
+  const gap=4, rowGap=94;
   for(const row of rows){
    if(!row.items.length)continue;
    const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
-   cw=Math.min(cw,(row.area.clientWidth-gap*(row.items.length-1)-4)/weights);
-   const height=(row.area.clientHeight-rowGap)/2;
-   for(const m of row.items){const n=m.querySelector('.pila-meld').children.length;
-    cw=Math.min(cw,(height-23)/((n-1)*.28+(m.classList.contains('burraco')?1.02:1.4)));
-   }
+   base=Math.min(base,Math.floor((row.area.clientWidth-gap*(row.items.length-1)-2)/weights));
   }
-  // Hand size is independent of the number of combinations on the table.
-  const hw=(innerWidth<=700?74:innerWidth<=1100?84:90)*Math.pow(1.2,3);
+  base=Math.max(42,base);
+  let cw=base*1.07*1.03*1.02*Math.pow(1.01,3);
+  for(const row of rows){
+   if(!row.items.length)continue;
+   const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
+   cw=Math.min(cw,(row.area.clientWidth-2)/weights);
+  }
+  const hw=base*Math.pow(1.2,3);
   root.style.setProperty('--layout-cw',cw+'px');root.style.setProperty('--layout-hw',hw+'px');
   for(const row of rows){
    let left=0;const height=(row.area.clientHeight-rowGap)/2;
+   const footprint=row.items.reduce((n,m)=>n+cw*(m.classList.contains('burraco')?1.405:1),0);
+   const spacing=Math.max(0,Math.min(4,(row.area.clientWidth-footprint)/Math.max(1,row.items.length-1)));
    for(const m of row.items){
     const cards=[...m.querySelector('.pila-meld').children],bur=m.classList.contains('burraco');
-    const step=cw*.28, width=cw*(bur?1.405:1);
+    const room=height-21-(bur?cw+2:cw*1.4);
+    const step=Math.min(26,Math.max(1,Math.floor(room/Math.max(1,cards.length-1)))), width=cw*(bur?1.405:1);
     m.style.setProperty('--layout-step',step+'px');
     m.style.left=left+'px';m.style.top=(row.index*(height+rowGap)+18)+'px';
     m.style.width=width+'px';m.style.height=((cards.length-1)*step+(bur?cw+2:cw*1.4))+'px';
     cards.forEach((c,i)=>{c.style.top=(i*step)+'px';c.style.marginTop='0'});
-    left+=width+gap;
+    left+=width+spacing;
    }
   }
   const hand=byId('mano-giocatore');

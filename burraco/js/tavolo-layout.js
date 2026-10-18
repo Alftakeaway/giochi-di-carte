@@ -101,6 +101,12 @@
    const side=field.querySelector('.'+cls),item=count===2?null:labels[i];side.textContent=item?item.text+' · '+p.stato.mani[item.g].length+' carte':'';
   }
   const header=root.querySelector('.barra-superiore');
+  if(!header.querySelector('.approved-fullscreen')){
+   const full=node('button','btn approved-fullscreen','⛶');full.type='button';
+   const sync=()=>{const on=!!document.fullscreenElement;full.setAttribute('aria-label',on?'Esci da schermo intero':'Schermo intero');full.title=on?'Esci da schermo intero (Esc)':'Schermo intero';full.setAttribute('aria-pressed',String(on));full.textContent=on?'⛶ Esci':'⛶ Schermo intero';schedule()};
+   full.onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch(e){full.title='Schermo intero non disponibile: prova F11';const note=byId('notifiche');if(note)note.textContent='Schermo intero non disponibile: prova F11.'}};
+   full.hidden=!document.fullscreenEnabled;byId('btn-menu').after(full);document.addEventListener('fullscreenchange',sync);sync();
+  }
   let comp=header.querySelector('.approved-partner');if(!comp){comp=node('div','approved-partner');header.append(comp);}
   const partnerBot=partner!==null?bots.find(b=>b.dataset.layoutSeat===String(partner))||bots[others.indexOf(partner)]:null;
   comp.replaceChildren();

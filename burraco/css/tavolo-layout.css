@@ -91,3 +91,5 @@ body.layout-online.show-online-connection>.wrap .grid,body.layout-online.show-on
 .approved-board .approved-rows>.colonna,.approved-board .approved-rows .lista-melds{display:contents!important;transform:none!important}
 .approved-board .approved-rows .meld{position:absolute!important;margin:0!important}
 .approved-board .approved-rows:has(.meld) .vuoto{display:none}
+.approved-board .approved-fullscreen{font-size:11px;padding:6px 8px;white-space:nowrap;min-height:32px}
+@media(max-width:700px){.approved-board .approved-fullscreen{font-size:10px;padding:5px}}

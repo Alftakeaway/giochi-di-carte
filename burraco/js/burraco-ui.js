@@ -1524,12 +1524,12 @@
         ui.config.livello = b.dataset.livello;
       });
     });
-    $('#scelta-durata').addEventListener('change', function(){const v=this.value;ui.config.smazzate=v[0]==='r'?Number(v.slice(1)):null;if(v[0]==='p')ui.config.target=Number(v.slice(1));});
-    $$('#scelta-target .scelta').forEach(function (b) {
-      b.addEventListener('click', function () {
-        $$('#scelta-target .scelta').forEach(function (x) { x.classList.remove('attiva'); });
-        b.classList.add('attiva');
-        ui.config.target = Number(b.dataset.target);
+    $$('#scelta-durata .scelta').forEach(function(b){
+      b.addEventListener('click',function(){
+        const v=b.dataset.durata;
+        ui.config.smazzate=v[0]==='r'?Number(v.slice(1)):null;
+        if(v[0]==='p')ui.config.target=Number(v.slice(1));
+        $$('#scelta-durata .scelta').forEach(function(x){const active=x===b;x.classList.toggle('attiva',active);x.setAttribute('aria-pressed',String(active));});
       });
     });
 

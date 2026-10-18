@@ -7,7 +7,7 @@
   <meta name="description" content="Burraco italiano completo: gioca contro il computer o in due sullo stesso dispositivo, con tutte le regole ufficiali.">
   <title>Burraco — Giochi di Carte Italiani</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/burraco.css?v=14">
+  <link rel="stylesheet" href="css/burraco.css?v=15">
   <link rel="stylesheet" href="css/tavolo-layout.css?v=1">
 </head>
 <body>
@@ -26,7 +26,7 @@
       <h1>Burraco</h1>
       <p class="sottotitolo">Regolamento italiano · 2 mazzi da 52 + 4 jolly · da 1 a 5 smazzate oppure a punti</p>
 
-      <div class="campo">
+      <div class="campo avvio-modo">
         <label>Modalità</label>
         <div class="scelte" id="scelta-modo">
           <button class="scelta attiva" data-modo="cpu">
@@ -73,26 +73,12 @@
         </div>
       </div>
 
-      <div class="campo">
+      <div class="campo avvio-durata">
         <label>Durata della partita</label>
-        <select id="scelta-durata" aria-label="Durata della partita"><option value="r1">1 smazzata</option><option value="r2">2 smazzate</option><option value="r3">3 smazzate</option><option value="r4">4 smazzate</option><option value="r5">5 smazzate</option><option value="p505">505 punti</option><option value="p1005">1005 punti</option><option value="p2005" selected>2005 punti</option></select>
-        <div class="scelte" id="scelta-target" style="display:none" hidden>
-          <button class="scelta" data-target="505">
-            <span class="titolo">505</span>
-            <span class="nota">Partita breve</span>
-          </button>
-          <button class="scelta" data-target="1005">
-            <span class="titolo">1005</span>
-            <span class="nota">Media</span>
-          </button>
-          <button class="scelta attiva" data-target="2005">
-            <span class="titolo">2005</span>
-            <span class="nota">Partita classica</span>
-          </button>
-        </div>
+        <div class="scelte" id="scelta-durata" role="group" aria-label="Durata della partita"><button type="button" class="scelta" data-durata="r1" aria-pressed="false"><span class="titolo">1</span><span class="nota">Smazzata</span></button><button type="button" class="scelta" data-durata="r2" aria-pressed="false"><span class="titolo">2</span><span class="nota">Smazzate</span></button><button type="button" class="scelta" data-durata="r3" aria-pressed="false"><span class="titolo">3</span><span class="nota">Smazzate</span></button><button type="button" class="scelta" data-durata="r4" aria-pressed="false"><span class="titolo">4</span><span class="nota">Smazzate</span></button><button type="button" class="scelta" data-durata="r5" aria-pressed="false"><span class="titolo">5</span><span class="nota">Smazzate</span></button><button type="button" class="scelta" data-durata="p505" aria-pressed="false"><span class="titolo">505</span><span class="nota">Punti</span></button><button type="button" class="scelta" data-durata="p1005" aria-pressed="false"><span class="titolo">1005</span><span class="nota">Punti</span></button><button type="button" class="scelta attiva" data-durata="p2005" aria-pressed="true"><span class="titolo">2005</span><span class="nota">Punti</span></button></div>
       </div>
 
-      <div class="campo">
+      <div class="campo avvio-nomi">
         <label>Nomi dei giocatori</label>
         <div class="scelte">
           <input id="nome-0" class="scelta" style="text-align:left;padding:11px 14px" value="Tu" maxlength="14" aria-label="Nome giocatore 1">
@@ -309,6 +295,6 @@
   <script src="js/burraco-engine.js?v=8"></script>
   <script src="js/burraco-ai.js?v=5"></script>
   <script src="js/tavolo-layout.js?v=4"></script>
-  <script src="js/burraco-ui.js?v=14"></script>
+  <script src="js/burraco-ui.js?v=15"></script>
 </body>
 </html>

@@ -1071,3 +1071,38 @@ body.trascinando .carta { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* Wide setup uses the available desktop width instead of stacking every choice. */
+@media(min-width:800px){
+ .schermata-avvio{padding:16px;align-items:safe center}
+ .avvio-card{max-width:1160px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 24px;padding:22px 26px}
+ .avvio-logo{display:none}
+ .avvio-card h1,.avvio-card .sottotitolo,.avvio-card .avvio-durata,.avvio-card .avvio-azioni{grid-column:1/-1;margin:0}
+ .avvio-card h1{grid-row:1;margin:0}
+ .avvio-card .sottotitolo{grid-row:2;margin-top:-10px}
+ .avvio-modo{grid-column:1;grid-row:3}
+ #campo-giocatori{grid-column:2;grid-row:3}
+ #campo-livello{grid-column:1;grid-row:4}
+ .avvio-nomi{grid-column:2;grid-row:4}
+ .avvio-durata{grid-row:5}
+ .avvio-card .campo{margin:0;min-width:0}
+ .avvio-card .scelta{min-width:0}
+ #scelta-durata{display:grid;grid-template-columns:repeat(8,minmax(0,1fr))}
+ #scelta-durata .titolo{font-size:18px}
+ .avvio-card #posti-locali{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+ .avvio-card #posti-locali label{font-size:11px}
+ .avvio-card #posti-locali select{width:100%;padding:6px 3px}
+ .avvio-card .avvio-azioni .btn{padding-top:11px;padding-bottom:11px}
+}
+@media(min-width:800px) and (max-height:680px){
+ .schermata-avvio{padding:10px}
+ .avvio-card{padding:16px 22px;gap:12px 22px}
+ .avvio-card h1{font-size:27px}
+ .avvio-card .scelta{padding:9px 10px}
+ .avvio-card .campo>label{margin-bottom:6px}
+}
+@media(max-width:799px){
+ #scelta-durata{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ #scelta-durata .scelta{min-width:0;padding:10px 4px}
+ .schermata-avvio{align-items:safe center}
+}

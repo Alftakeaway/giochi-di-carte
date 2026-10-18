@@ -85,3 +85,9 @@ body.layout-online.show-online-connection>.wrap .grid,body.layout-online.show-on
 .approved-board .meld.burraco>.pila-meld>.carta{clip-path:inset(0 0 max(0px,calc(100% - var(--layout-step))) 0)}
 .approved-board #barra-azioni>.btn{padding-left:10px;padding-right:10px}
 @media(max-width:700px){.approved-board #barra-azioni{max-width:calc(100vw - 12px);flex-wrap:wrap;justify-content:center;width:390px}.approved-board #barra-azioni>.btn{padding:4px 6px}}
+
+/* Two rows of eight per team; keep native owner lists for game events. */
+.approved-board .approved-rows{position:relative;display:block;min-height:0}
+.approved-board .approved-rows>.colonna,.approved-board .approved-rows .lista-melds{display:contents!important;transform:none!important}
+.approved-board .approved-rows .meld{position:absolute!important;margin:0!important}
+.approved-board .approved-rows:has(.meld) .vuoto{display:none}

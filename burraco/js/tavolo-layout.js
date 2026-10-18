@@ -7,33 +7,35 @@
  function fit(){
   if(!current)return;
   const root=byId('tavolo');if(!root||root.hidden)return;
-  const lines=[...root.querySelectorAll('.lista-melds')];
-  let base=innerWidth<=700?74:innerWidth<=1100?84:90;
-  for(const line of lines){const cards=[...line.querySelectorAll('.meld')];if(!cards.length)continue;
-   const total=cards.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
-   base=Math.min(base,Math.floor((line.clientWidth-(cards.length-1)*4-2)/total));
+  const rows=[];
+  for(const team of root.querySelectorAll('.approved-team')){
+   const area=team.querySelector('.approved-rows'), melds=[...area.querySelectorAll('.meld')];
+   for(let i=0;i<2;i++)rows.push({area,items:melds.slice(i*8,i*8+8),index:i});
   }
-  base=Math.max(42,base);
-  let cw=base*1.07*1.03*1.02*Math.pow(1.01,3);
-  const enemy=root.querySelector('.approved-team.theirs');
-  for(const line of lines){const melds=[...line.querySelectorAll('.meld')];if(!melds.length)continue;const span=melds.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);const edge=line.closest('.ours')&&enemy?enemy.getBoundingClientRect().left-4:innerWidth-4;cw=Math.min(cw,(edge-line.getBoundingClientRect().left-2)/span);}
-  // Reserve a readable rank-and-suit strip, rather than squeezing it to 8px.
-  for(const line of lines)for(const m of line.querySelectorAll('.meld')){
-   const n=m.querySelector('.pila-meld').children.length;
-   cw=Math.min(cw,(line.clientHeight-21)/((n-1)*.28+(m.classList.contains('burraco')?1.02:1.4)));
+  let cw=100;
+  const gap=4, rowGap=12;
+  for(const row of rows){
+   if(!row.items.length)continue;
+   const weights=row.items.reduce((n,m)=>n+(m.classList.contains('burraco')?1.405:1),0);
+   cw=Math.min(cw,(row.area.clientWidth-gap*(row.items.length-1)-4)/weights);
+   const height=(row.area.clientHeight-rowGap)/2;
+   for(const m of row.items){const n=m.querySelector('.pila-meld').children.length;
+    cw=Math.min(cw,(height-23)/((n-1)*.28+(m.classList.contains('burraco')?1.02:1.4)));
+   }
   }
-  const hw=base*Math.pow(1.2,3), ch=cw*1.4;
+  // Hand size is independent of the number of combinations on the table.
+  const hw=(innerWidth<=700?74:innerWidth<=1100?84:90)*Math.pow(1.2,3);
   root.style.setProperty('--layout-cw',cw+'px');root.style.setProperty('--layout-hw',hw+'px');
-  for(const line of lines){const melds=[...line.querySelectorAll('.meld')];
-   const total=melds.reduce((n,m)=>n+cw*(m.classList.contains('burraco')?1.405:1),0);
-   line.style.gap=Math.max(0,Math.min(4,(line.clientWidth-total)/Math.max(1,melds.length-1)))+'px';
-   for(const m of melds){
-    const pile=m.querySelector('.pila-meld'), cards=[...pile.children], bur=m.classList.contains('burraco');
-    const room=line.clientHeight-19-(bur?cw+2:ch);
-    const step=Math.min(cw*.28,Math.max(1,room/Math.max(1,cards.length-1)));
+  for(const row of rows){
+   let left=0;const height=(row.area.clientHeight-rowGap)/2;
+   for(const m of row.items){
+    const cards=[...m.querySelector('.pila-meld').children],bur=m.classList.contains('burraco');
+    const step=cw*.28, width=cw*(bur?1.405:1);
     m.style.setProperty('--layout-step',step+'px');
-    m.style.width=(bur?cw*1.405:cw)+'px';m.style.height=((cards.length-1)*step+(bur?cw+2:ch))+'px';
-    cards.forEach((c,i)=>{c.style.top=(i*step)+'px';c.style.marginTop='0';});
+    m.style.left=left+'px';m.style.top=(row.index*(height+rowGap)+18)+'px';
+    m.style.width=width+'px';m.style.height=((cards.length-1)*step+(bur?cw+2:cw*1.4))+'px';
+    cards.forEach((c,i)=>{c.style.top=(i*step)+'px';c.style.marginTop='0'});
+    left+=width+gap;
    }
   }
   const hand=byId('mano-giocatore');

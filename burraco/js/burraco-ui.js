@@ -261,6 +261,7 @@
     const p = ui.partita;
     if (!p) return;
     const s = p.stato;
+    if(ui.layoutViewer!==ui.manoVisibile){costruisciTavolo();ui.layoutViewer=ui.manoVisibile;}
 
     $('#tavolo').hidden = false;
     $('#schermata-avvio').hidden = true;
@@ -1187,17 +1188,18 @@
   /* =====================================================================
    * FLUSSO DI GIOCO
    * ===================================================================== */
+  function umano(g) { return ui.config.humanSeats ? ui.config.humanSeats.includes(g) : ui.config.modo !== 'cpu' || g === 0; }
   function controllaDopoAzione() {
     const p = ui.partita;
     const s = p.stato;
     if (s.finita) { mostraFineSmazzata(); return; }
     /* nella modalità contro il computer giocano il bot: a due giocatori è
      * l'avversario, a quattro sono i tre posti occupati dai bot */
-    if (ui.config.modo === 'cpu' && s.turno !== 0) {
+    if (!umano(s.turno)) {
       setTimeout(turnoBot, 620);
       return;
     }
-    if (ui.config.modo === 'hotseat' && s.turno !== ui.manoVisibile) {
+    if (umano(s.turno) && s.turno !== ui.manoVisibile) {
       chiediConsegna(s.turno);
     }
   }
@@ -1212,7 +1214,7 @@
 
   async function turnoBot() {
     const p = ui.partita;
-    if (ui.botInCorso || p.stato.finita) return;
+    if (ui.botInCorso || p.stato.finita || umano(p.stato.turno)) return;
     ui.botInCorso = true;
     render();
 
@@ -1239,9 +1241,9 @@
     if (p.stato.finita) { mostraFineSmazzata(); return; }
     /* a quattro giocatori il turno passa a un altro bot: la catena continua
      * finché non arriva al giocatore umano (o finisce la smazzata) */
-    if (ui.config.modo === 'cpu' && p.stato.turno !== 0) {
+    if (!umano(p.stato.turno)) {
       setTimeout(turnoBot, 500);
-    }
+    } else { controllaDopoAzione(); }
   }
 
   function annunciaAzioneBot(azione, esito, attore) {
@@ -1321,8 +1323,8 @@
         p.smazzataSuccessiva();
         ui.selezione.clear();
         ui.messaggio = '';
-        ui.manoVisibile = ui.config.modo === 'cpu' ? 0 : p.stato.turno;
-        if (ui.config.modo === 'hotseat') {
+        ui.manoVisibile = ui.config.humanSeats ? ui.config.humanSeats[0] : 0;
+        if (umano(p.stato.turno) && p.stato.turno !== ui.manoVisibile) {
           chiediConsegna(p.stato.turno);
         } else {
           render();
@@ -1455,27 +1457,19 @@
    * AVVIO PARTITA
    * ===================================================================== */
   function avviaPartita() {
-    const quattro = ui.config.giocatori === 4 && ui.config.modo !== 'hotseat';
-    const nomi = quattro
-      ? [($('#nome-0') && $('#nome-0').value || 'Tu').trim().slice(0, 14) || 'Tu',
-         'Computer 1', 'Computer 2', 'Computer 3']
-      : [
-        ($('#nome-0').value || 'Giocatore 1').trim().slice(0, 14),
-        ($('#nome-1').value || 'Giocatore 2').trim().slice(0, 14)
-      ];
-    ui.partita = new E.Partita({
-      target: ui.config.target,
-      nomi: nomi,
-      giocatori: quattro ? 4 : 2
-    });
+    const n=ui.config.giocatori===4?4:2;
+    const seats=ui.config.modo==='custom' ? ui.config.humanSeats || [0] : ui.config.modo==='cpu'?[0]:Array.from({length:n},(_,i)=>i);
+    ui.config.humanSeats=seats;
+    const nomi=Array.from({length:n},(_,g)=>seats.includes(g)?(g===0?($('#nome-0').value||'Giocatore 1'):g===1?($('#nome-1').value||'Giocatore 2'):'Giocatore '+(g+1)):'Computer '+(g+1));
+    ui.partita = new E.Partita({target:ui.config.target,nomi,giocatori:n});
     ui.config.nomi = nomi;
     ui.selezione.clear();
     ui.attesaConsegna = false;
     ui.botInCorso = false;
-    ui.manoVisibile = 0;
+    ui.manoVisibile = seats[0];
     ui.messaggio = '';
 
-    costruisciTavolo();
+    costruisciTavolo();ui.layoutViewer=ui.manoVisibile;
 
     $('#overlay-fine').hidden = true;
     $('#overlay-consegna').hidden = true;
@@ -1497,16 +1491,25 @@
         $$('#scelta-modo .scelta').forEach(function (x) { x.classList.remove('attiva'); });
         b.classList.add('attiva');
         ui.config.modo = b.dataset.modo;
-        $('#campo-livello').style.display = ui.config.modo === 'cpu' ? '' : 'none';
-        /* i quattro giocatori hanno senso solo contro il computer */
-        $('#campo-giocatori').style.display = ui.config.modo === 'cpu' ? '' : 'none';
-        if (ui.config.modo !== 'cpu') selezionaGiocatori(2);
+        $('#campo-livello').style.display = ui.config.modo !== 'hotseat' ? '' : 'none';
+        /* I posti sono configurabili anche con più umani. */
+        $('#campo-giocatori').style.display = '';
+        ui.config.humanSeats=null;
+        aggiornaPosti();
         $('#nome-1').value = ui.config.modo === 'cpu' ? 'Computer' : 'Giocatore 2';
         $('#nome-1').style.display = ui.config.modo === 'cpu' && ui.config.giocatori === 4
           ? 'none' : '';
       });
     });
-    /*numero di giocatori: 2 (classico) o 4 a squadre contro il computer */
+    function aggiornaPosti(){
+      const box=$('#posti-locali');box.hidden=ui.config.modo!=='custom';box.replaceChildren();if(box.hidden)return;
+      const n=ui.config.giocatori===4?4:2;
+      for(let g=0;g<n;g++){
+        const label=document.createElement('label');label.textContent='Posto '+(g+1)+(n===4?' · squadra '+(g%2===0?'A':'B'):'');
+        const select=document.createElement('select');select.dataset.seat=g;select.setAttribute('aria-label','Tipo posto '+(g+1));select.innerHTML='<option value="human">Umano</option><option value="bot">Computer</option>';select.value=g===0?'human':'bot';select.disabled=g===0;label.append(select);box.append(label);
+      }
+    }
+    /* Due giocatori oppure quattro a squadre. */
     function selezionaGiocatori(n) {
       ui.config.giocatori = n;
       $$('#scelta-giocatori .scelta').forEach(function (x) {
@@ -1515,6 +1518,7 @@
       /* a quattro giocatori i compagni/avversari sono il computer: il nome
        * dell'avversario non si può scegliere */
       $('#nome-1').style.display = (ui.config.modo === 'cpu' && n === 4) ? 'none' : '';
+      aggiornaPosti();
     }
     $$('#scelta-giocatori .scelta').forEach(function (b) {
       b.addEventListener('click', function () { selezionaGiocatori(Number(b.dataset.giocatori)); });
@@ -1535,6 +1539,7 @@
     });
 
     $('#btn-avvia').addEventListener('click', function () {
+      if(ui.config.modo==='custom')ui.config.humanSeats=[...document.querySelectorAll('#posti-locali select')].filter(s=>s.value==='human').map(s=>Number(s.dataset.seat));
       ui.config.nomi = [
         ($('#nome-0').value || 'Giocatore 1').trim().slice(0, 14),
         ($('#nome-1').value || 'Giocatore 2').trim().slice(0, 14)
@@ -1691,6 +1696,7 @@
         if (config.target) ui.config.target = config.target;
         if (config.giocatori) ui.config.giocatori = config.giocatori;
         if (config.nomi) ui.config.nomi = config.nomi.slice();
+        ui.config.humanSeats=config.humanSeats?config.humanSeats.slice():null;
       }
       avviaPartita();
     },

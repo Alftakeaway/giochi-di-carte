@@ -175,3 +175,27 @@ originale: nomi e variabili globali sono distinti (`BurracoEngine`,
   decisioni, si limita a chiamare metodi e a mostrare lo stato. Per questo i
   test possono giocare migliaia di partite senza browser.
 - `window.__burraco` espone lo stato per il debug dalla console.
+
+
+## Posti umani e computer (rilascio preparato)
+
+Tavoli da 2 o 4 posti. A quattro, squadra A = posti 1 e 3, squadra B = posti 2 e 4.
+Il primo posto è umano; ogni altro posto si può impostare come umano o computer.
+Sono disponibili tutte le 10 configurazioni, incluse coppie di umani avversari,
+3 umani + 1 PC e 4 umani. Non è inclusa la variante a 3 posti.
+
+Sul medesimo dispositivo scegliere «Umani e computer». Al cambio fra umani
+un pannello nasconde la mano finché il dispositivo non è stato consegnato.
+Online il creatore sceglie i posti e condivide il codice. Gli umani entrano
+nell'ordine dei posti configurati; il server attende che siano tutti presenti.
+I restanti posti sono controllati dal computer. Le mani avversarie sono filtrate
+sul server. Le nuove configurazioni richiedono /capabilities versione 2;
+il vecchio server continua a supportare la configurazione originale.
+
+Test nuovi: mixed-local.test.cjs, mixed-online.test.cjs (richiede server locale
+127.0.0.1:3150 e frontend 127.0.0.1:3140). I test online provano tutte le
+composizioni con browser separati e un giro completo di turni.
+
+Il rilascio del backend richiede un riavvio Render: le stanze attive sono in
+memoria e vanno perse. Pubblicare solo dopo conferma e a partite concluse.
+Dockerfile, dipendenze, porte e protocollo delle azioni sono invariati.

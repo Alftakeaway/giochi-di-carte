@@ -5,7 +5,7 @@
   <base href="/burraco/">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a5130">
-  <title>Burraco Online — 2 umani vs 2 bot (server Rust)</title>
+  <title>Burraco Online — umani e computer</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/burraco.css?v=14">
   <link rel="stylesheet" href="css/tavolo-layout.css?v=1">
@@ -69,10 +69,16 @@
   <header class="top">
     <svg viewBox="0 0 40 44" aria-hidden="true"><path d="M4 7 L12 15 L20 4 L28 15 L36 7 C36 19 29 27 20 33 C11 27 4 19 4 7 Z" fill="#e0bb52"/></svg>
     <h1>Burraco Online</h1>
-    <span class="sub">2 umani vs 2 bot · server Rust</span>
+    <span class="sub">2 o 4 posti · umani e computer</span>
   </header>
 
   <div class="wrap">
+    <div class="posti-config" id="online-config">
+      <label>Posti al tavolo<select id="online-players"><option value="4">4 · a squadre</option><option value="2">2 · uno contro uno</option></select></label>
+      <label>Difficoltà PC<select id="online-level"><option value="facile">Facile</option><option value="normale" selected>Normale</option><option value="difficile">Difficile</option></select></label>
+      <div id="online-seats" class="posti-config"></div>
+      <p>Squadra A: posti 1 e 3. Squadra B: posti 2 e 4. Gli umani entrano con il codice; i PC sono automatici.</p>
+    </div>
     <div class="connessione">
       <input id="server" value="ws://localhost:3000" aria-label="URL del server WebSocket" spellcheck="false">
       <button class="btn oro" id="btnCrea" onclick="crea()">Crea partita</button>
@@ -114,12 +120,12 @@ const $=id=>document.getElementById(id);
 const _q=new URLSearchParams(location.search);
 if(_q.get('server')) $('server').value=_q.get('server');
 
-let lastRoom=null, tentativi=0;
+let lastRoom=null, tentativi=0, creationOptions='';
 const MAX_TENTATIVI=6;
 function connetti(room){
   lastRoom=room;
   const base=$('server').value.trim().replace(/\/+$/,'');
-  const url=base+'/ws'+(room?('?room='+room):'');
+  const url=base+'/ws'+(room?('?room='+encodeURIComponent(room)):creationOptions);
   ws=new WebSocket(url);
   ws.onmessage=e=>handle(JSON.parse(e.data));
   ws.onopen=()=>{ tentativi=0; };
@@ -135,7 +141,18 @@ function connetti(room){
   };
   ws.onerror=()=>{};
 }
-function crea(){ connetti(null); }
+function renderSeats(){const box=$('online-seats');box.replaceChildren();const n=Number($('online-players').value);for(let i=0;i<n;i++){const label=document.createElement('label');label.textContent='Posto '+(i+1)+(n===4?' · squadra '+(i%2===0?'A':'B'):'');const select=document.createElement('select');select.dataset.seat=i;select.setAttribute('aria-label','Tipo posto online '+(i+1));select.innerHTML='<option value="human">Umano</option><option value="bot">Computer</option>';select.value=i===0||i===2?'human':'bot';select.disabled=i===0;label.append(select);box.append(label)}}
+$('online-players').onchange=renderSeats;renderSeats();
+async function crea(){
+ const players=Number($('online-players').value),humans=[...document.querySelectorAll('#online-seats select')].filter(s=>s.value==='human').map(s=>Number(s.dataset.seat)),level=$('online-level').value;
+ const legacy=players===4&&humans.join(',')==='0,2'&&level==='normale';
+ if(!legacy){
+  try{const base=$('server').value.trim().replace(/\/+$/,'').replace(/^ws/,'http');const response=await fetch(base+'/capabilities',{signal:AbortSignal.timeout(8000)});const caps=await response.json();if(!response.ok||!caps.customHumanSeats)throw new Error();}
+  catch(e){status('Questo server non supporta ancora i posti personalizzati. La modalità attuale è 2 umani in squadra contro 2 PC.','err');return;}
+ }
+ creationOptions=legacy?'':'?'+new URLSearchParams({players:String(players),humans:humans.join(','),level});
+ connetti(null);
+}
 function entra(){ const c=prompt("Codice stanza?"); if(c) connetti(c.toUpperCase()); }
 
 function status(t,kind){ const el=$('status'); el.textContent=t; el.className='status'+(kind?(' '+kind):''); }

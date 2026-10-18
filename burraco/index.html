@@ -34,12 +34,13 @@
             <span class="nota">Gioca in singolo</span>
           </button>
           <button class="scelta" data-modo="hotseat">
-            <span class="titolo">👥 In due</span>
+            <span class="titolo">👥 Tutti umani</span>
             <span class="nota">Stesso dispositivo</span>
           </button>
+          <button class="scelta" data-modo="custom"><span class="titolo">Umani e computer</span><span class="nota">Scegli ogni posto · stesso dispositivo</span></button>
         </div>
+        <div id="posti-locali" class="posti-config" hidden></div>
       </div>
-
       <div class="campo" id="campo-giocatori">
         <label>Quanti giocatori</label>
         <div class="scelte" id="scelta-giocatori">
@@ -49,7 +50,7 @@
           </button>
           <button class="scelta" data-giocatori="4">
             <span class="titolo">👥 Quattro giocatori</span>
-            <span class="nota">A squadre: tu e un compagno contro due computer</span>
+            <span class="nota">Squadra A: posti 1 e 3 · squadra B: posti 2 e 4</span>
           </button>
         </div>
       </div>
@@ -104,7 +105,7 @@
       </div>
 
       <div class="avvio-azioni" style="margin-top:4px">
-        <a class="btn btn-grande" href="online.html?server=wss://giochi-di-carte.onrender.com" style="flex:1 1 auto;text-decoration:none">🌐 Gioca online (2 umani vs 2 bot — server live)</a>
+        <a class="btn btn-grande" href="online.html?server=wss://giochi-di-carte.onrender.com" style="flex:1 1 auto;text-decoration:none">🌐 Gioca online · umani e computer</a>
       </div>
     </div>
   </div>

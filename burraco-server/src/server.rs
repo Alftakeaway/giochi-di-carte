@@ -45,8 +45,7 @@ pub struct Room {
 }
 
 impl Room {
-    fn new(n_gioc: usize, livello: &str) -> Room {
-        let human_seats = if n_gioc == 4 { vec![0, 2] } else { vec![0] };
+    fn new(n_gioc: usize, human_seats: Vec<usize>, livello: &str) -> Room {
         Room {
             n_gioc,
             human_seats: human_seats.clone(),
@@ -62,12 +61,6 @@ impl Room {
         }
     }
 
-    fn assign_seat(&self) -> Option<usize> {
-        let occ: std::collections::HashSet<usize> =
-            self.senders.lock().unwrap().keys().cloned().collect();
-        self.human_seats.iter().find(|s| !occ.contains(s)).copied()
-    }
-
     fn is_full(&self) -> bool {
         let occ: std::collections::HashSet<usize> =
             self.senders.lock().unwrap().keys().cloned().collect();
@@ -79,6 +72,8 @@ impl Room {
     fn step(&self, actor: Option<(usize, &Value)>) -> Result<(), String> {
         let mut p = self.partita.lock().unwrap();
         if let Some((seat, act)) = actor {
+            if !*self.started.lock().unwrap() { return Err("La stanza attende gli altri giocatori".into()); }
+            if !self.human_seats.contains(&seat) { return Err("Posto non umano".into()); }
             let tipo = act["tipo"].as_str().unwrap_or("");
             if tipo != "next" && p.stato.turno != seat {
                 return Err("Non è il tuo turno".into());
@@ -86,7 +81,8 @@ impl Room {
             apply_action(&mut p, act)?;
         }
         if !p.stato.finita {
-            loop {
+            for _ in 0..8 {
+                if p.stato.finita { break; }
                 let t = p.stato.turno;
                 if self.human_seats.contains(&t) {
                     break;
@@ -133,6 +129,7 @@ fn apply_action(p: &mut Partita, act: &Value) -> Result<(), String> {
             p.scarta(&id)
         }
         "next" => {
+            if !p.stato.finita {return Err("La smazzata non è finita".into())}
             p.smazzata_successiva();
             Ok(())
         }
@@ -149,6 +146,18 @@ fn gen_code(map: &mut HashMap<String, Arc<Room>>) -> String {
     }
 }
 
+fn room_options(params: &HashMap<String,String>) -> Result<(usize,Vec<usize>,String),String> {
+    let n=match params.get("players").map(String::as_str) {None|Some("4")=>4,Some("2")=>2,_=>return Err("Scegli 2 o 4 posti".into())};
+    let humans=if let Some(raw)=params.get("humans") {
+        let seats=raw.split(',').map(|v|v.parse::<usize>().map_err(|_|"Posti umani non validi".to_string())).collect::<Result<Vec<_>,_>>()?;
+        if seats.is_empty() || seats[0]!=0 || seats.iter().any(|&v|v>=n) || seats.iter().collect::<std::collections::HashSet<_>>().len()!=seats.len() {return Err("Posti umani non validi".into())}
+        seats
+    }else if n==4 {vec![0,2]}else {vec![0]};
+    let level=params.get("level").map(String::as_str).unwrap_or("normale");
+    if !["facile","normale","difficile"].contains(&level) {return Err("Livello non valido".into())}
+    Ok((n,humans,level.to_string()))
+}
+
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Query(params): Query<HashMap<String, String>>,
@@ -161,10 +170,10 @@ async fn ws_handler(
         let mut map = rooms.lock().unwrap();
         match &room_code {
             None => {
-                let code = gen_code(&mut map);
-                let r = Arc::new(Room::new(4, "normale"));
-                map.insert(code.clone(), r.clone());
-                Ok((r, code))
+                match room_options(&params) {
+                    Ok((n,humans,level))=>{let code=gen_code(&mut map);let r=Arc::new(Room::new(n,humans,&level));map.insert(code.clone(),r.clone());Ok((r,code))},
+                    Err(e)=>Err(e),
+                }
             }
             Some(c) => match map.get(c) {
                 Some(r) => Ok((r.clone(), c.clone())),
@@ -191,23 +200,16 @@ async fn handle_socket(socket: WebSocket, resolved: Result<(Arc<Room>, String), 
     };
     let (mut sender_ws, mut receiver_ws) = socket.split();
 
-    // Stanza piena?
-    let full = room.senders.lock().unwrap().len() >= room.human_seats.len();
-    if full {
-        let _ = sender_ws
-            .send(Message::Text(
-                json!({ "type": "error", "msg": "Stanza piena" }).to_string().into(),
-            ))
-            .await;
-        return;
-    }
-
-    let seat = room.assign_seat().unwrap_or(0);
+    // Reserve a human seat while holding the lock (simultaneous joins are safe).
     let (tx, mut rx) = unbounded_channel::<String>();
-    room.senders.lock().unwrap().insert(seat, tx);
+    let assigned={let mut senders=room.senders.lock().unwrap();
+        let seat=room.human_seats.iter().find(|s|!senders.contains_key(s)).copied();
+        if let Some(seat)=seat {senders.insert(seat,tx);} seat
+    };
+    let seat=match assigned {Some(s)=>s,None=>{let _=sender_ws.send(Message::Text(json!({"type":"error","msg":"Stanza piena"}).to_string().into())).await;return}};
 
     // Task che pompa i messaggi del canale verso il socket WebSocket.
-    let mut send_task = tokio::spawn(async move {
+    let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if sender_ws.send(Message::Text(msg.into())).await.is_err() {
                 break;
@@ -241,6 +243,8 @@ async fn handle_socket(socket: WebSocket, resolved: Result<(Arc<Room>, String), 
     }
     if start {
         let _ = room.step(None);
+    } else if *room.started.lock().unwrap() {
+        let _=room.step(None);
     } else if let Some(tx) = room.senders.lock().unwrap().get(&seat) {
         let _ = tx.send(
             json!({ "type": "waiting", "msg": "In attesa di un altro giocatore…" }).to_string(),
@@ -390,6 +394,8 @@ pub async fn run() {
     let rooms: Arc<RoomMap> = Arc::new(RoomMap::new(HashMap::new()));
     let app = Router::new()
         .route("/", get(index))
+        .route("/capabilities", get(|| async { axum::Json(json!({"version":2,"players":[2,4],"customHumanSeats":true})) }))
+        .layer(tower_http::cors::CorsLayer::permissive())
         .route("/healthz", get(|| async { (StatusCode::OK, "ok") }))
         .route("/favicon.ico", get(|| async { (StatusCode::NO_CONTENT, "") }))
         .route("/ws", get(ws_handler))
@@ -407,4 +413,12 @@ pub async fn run() {
     println!("Burraco server in ascolto su http://{addr}  (WebSocket: ws://{addr}/ws)");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+#[cfg(test)]
+mod modes_tests {
+ use super::*;
+ #[test] fn all_combinations(){for n in [2,4] {for mask in 1..(1usize<<n) {if mask&1==0 {continue}let humans=(0..n).filter(|i|mask&(1<<i)!=0).collect::<Vec<_>>();let params=HashMap::from([("players".into(),n.to_string()),("humans".into(),humans.iter().map(|v|v.to_string()).collect::<Vec<_>>().join(","))]);let (players,seats,level)=room_options(&params).unwrap();assert_eq!(seats,humans);let r=Room::new(players,seats,&level);*r.started.lock().unwrap()=true;r.step(None).unwrap();assert!(r.human_seats.contains(&r.partita.lock().unwrap().stato.turno));}}}
+ #[test] fn defaults_compatible(){let (n,s,_)=room_options(&HashMap::new()).unwrap();assert_eq!(n,4);assert_eq!(s,vec![0,2]);}
+ #[test] fn rejects_invalid(){for raw in ["","1","0,0","0,4","-1"]{assert!(room_options(&HashMap::from([("humans".into(),raw.into())])).is_err())}}
 }

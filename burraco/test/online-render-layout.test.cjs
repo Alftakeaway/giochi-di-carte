@@ -17,7 +17,7 @@ try{
  console.log('PASS: both clients connected to existing Render; both seats render, opponent hands remain private');
  const who=await a.evaluate(()=>last.turno);const active=(await a.evaluate(()=>seat))===who?a:b;
  const n=await active.locator('#mano-giocatore>.carta').count();
- await active.locator('#mazzetto-tallone').click();await active.waitForFunction(()=>last.fase==='gioco');
+ await active.getByRole('button',{name:'Pesca dal tallone',exact:true}).click();await active.waitForFunction(()=>last.fase==='gioco');
  assert.equal(await active.locator('#mano-giocatore>.carta').count(),n+1);
  await active.locator('#mano-giocatore>.carta').last().click();
  await active.getByRole('button',{name:'Scarta',exact:true}).click();await active.waitForFunction(old=>last.turno!==old,who);

@@ -271,10 +271,12 @@
     renderCentro();
     renderMelds();
     renderMano();
+    if (window.BurracoApproved && document.getElementById('turno-badge')) $('#tavolo .barra-superiore').appendChild($('#turno-badge'));
     renderAzioni();
 
     $('#log-mosse').textContent = ui.messaggio ||
       (s.log && s.log.length ? s.log[s.log.length - 1] : '');
+    if (window.BurracoApproved) window.BurracoApproved.decorate(p, ui);
   }
 
   function renderPunteggi() {
@@ -1546,7 +1548,7 @@
     /* ordine delle carte in mano: i tre bottoni ora stanno nella barra dei
      * comandi e vengono ricreati a ogni render, quindi il click lo si
      * intercetta con la delega su #barra-azioni */
-    $('#barra-azioni').addEventListener('click', function (ev) {
+    $('#tavolo').addEventListener('click', function (ev) {
       const btn = ev.target && ev.target.closest ? ev.target.closest('.ord-btn') : null;
       if (!btn) return;
       if (!ui.partita) return;

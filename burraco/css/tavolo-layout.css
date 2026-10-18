@@ -1,0 +1,83 @@
+/* Layout approved in the separate prototype. Rules and network are unchanged. */
+.approved-board{height:100dvh!important;display:grid!important;grid-template-rows:54px minmax(0,1fr) 138px!important;gap:4px;padding:0 12px!important;background:radial-gradient(ellipse at center,#1b784b,#13683f 65%,#0c5133);overflow:hidden!important;--layout-cw:76px;--layout-hw:104px}
+.approved-board[hidden]{display:none!important}
+.approved-board .barra-superiore{position:relative;margin:0 -12px;height:54px;padding:4px 16px;background:#083d29;gap:8px}
+.approved-board .marchio{font-size:22px}.approved-board .marchio svg{display:none}
+.approved-board .punteggi{margin-left:auto}.approved-board .punteggio-box{font-size:12px;padding:4px 8px;background:none;border:0}
+.approved-board .approved-partner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;font-size:11px;gap:3px;white-space:nowrap}
+.approved-partner span{margin-right:14px}.approved-partner img{width:24px;height:34px;border-radius:2px;margin-left:-11px}
+.approved-board .area-avversario{display:none!important}
+.approved-board .campo-gioco{position:relative;display:block!important;padding:4px 38px;min-height:0;overflow:visible;flex:initial}
+.approved-teams{height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.approved-team{display:flex;flex-direction:column;min-width:0;min-height:0}
+.approved-team.theirs{border-left:1px solid #ffffff22;padding-left:14px}
+.approved-team h2{font-size:12px;font-weight:500;margin:0 0 6px;line-height:1.3}
+.approved-rows{display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:94px;flex:1;min-height:0;align-items:stretch}
+.approved-rows>.colonna{padding:0;border:0;background:none;min-height:0;overflow:visible!important;display:block!important;height:100%}
+.approved-rows .etichetta-zona{display:none!important}
+.approved-board .lista-melds{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:4px;height:100%;min-height:0;padding:0;overflow:visible!important}
+.approved-team.ours .lista-melds{transform:translateX(-10px)}
+.approved-board .meld{position:relative;flex-shrink:0;display:block;margin:17px 0 0;padding:0;border:0;background:none;box-shadow:none;min-width:0;border-radius:3px}
+.approved-board .meld::before{content:attr(data-layout-name);position:absolute;left:1px;right:0;top:-17px;white-space:nowrap;overflow:hidden;font-size:10px;color:#b4cfbf;text-align:left}
+.approved-board .meld.burraco::before{left:calc(var(--layout-cw)*.2025 + 1px);right:calc(var(--layout-cw)*.2025 + 16px)}
+.approved-board .meld .testata{position:absolute;inset:0;min-height:0;display:block;pointer-events:none}
+.approved-board .meld .pt{display:none}
+.approved-board .meld .timbro{position:absolute;right:calc(var(--layout-cw)*.2025);top:-17px;width:16px;text-align:center;font-size:15px;line-height:17px;letter-spacing:0}
+.approved-board .meld.pulito .timbro{color:#ffd34d}.approved-board .meld.semipulito .timbro{color:#d9dfe5}.approved-board .meld.sporco .timbro{color:#cd8a4d}
+.approved-board .pila-meld{position:static;display:block}
+.approved-board .meld .carta{position:absolute!important;left:0;width:var(--layout-cw)!important;height:calc(var(--layout-cw)*1.4)!important;min-width:0;border-radius:3px;margin:0!important;box-shadow:0 1px 3px #0006;transform:none}
+.approved-board .meld.burraco>.pila-meld>.carta{left:calc(var(--layout-cw)*.2025)}
+.approved-board .meld .slot-traverso{position:absolute;width:calc(var(--layout-cw)*1.405);height:var(--layout-cw);margin:2px 0 0!important}
+.approved-board .meld .slot-traverso .carta.di-traverso{left:50%;top:50%!important;transform:translate(-50%,-50%) rotate(90deg)}
+.approved-board .meld.target{outline:2px solid #efd780;outline-offset:2px}
+.approved-side{position:absolute;top:calc(50% + 24px);width:27px;writing-mode:vertical-rl;font-size:11px;color:#b4cfbf;white-space:nowrap}
+.approved-side.west{left:0;transform:translateY(-50%) rotate(180deg)}.approved-side.east{right:0;transform:translateY(-50%)}
+.approved-board .footer-tavolo{position:relative!important;bottom:auto!important;padding:8px 3px 0!important;margin:0;display:grid!important;grid-template-columns:150px minmax(0,1fr) 208px;grid-template-rows:minmax(0,1fr);gap:14px;border-top:1px solid #ffffff30;background:none;box-shadow:none;min-height:0;overflow:visible}
+.approved-board .approved-draw{grid-column:1;grid-row:1;border:0;background:none;padding:0 8px 0 0!important;border-right:1px solid #ffffff22;display:flex!important;justify-content:center;min-height:0;overflow:visible}
+.approved-board .mazzetti{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;margin:0}
+.approved-board .mazzetto{margin:0;min-width:0;padding:0;gap:6px;display:flex;flex-direction:column}
+.approved-board .mazzetto .pila{width:66.7px;height:93.15px;min-height:0;margin:0}
+.approved-board .mazzetto .carta{width:66.7px!important;height:93.15px!important;border-radius:4px}
+.approved-board .didascalia{font-size:10px;white-space:nowrap;margin-top:4px}
+.approved-board .centro-destra{position:absolute;left:160px;right:220px;bottom:77px;max-width:none;width:auto;pointer-events:none;z-index:40}
+.approved-board .log-mosse{display:none}.approved-board .notifica{font-size:11px;padding:4px 7px;max-width:100%}
+.approved-board .area-mano{grid-column:2;grid-row:1;position:relative;padding:0;min-height:0;height:100%;overflow:clip;display:block}
+.approved-hand-info{position:absolute;left:0;top:0;font-size:12px;z-index:2;color:#f6f4e7}
+.approved-board #mano-giocatore{position:absolute;bottom:calc(70px - var(--layout-hw)*1.4);left:0;right:auto;width:max-content;min-width:100%;height:calc(var(--layout-hw)*1.4);padding:0;display:flex;justify-content:center;align-items:flex-start;overflow:visible;flex-wrap:nowrap}
+.approved-board #mano-giocatore>.carta{flex-shrink:0;min-width:0;margin-top:0!important;transform:none;transition:transform .12s}
+.approved-board #mano-giocatore>.carta.selezionata{transform:translateY(-20px);outline:3px solid #efd780;outline-offset:-3px}
+.approved-board #mano-giocatore>.carta:hover:not(.selezionata){transform:translateY(-8px)}
+.approved-board #barra-azioni{position:absolute;grid-column:2;grid-row:1;left:50%;bottom:99px;transform:translateX(-50%);display:flex;gap:7px;width:max-content;padding:0;margin:0;z-index:30;overflow:visible;background:none;border:0}
+.approved-board #barra-azioni>.btn,.approved-board #turno-badge{font-size:12px;padding:8px 20px;border:1px solid #ffffff40;border-radius:6px;background:#0c4c31;min-height:32px;white-space:nowrap;line-height:16px;box-sizing:border-box}
+.approved-board #barra-azioni>.btn:disabled{opacity:.35}
+.approved-board #turno-badge{width:80.3875px;padding:8px 0;text-align:center}
+.approved-board #turno-badge.layout-active{color:#fff0a5;border-color:#efd780;animation:layout-turn 1.5s ease-in-out infinite}
+.approved-board #anteprima{position:absolute;bottom:37px;left:0;right:0;max-width:100%;font-size:10px;white-space:normal;pointer-events:none}
+.approved-tools{grid-column:3;grid-row:1;min-height:0;display:flex;flex-direction:column;justify-content:space-between;padding:4px 0 0 12px;border-left:1px solid #ffffff22;gap:2px}
+.approved-tools .ordinamento{display:flex;justify-content:space-between;gap:4px}.approved-tools .ord-btn{padding:0 0 3px;font-size:11px;background:none;border:0;border-bottom:1px solid transparent;color:#b4cfbf;border-radius:0}
+.approved-tools .ord-btn.attivo{color:#efd780;border-bottom-color:#efd780}
+.approved-pots{font-size:11px;color:#b4cfbf}.approved-tools .btn{font-size:10px;padding:4px 8px}
+.approved-board .vuoto{font-size:11px;opacity:.6;padding:12px 0}
+@keyframes layout-turn{50%{background:#5a632c;box-shadow:0 0 9px #efd78060}}
+@media(max-width:1100px){.approved-board .footer-tavolo{grid-template-columns:133px minmax(0,1fr) 180px;gap:10px}.approved-tools{padding-left:8px}.approved-tools .ord-btn{font-size:10px}}
+@media(max-width:700px){.approved-board{grid-template-rows:48px minmax(0,1fr) 206px!important}.approved-board .barra-superiore{height:48px}.approved-board .marchio{display:none}.approved-partner img{display:none}.approved-board .approved-partner{left:30%;font-size:10px}.approved-board .punteggio-box .nome{max-width:45px}.approved-board .campo-gioco{padding:0 18px}.approved-teams{gap:8px}.approved-team.theirs{padding-left:5px}.approved-team h2{font-size:10px}.approved-rows{gap:20px}.approved-board .lista-melds{overflow-x:auto!important;overflow-y:visible!important}.approved-board .footer-tavolo{grid-template-columns:100px minmax(0,1fr);grid-template-rows:138px 54px;gap:5px}.approved-tools{grid-column:1/-1;grid-row:2;flex-direction:row;align-items:center;border:0;padding:0}.approved-board #barra-azioni{bottom:91px;gap:3px}.approved-board #barra-azioni>.btn{padding:6px 7px;font-size:11px}.approved-board #turno-badge{font-size:10px;padding:6px 2px;width:72px}.approved-board .mazzetto .carta,.approved-board .mazzetto .pila{width:44.85px!important;height:63.25px!important}.approved-board .mazzetti{gap:5px}.approved-board .centro-destra{left:100px;right:0;bottom:80px}.approved-hand-info{font-size:10px}.approved-side{font-size:9px;width:17px}}
+@media(prefers-reduced-motion:reduce){.approved-board #turno-badge.layout-active{animation:none;background:#5a632c}}
+body.layout-online>header.top,body.layout-online>.wrap{display:none}
+body.layout-online.show-online-connection>.wrap{display:block;position:fixed;left:5%;right:5%;top:60px;z-index:90;max-width:900px;padding:12px;background:#083d29;border:1px solid #ffffff40;border-radius:8px}
+body.layout-online.show-online-connection>.wrap .grid,body.layout-online.show-online-connection>.wrap .azioni,body.layout-online.show-online-connection>.wrap details{display:none}
+.approved-net-status{position:fixed;z-index:80;left:145px;top:3px;max-width:240px;font-size:9px;pointer-events:none;color:#b4cfbf}
+.approved-net-status.error{color:#ffb4b4}
+#online-scores{background:#083d29;color:#fff;border:1px solid #ffffff50;padding:24px;border-radius:9px;max-width:90vw}
+.approved-board #mano-giocatore{bottom:0;height:70px}
+.approved-board #mano-giocatore>.carta{overflow:visible;z-index:auto!important;background:none;box-shadow:none}
+.approved-board #mano-giocatore>.carta picture,.approved-board #mano-giocatore>.carta>img{position:absolute;left:0;top:0;width:var(--layout-hw)!important;height:calc(var(--layout-hw)*1.4)!important;pointer-events:none;border-radius:4px;overflow:hidden}
+.approved-board #mano-giocatore>.carta .velo-matta{width:var(--layout-hw);height:calc(var(--layout-hw)*1.4);pointer-events:none}
+.approved-board #mano-giocatore>.carta.selezionata{outline:0}
+.approved-board #mano-giocatore>.carta.selezionata picture,.approved-board #mano-giocatore>.carta.selezionata>img{outline:3px solid #efd780;outline-offset:-3px}
+.approved-board,.approved-board *{box-sizing:border-box}
+.approved-board{overflow:clip!important}
+.approved-board .area-mano{overflow:visible;border:0}
+.approved-board #mano-giocatore{min-height:0;gap:0}
+.approved-board #mano-giocatore>.carta{padding:0;border:0;display:block;box-sizing:border-box}
+.approved-board #barra-azioni{grid-column:auto;grid-row:auto}
+.approved-board #mano-giocatore>.carta{min-height:0!important;height:70px!important}

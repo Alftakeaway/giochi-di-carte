@@ -8,3 +8,6 @@ Thumbs.db
 
 # Rust backend build artifacts (server-authoritative online mode, local-only)
 burraco-server/target/
+
+# Generated browser-test screenshots
+burraco/test/screenshots/

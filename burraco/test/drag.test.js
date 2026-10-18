@@ -248,6 +248,7 @@ async function trascina(page, selDa, selA, presa) {
       sporco: m.sporco,
       classe: el.className,
       timbro: el.querySelector('.timbro') ? el.querySelector('.timbro').textContent : null,
+      timbroNome: el.querySelector('.timbro') ? el.querySelector('.timbro').getAttribute('aria-label') : null,
       haTraverso: !!traverso,
       traversoId: traverso ? traverso.dataset.id : null,
       trasformazione: stile,
@@ -262,7 +263,7 @@ async function trascina(page, selDa, selA, presa) {
   verifica('la combinazione ha la classe burraco pulito',
     /meld/.test(burraco.classe) && /burraco/.test(burraco.classe) && /pulito/.test(burraco.classe),
     burraco.classe);
-  verifica('il timbro dice PULITO', burraco.timbro === 'PULITO', burraco.timbro);
+  verifica('il timbro dice PULITO', burraco.timbro === '\u2605' && burraco.timbroNome === 'Burraco pulito', burraco.timbro);
   verifica('c\'è una carta di traverso in basso', burraco.haTraverso === true, burraco);
   verifica('la carta di traverso è la prima della combinazione',
     burraco.traversoId === 'f3', { traverso: burraco.traversoId });
@@ -303,6 +304,7 @@ async function trascina(page, selDa, selA, presa) {
       return {
         classe: el.className,
         timbro: el.querySelector('.timbro') ? el.querySelector('.timbro').textContent : null,
+      timbroNome: el.querySelector('.timbro') ? el.querySelector('.timbro').getAttribute('aria-label') : null,
         traverso: !!el.querySelector('.slot-traverso .carta')
       };
     });
@@ -310,13 +312,13 @@ async function trascina(page, selDa, selA, presa) {
   console.log('tipi di burraco:', JSON.stringify(tipi));
 
   verifica('burraco con la pinella: timbro SEMIPULITO',
-    tipi[0] && tipi[0].timbro === 'SEMIPULITO', tipi[0]);
+    tipi[0] && tipi[0].timbro === '\u2605' && tipi[0].timbroNome === 'Burraco semipulito', tipi[0]);
   verifica('burraco con la pinella: classe semipulito',
     tipi[0] && /semipulito/.test(tipi[0].classe), tipi[0] && tipi[0].classe);
   verifica('burraco con la pinella: carta di traverso',
     tipi[0] && tipi[0].traverso === true, tipi[0]);
   verifica('burraco con il jolly: timbro SPORCO',
-    tipi[1] && tipi[1].timbro === 'SPORCO', tipi[1]);
+    tipi[1] && tipi[1].timbro === '\u2605' && tipi[1].timbroNome === 'Burraco sporco', tipi[1]);
   verifica('burraco con il jolly: classe sporco',
     tipi[1] && /sporco/.test(tipi[1].classe), tipi[1] && tipi[1].classe);
 

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <base href="/scala40/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#3a1420">
+  <title>Scala 40 Online — umani e computer</title>
+  <link rel="icon" href="data:">
+  <style>
+    :root{--felt:#5b2230;--deep:#3a1420;--rail:#2a0e16;--testo:#f5efe8;--muto:#d3b8b8;--oro:#e5b957;--pannello:#471a25;--bordo:#7a3a48}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(160deg,#2a0e16,#5b2230 60%,#471a25);color:var(--testo);min-height:100vh}
+    header.top{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(0,0,0,.25)}
+    header.top h1{font-size:17px;margin:0;font-weight:700}
+    header.top .sub{margin-left:auto;font-size:12px;color:var(--muto)}
+    .wrap{max-width:980px;margin:0 auto;padding:14px}
+    .posti-config{display:flex;flex-wrap:wrap;gap:8px;align-items:end;background:var(--pannello);border:1px solid var(--bordo);border-radius:12px;padding:10px;margin-bottom:8px}
+    .posti-config label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muto)}
+    .posti-config select{background:var(--deep);color:var(--testo);border:1px solid var(--bordo);border-radius:8px;padding:9px 10px}
+    .connessione{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--pannello);border:1px solid var(--bordo);border-radius:12px;padding:10px}
+    .connessione input{flex:1 1 240px;min-width:180px;background:#2a0e16;color:var(--testo);border:1px solid var(--bordo);border-radius:8px;padding:9px 10px;font-size:14px}
+    .status{margin:10px 2px;font-weight:600;font-size:15px;min-height:22px}
+    .status.err{color:#ffb4b4}
+    .azioni{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+    .btn{background:#7a3a48;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-size:14px;cursor:pointer;font-weight:600}
+    .btn:hover:not(:disabled){filter:brightness(1.08)}
+    .btn:disabled{opacity:.38;cursor:default}
+    .btn.oro{background:linear-gradient(180deg,var(--oro),#c9a227);color:#3a2c00}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:760px){.grid{grid-template-columns:1.15fr .85fr}}
+    .card{background:var(--pannello);border:1px solid var(--bordo);border-radius:14px;padding:14px}
+    .card h2{margin:0 0 10px;font-size:14px;color:var(--muto);text-transform:uppercase;letter-spacing:.6px}
+    .mano{display:flex;flex-wrap:wrap;gap:7px}
+    .carta{position:relative;width:52px;height:74px;border-radius:8px;border:2px solid transparent;overflow:hidden;cursor:pointer;user-select:none;background:#fff}
+    .carta img{width:100%;height:100%;object-fit:fill;display:block}
+    .carta.sel{border-color:var(--oro);box-shadow:0 0 0 3px rgba(229,185,87,.35)}
+    table{border-collapse:collapse;width:100%;font-size:13px}
+    td,th{border:1px solid var(--bordo);padding:4px 7px;text-align:left}
+    th{color:var(--muto);font-weight:600}
+    .melds{display:flex;flex-wrap:wrap;gap:7px}
+    .meld{background:#33101a;border:1px solid var(--bordo);border-radius:9px;padding:7px 9px;font-size:13px;cursor:pointer;display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+    .meld:hover:not(:disabled){border-color:var(--oro)}
+    .meld:disabled{opacity:.5;cursor:default}
+    .meld img{height:44px;width:auto;border-radius:3px}
+    .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;background:#2a0e16;border:1px solid var(--bordo);color:var(--muto)}
+    .help{font-size:12px;color:var(--muto);line-height:1.5}
+    details summary{cursor:pointer;color:var(--muto);font-size:12px;margin-top:6px}
+    pre{background:#2a0e16;border:1px solid var(--bordo);border-radius:8px;padding:8px;max-height:220px;overflow:auto;font-size:11px}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <h1>Scala 40 Online</h1>
+    <span class="sub">2 o 4 posti · umani e computer</span>
+  </header>
+
+  <div class="wrap">
+    <div class="posti-config" id="online-config">
+      <label>Posti al tavolo<select id="online-players"><option value="4">4 · a coppie</option><option value="2" selected>2 · uno contro uno</option></select></label>
+      <label>Difficoltà PC<select id="online-level"><option value="facile">Facile</option><option value="normale" selected>Normale</option><option value="difficile">Difficile</option></select></label>
+      <label>Durata<select id="online-duration"><option value="r1">1 smazzata</option><option value="r3" selected>3 smazzate</option><option value="r5">5 smazzate</option></select></label>
+      <div id="online-seats" class="posti-config"></div>
+      <p style="width:100%">Coppia A: posti 1 e 3. Coppia B: posti 2 e 4. Gli umani entrano con il codice; i PC sono automatici.</p>
+    </div>
+    <div class="connessione">
+      <input id="server" value="ws://localhost:3000" aria-label="URL del server WebSocket" spellcheck="false">
+      <button class="btn oro" id="btnCrea" onclick="crea()">Crea partita</button>
+      <button class="btn" id="btnEntra" onclick="entra()">Entra con codice</button>
+    </div>
+
+    <div class="status" id="status">Inserisci l'URL del server (es. ws://localhost:3000) e premi «Crea partita».</div>
+
+    <div class="azioni">
+      <button class="btn" id="btnPt" onclick="pesca('tallone')" disabled>Pesca tallone</button>
+      <button class="btn" id="btnPm" onclick="pesca('scarti')" disabled>Prendi scarto</button>
+      <button class="btn oro" id="btnCala" onclick="calaSel()" disabled>Cala</button>
+      <button class="btn oro" id="btnScarta" onclick="scartaSel()" disabled>Scarta</button>
+      <button class="btn" id="btnNext" onclick="act({tipo:'next'})" style="display:none">Prossima mano</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>La tua mano</h2>
+        <div class="mano" id="hand"></div>
+        <p class="help">Clicca le carte per selezionarle. Con 3+ carte premi <b>Cala</b>; con 1 carta <b>Scarta</b>. Per legare, seleziona le carte e clicca un gioco sul tavolo.</p>
+      </div>
+      <div class="card">
+        <h2>Tavolo</h2>
+        <div id="board"></div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Stato grezzo (debug)</summary>
+      <pre id="json"></pre>
+    </details>
+  </div>
+
+<script>
+let ws, seat=-1, roomCode='', sel=new Set(), last=null;
+const $=id=>document.getElementById(id);
+const _q=new URLSearchParams(location.search);
+if(_q.get('server')) $('server').value=_q.get('server');
+
+let lastRoom=null, tentativi=0, creationOptions='';
+const MAX_TENTATIVI=6;
+function connetti(room){
+  lastRoom=room;
+  const base=$('server').value.trim().replace(/\/+$/,'');
+  const url=base+'/ws'+(room?('?room='+encodeURIComponent(room)):creationOptions);
+  ws=new WebSocket(url);
+  ws.onmessage=e=>handle(JSON.parse(e.data));
+  ws.onopen=()=>{ tentativi=0; };
+  ws.onclose=()=>{
+    if(tentativi<MAX_TENTATIVI){
+      tentativi++;
+      status('Riconnessione al server ('+tentativi+'/'+MAX_TENTATIVI+')…');
+      setTimeout(()=>connetti(lastRoom), 800*tentativi);
+    } else {
+      status('Connessione persa. Ricarica la pagina o crea una nuova partita.','err');
+    }
+  };
+  ws.onerror=()=>{};
+}
+function renderSeats(){const box=$('online-seats');box.replaceChildren();const n=Number($('online-players').value);for(let i=0;i<n;i++){const label=document.createElement('label');label.textContent='Posto '+(i+1)+(n===4?' · squadra '+(i%2===0?'A':'B'):'');const select=document.createElement('select');select.dataset.seat=i;select.setAttribute('aria-label','Tipo posto online '+(i+1));select.innerHTML='<option value="human">Umano</option><option value="bot">Computer</option>';select.value=i===0?'human':'bot';select.disabled=i===0;label.append(select);box.append(label)}}
+$('online-players').onchange=renderSeats;renderSeats();
+async function crea(){
+  const players=Number($('online-players').value),humans=[...document.querySelectorAll('#online-seats select')].filter(s=>s.value==='human').map(s=>Number(s.dataset.seat)),level=$('online-level').value;
+  const duration=$('online-duration').value;
+  // il server vuole i livelli in italiano (facile/normale/difficile)
+  if(!['facile','normale','difficile'].includes(level)){status('Livello non valido.','err');return;}
+  try{
+    const base=$('server').value.trim().replace(/\/+$/,'').replace(/^ws/,'http');
+    const response=await fetch(base+'/capabilities',{signal:AbortSignal.timeout(8000)});
+    const caps=await response.json();
+    if(!response.ok||!caps.scala40) throw new Error();
+  }catch(e){status('Questo server non supporta Scala 40 (manca caps.scala40): server non aggiornato.','err');return;}
+  creationOptions='?'+new URLSearchParams({game:'scala40',players:String(players),humans:humans.join(','),level,rounds:duration.slice(1)});
+  connetti(null);
+}
+function entra(){ const c=prompt("Codice stanza?"); if(c) connetti(c.toUpperCase()); }
+
+function status(t,kind){ const el=$('status'); el.textContent=t; el.className='status'+(kind?(' '+kind):''); }
+function handle(m){
+  if(m.type==='welcome'){ tentativi=0; seat=m.seat; roomCode=m.room; status('Stanza '+m.room+' — sei il giocatore '+seat+' (di '+m.nGioc+')'); }
+  else if(m.type==='waiting'){ status('Stanza '+roomCode+' — '+m.msg); }
+  else if(m.type==='state'){ last=m.state; sel.clear(); render(last); }
+  else if(m.type==='error'){ tentativi=MAX_TENTATIVI; status('Errore: '+m.msg,'err'); }
+}
+function myTurn(){ return last && last.turno===seat && last.fase!=='fine' && !last.finita; }
+
+function render(st){
+  $('json').textContent=JSON.stringify(st,null,1);
+  const me=st.seats[seat];
+
+  const hand=$('hand'); hand.innerHTML='';
+  for(const c of me.hand){
+    const d=document.createElement('div');
+    d.className='carta'+(sel.has(c.id)?' sel':'');
+    const im=document.createElement('img');im.src=c.img;im.alt=c.id;d.append(im);
+    d.onclick=()=>{ if(sel.has(c.id)) sel.delete(c.id); else sel.add(c.id); render(last); };
+    hand.appendChild(d);
+  }
+
+  const puoPescare = st.fase==='pesca' && myTurn();
+  $('btnPt').disabled = !puoPescare;
+  $('btnPm').disabled = !(puoPescare && st.monte.length>0);
+  $('btnCala').disabled = !(st.fase==='gioco' && myTurn() && sel.size>=3);
+  $('btnScarta').disabled = !(st.fase==='gioco' && myTurn() && sel.size===1);
+
+  const board=$('board'); board.innerHTML='';
+  const t=document.createElement('table');
+  for(const s of st.seats){
+    const tr=document.createElement('tr');
+    tr.innerHTML='<th>P'+s.seat+'</th><td>mano:'+s.handCount+'</td><td>giochi:'+s.melds.length+'</td><td>'+(s.aperto?'aperto':'non aperto')+'</td>';
+    t.appendChild(tr);
+  }
+  const tr=document.createElement('tr');
+  tr.innerHTML='<th>Turno</th><td>'+(st.turno+(myTurn()?' (TUO)':''))+'</td><th>Tallone</th><td>'+st.talloneCount+'</td><th>Scarti</th><td>'+st.monte.length+'</td>';
+  t.appendChild(tr);
+  const tr2=document.createElement('tr');
+  tr2.innerHTML='<th>Totali</th><td>'+JSON.stringify(st.totali)+'</td><th>Fase</th><td>'+st.fase+'</td>';
+  t.appendChild(tr2);
+  t.appendChild(tr2);
+  board.appendChild(t);
+
+  const top=document.createElement('div');top.style.marginTop='10px';
+  top.innerHTML=st.monte.length?'<b>Scarto in cima:</b>':'<b>Scarti vuoti</b>';
+  if(st.monte.length){const c=st.monte[st.monte.length-1];const im=document.createElement('img');im.src=c.img;im.alt=c.id;im.style.height='74px';im.style.borderRadius='6px';top.append(im);}
+  board.appendChild(top);
+
+  const mt=document.createElement('div'); mt.style.marginTop='10px';
+  mt.innerHTML='<b>Giochi sul tavolo</b> — seleziona carte e cliccane uno per legare:';
+  const wrap=document.createElement('div'); wrap.className='melds'; wrap.style.marginTop='6px';
+  let k=0;
+  for(const s of st.seats) for(const m of s.melds){
+    const b=document.createElement('button');
+    b.className='meld';
+    b.disabled=!(st.fase==='gioco' && myTurn() && sel.size>=1);
+    b.title='Gioco di P'+s.seat+' · '+m.tipo+' · '+m.punti+' punti';
+    for(const c of m.carte){const im=document.createElement('img');im.src=c.img;im.alt=c.id;b.append(im);}
+    const idx=k;
+    b.onclick=()=>{ act({tipo:'lega',indice:idx,ids:[...sel]}); };
+    wrap.appendChild(b);k++;
+  }
+  if(!k) wrap.append(document.createTextNode('Nessun gioco calato.'));
+  mt.appendChild(wrap);
+  board.appendChild(mt);
+
+  if(st.chiusura) {const p=document.createElement('p');p.innerHTML='<span class="pill">Chiude: squadra '+st.chiusura.team+'</span>';board.appendChild(p);}
+  if(st.stallo) {const p=document.createElement('p');p.innerHTML='<span class="pill">Mano chiusa per stallo</span>';board.appendChild(p);}
+
+  $('btnNext').style.display=(st.finita && !st.finished)?'inline-block':'none';
+}
+
+function pesca(s){ act({tipo:'pesca',sorgente:s}); }
+function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
+function scartaSel(){ if(sel.size===1){ act({tipo:'scarta',id:[...sel][0]}); } }
+function act(obj){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'action',action:obj})); else status('Non connesso.','err'); }
+</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 mod ai;
 mod engine;
+mod scala;
+mod scala_ai;
 mod server;
 
 use ai::gioca_turno;

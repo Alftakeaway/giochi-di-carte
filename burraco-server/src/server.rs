@@ -29,9 +29,54 @@ use tokio::sync::mpsc::unbounded_channel;
 
 use crate::ai;
 use crate::engine::{Partita, PartitaOpts};
+use crate::scala::{ScalaOpts, ScalaPartita};
+use crate::scala_ai;
 
 type Tx = tokio::sync::mpsc::UnboundedSender<String>;
 type RoomMap = Mutex<HashMap<String, Arc<Room>>>;
+
+/// Gioco gestito dalla stanza. Il Burraco resta il default: i link esistenti
+/// (senza `?game=`) continuano a funzionare esattamente come prima.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GameKind {
+    Burraco,
+    Scala,
+}
+
+impl GameKind {
+    fn from_param(v: Option<&str>) -> GameKind {
+        match v {
+            Some("scala40") | Some("scala") => GameKind::Scala,
+            _ => GameKind::Burraco,
+        }
+    }
+    fn as_str(&self) -> &'static str {
+        match self {
+            GameKind::Burraco => "burraco",
+            GameKind::Scala => "scala40",
+        }
+    }
+}
+
+pub enum Gioco {
+    Burraco(Partita),
+    Scala(ScalaPartita),
+}
+
+impl Gioco {
+    fn turno(&self) -> usize {
+        match self {
+            Gioco::Burraco(p) => p.stato.turno,
+            Gioco::Scala(p) => p.stato.turno,
+        }
+    }
+    fn finita(&self) -> bool {
+        match self {
+            Gioco::Burraco(p) => p.stato.finita,
+            Gioco::Scala(p) => p.stato.finita,
+        }
+    }
+}
 
 /// Una stanza di gioco. I posti in `human_seats` vanno riempiti con WS umani;
 /// gli altri sono pilotati dal bot.
@@ -39,23 +84,44 @@ pub struct Room {
     pub n_gioc: usize,
     pub human_seats: Vec<usize>,
     pub livello: String,
-    partita: Mutex<Partita>,
+    pub kind: GameKind,
+    pub gioco: Mutex<Gioco>,
     senders: Mutex<HashMap<usize, Tx>>,
     started: Mutex<bool>,
 }
 
 impl Room {
-    fn new(n_gioc: usize, human_seats: Vec<usize>, livello: &str) -> Room {
+    fn new(
+        n_gioc: usize,
+        human_seats: Vec<usize>,
+        livello: &str,
+        kind: GameKind,
+        target: i32,
+        rounds: Option<usize>,
+    ) -> Room {
+        let gioco = match kind {
+            GameKind::Burraco => {
+                let mut p = Partita::new(PartitaOpts {
+                    target,
+                    nomi: None,
+                    giocatori: n_gioc,
+                    seed: Some(rand::random::<u32>()),
+                });
+                p.stato.limite_smazzate = rounds;
+                Gioco::Burraco(p)
+            }
+            GameKind::Scala => Gioco::Scala(ScalaPartita::new(ScalaOpts {
+                giocatori: n_gioc,
+                rounds: rounds.unwrap_or(3),
+                seed: Some(rand::random::<u32>()),
+            })),
+        };
         Room {
             n_gioc,
             human_seats: human_seats.clone(),
             livello: livello.to_string(),
-            partita: Mutex::new(Partita::new(PartitaOpts {
-                target: 2005,
-                nomi: None,
-                giocatori: n_gioc,
-                seed: Some(rand::random::<u32>()),
-            })),
+            kind,
+            gioco: Mutex::new(gioco),
             senders: Mutex::new(HashMap::new()),
             started: Mutex::new(false),
         }
@@ -70,32 +136,43 @@ impl Room {
     /// Applica (se fornita) l'azione di un umano, fa giocare i bot a cui tocca,
     /// e trasmette lo stato a ogni umano connesso.
     fn step(&self, actor: Option<(usize, &Value)>) -> Result<(), String> {
-        let mut p = self.partita.lock().unwrap();
+        let mut g = self.gioco.lock().unwrap();
         if let Some((seat, act)) = actor {
             if !*self.started.lock().unwrap() { return Err("La stanza attende gli altri giocatori".into()); }
             if !self.human_seats.contains(&seat) { return Err("Posto non umano".into()); }
             let tipo = act["tipo"].as_str().unwrap_or("");
-            if tipo != "next" && p.stato.turno != seat {
+            if tipo != "next" && g.turno() != seat {
                 return Err("Non è il tuo turno".into());
             }
-            apply_action(&mut p, act)?;
+            apply_action(&mut g, act)?;
         }
-        if !p.stato.finita {
+        if !g.finita() {
             for _ in 0..8 {
-                if p.stato.finita { break; }
-                let t = p.stato.turno;
+                if g.finita() { break; }
+                let t = g.turno();
                 if self.human_seats.contains(&t) {
                     break;
                 }
-                ai::gioca_turno(&mut p, &self.livello);
+                match &mut *g {
+                    Gioco::Burraco(p) => {
+                        ai::gioca_turno(p, &self.livello);
+                    }
+                    Gioco::Scala(p) => scala_ai::gioca_turno(p, &self.livello),
+                }
             }
         }
         let senders = self.senders.lock().unwrap();
         for &seat in &self.human_seats {
             if let Some(tx) = senders.get(&seat) {
-                let mut s = p.public_state(seat);
-                s["teamMelds"]=json!(true);
-                s["multiAttach"]=json!(true);
+                let s = match &*g {
+                    Gioco::Burraco(p) => {
+                        let mut s = p.public_state(seat);
+                        s["teamMelds"]=json!(true);
+                        s["multiAttach"]=json!(true);
+                        s
+                    }
+                    Gioco::Scala(p) => p.public_state(seat),
+                };
                 let _ = tx.send(json!({ "type": "state", "state": s }).to_string());
             }
         }
@@ -103,8 +180,50 @@ impl Room {
     }
 }
 
-fn apply_action(p: &mut Partita, act: &Value) -> Result<(), String> {
+fn apply_action(g: &mut Gioco, act: &Value) -> Result<(), String> {
     let tipo = act["tipo"].as_str().ok_or("azione senza tipo")?;
+    match g {
+        Gioco::Burraco(p) => apply_burraco(p, tipo, act),
+        Gioco::Scala(p) => apply_scala(p, tipo, act),
+    }
+}
+
+fn apply_scala(p: &mut ScalaPartita, tipo: &str, act: &Value) -> Result<(), String> {
+    match tipo {
+        "pesca" => {
+            let sorg = act["sorgente"].as_str().unwrap_or("tallone");
+            if sorg == "scarti" || sorg == "monte" {
+                p.prendi_scarti()
+            } else {
+                p.pesca_tallone()
+            }
+        }
+        "cala" => {
+            let ids: Vec<String> = act["ids"]
+                .as_array()
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                .ok_or("ids mancanti")?;
+            p.cala(&ids).map(|_| ())
+        }
+        "lega" => {
+            let indice = act["indice"].as_u64().ok_or("indice mancante")? as usize;
+            let ids=if let Some(raw)=act.get("ids"){raw.as_array().ok_or("ids non validi")?.iter().map(|v|v.as_str().ok_or("id non valido".to_string()).map(str::to_string)).collect::<Result<Vec<_>,_>>()?}else{vec![act["id"].as_str().ok_or("id mancante")?.to_string()]};
+            p.lega(indice, &ids)
+        }
+        "scarta" => {
+            let id = act["id"].as_str().ok_or("id mancante")?.to_string();
+            p.scarta(&id).map(|_| ())
+        }
+        "next" => {
+            if !p.stato.finita {return Err("La smazzata non è finita".into())}
+            p.smazzata_successiva();
+            Ok(())
+        }
+        _ => Err(format!("azione sconosciuta: {tipo}")),
+    }
+}
+
+fn apply_burraco(p: &mut Partita, tipo: &str, act: &Value) -> Result<(), String> {
     match tipo {
         "pesca" => {
             let sorg = act["sorgente"].as_str().unwrap_or("tallone");
@@ -181,8 +300,9 @@ async fn ws_handler(
         let mut map = rooms.lock().unwrap();
         match &room_code {
             None => {
+                let kind = GameKind::from_param(params.get("game").map(String::as_str));
                 match room_options(&params).and_then(|opts| duration_options(&params).map(|duration|(opts,duration))) {
-                    Ok(((n,humans,level),(target,rounds)))=>{let code=gen_code(&mut map);let r=Arc::new(Room::new(n,humans,&level));{let mut p=r.partita.lock().unwrap();p.target=target;p.stato.limite_smazzate=rounds;}map.insert(code.clone(),r.clone());Ok((r,code))},
+                    Ok(((n,humans,level),(target,rounds)))=>{let code=gen_code(&mut map);let r=Arc::new(Room::new(n,humans,&level,kind,target,rounds));map.insert(code.clone(),r.clone());Ok((r,code))},
                     Err(e)=>Err(e),
                 }
             }
@@ -237,6 +357,7 @@ async fn handle_socket(socket: WebSocket, resolved: Result<(Arc<Room>, String), 
                 "seat": seat,
                 "nGioc": room.n_gioc,
                 "humanSeats": room.human_seats,
+                "gioco": room.kind.as_str(),
                 "started": *room.started.lock().unwrap(),
             })
             .to_string(),
@@ -405,7 +526,7 @@ pub async fn run() {
     let rooms: Arc<RoomMap> = Arc::new(RoomMap::new(HashMap::new()));
     let app = Router::new()
         .route("/", get(index))
-        .route("/capabilities", get(|| async { axum::Json(json!({"version":5,"fixedRounds":true,"players":[2,4],"customHumanSeats":true,"teamMelds":true,"multiAttach":true})) }))
+        .route("/capabilities", get(|| async { axum::Json(json!({"version":6,"fixedRounds":true,"players":[2,4],"customHumanSeats":true,"teamMelds":true,"multiAttach":true,"scala40":true})) }))
         .layer(tower_http::cors::CorsLayer::permissive())
         .route("/healthz", get(|| async { (StatusCode::OK, "ok") }))
         .route("/favicon.ico", get(|| async { (StatusCode::NO_CONTENT, "") }))
@@ -429,20 +550,22 @@ pub async fn run() {
 #[cfg(test)]
 mod modes_tests {
  use super::*;
- #[test] fn all_combinations(){for n in [2,4] {for mask in 1..(1usize<<n) {if mask&1==0 {continue}let humans=(0..n).filter(|i|mask&(1<<i)!=0).collect::<Vec<_>>();let params=HashMap::from([("players".into(),n.to_string()),("humans".into(),humans.iter().map(|v|v.to_string()).collect::<Vec<_>>().join(","))]);let (players,seats,level)=room_options(&params).unwrap();assert_eq!(seats,humans);let r=Room::new(players,seats,&level);*r.started.lock().unwrap()=true;r.step(None).unwrap();assert!(r.human_seats.contains(&r.partita.lock().unwrap().stato.turno));}}}
+ #[test] fn all_combinations(){for n in [2,4] {for mask in 1..(1usize<<n) {if mask&1==0 {continue}let humans=(0..n).filter(|i|mask&(1<<i)!=0).collect::<Vec<_>>();let params=HashMap::from([("players".into(),n.to_string()),("humans".into(),humans.iter().map(|v|v.to_string()).collect::<Vec<_>>().join(","))]);let (players,seats,level)=room_options(&params).unwrap();assert_eq!(seats,humans);let r=Room::new(players,seats,&level,GameKind::Burraco,2005,None);*r.started.lock().unwrap()=true;r.step(None).unwrap();assert!(r.human_seats.contains(&r.gioco.lock().unwrap().turno()));}}}
  #[test] fn defaults_compatible(){let (n,s,_)=room_options(&HashMap::new()).unwrap();assert_eq!(n,4);assert_eq!(s,vec![0,2]);}
  #[test] fn rejects_invalid(){for raw in ["","1","0,0","0,4","-1"]{assert!(room_options(&HashMap::from([("humans".into(),raw.into())])).is_err())}}
+ #[test] fn scala_room_2p_e_4p(){for n in [2usize,4]{let r=Room::new(n,if n==4 {vec![0,2]}else{vec![0]},"normale",GameKind::Scala,2005,Some(1));*r.started.lock().unwrap()=true;r.step(None).unwrap();let g=r.gioco.lock().unwrap();assert!(r.human_seats.contains(&g.turno()));}}
 }
 
 #[cfg(test)]
 mod partner_action_tests {
  use super::*;use crate::engine::{Carta,Seme,Fase};
  #[test] fn wire_action_uses_partner_destination(){
-  let mut p=Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(31)});
+  let mut g=Gioco::Burraco(Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(31)}));
+   let p=match &mut g {Gioco::Burraco(p)=>p,_=>unreachable!()};
   p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=(3..=5).map(|v|Carta::new(&format!("h{v}"),v,Some(Seme::Cuori),false)).collect();p.stato.mani[2].push(Carta::new("extra",9,Some(Seme::Picche),false));
   p.cala(&vec!["h3".into(),"h4".into(),"h5".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![Carta::new("h6",6,Some(Seme::Cuori),false),Carta::new("keep",9,Some(Seme::Quadri),false)];
-  assert!(apply_action(&mut p,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":1})).is_err());
-  apply_action(&mut p,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":2})).unwrap();assert_eq!(p.stato.melds[2][0].slots.len(),4);assert_eq!(p.stato.mani[0].len(),1);
+  assert!(apply_action(&mut g,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":1})).is_err());
+  apply_action(&mut g,&json!({"tipo":"lega","indice":0,"id":"h6","proprietario":2})).unwrap();let p2=match &g {Gioco::Burraco(p)=>p,_=>unreachable!()};assert_eq!(p2.stato.melds[2][0].slots.len(),4);assert_eq!(p2.stato.mani[0].len(),1);
  }
 }
 

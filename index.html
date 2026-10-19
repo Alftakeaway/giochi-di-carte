@@ -94,6 +94,10 @@
     document.querySelectorAll('.carta-gioco').forEach(btn => {
       btn.addEventListener('click', () => {
         stato.gioco = btn.dataset.gioco;
+        if (stato.gioco === 'scopa') {
+          location.href = 'scopa/';
+          return;
+        }
         /* Il Burraco ha una pagina sua (regolamento completo, trascinamento
            delle carte, avversario a 3 livelli): si apre direttamente. */
         if (stato.gioco === 'burraco') {

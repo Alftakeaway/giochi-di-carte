@@ -5,3 +5,6 @@ node_modules/
 *.log
 burraco-server/
 burraco/test/
+scopa/test/
+scopa/fetch-assets.py
+scopa/README.md

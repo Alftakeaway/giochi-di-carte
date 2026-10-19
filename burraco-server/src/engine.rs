@@ -487,7 +487,9 @@ fn lega_sequenza(slots: &[Slot], carta: &Carta) -> Option<Vec<Slot>> {
     let seme = slots.iter().find(|s| !s.wild).unwrap().carta.seme.unwrap();
     let min = slots[0].valore;
     let max = slots.last().unwrap().valore;
-    let valore=if carta.valore==1 && min>1 {14}else{carta.valore};
+    // L'asso può andare in basso (A-2-3…) o in alto (…Q-K-A): si provano
+    // entrambe le posizioni, preferendo quella alta. Le altre carte ne hanno una sola.
+    let candidati: Vec<u8> = if carta.valore == 1 { vec![14, 1] } else { vec![carta.valore] };
 
     let prova_come_matta = || -> Option<Vec<Slot>> {
         let mut copia = clona_slots(slots);
@@ -508,35 +510,39 @@ fn lega_sequenza(slots: &[Slot], carta: &Carta) -> Option<Vec<Slot>> {
     }
 
     if !carta.is_jolly() && carta.seme == Some(seme) {
-        if valore == max + 1 {
-            let mut nuovi = clona_slots(slots);
-            nuovi.push(Slot { carta: carta.clone(), valore: valore, wild: false });
-            if verifica_slots_sequenza(&nuovi, seme) { return Some(nuovi); }
-        }
-        if (valore as i32) == (min as i32) - 1 {
-            let mut nuovi = clona_slots(slots);
-            nuovi.insert(0, Slot { carta: carta.clone(), valore: valore, wild: false });
-            if verifica_slots_sequenza(&nuovi, seme) { return Some(nuovi); }
+        for &valore in &candidati {
+            if valore == max + 1 {
+                let mut nuovi = clona_slots(slots);
+                nuovi.push(Slot { carta: carta.clone(), valore, wild: false });
+                if verifica_slots_sequenza(&nuovi, seme) { return Some(nuovi); }
+            }
+            if (valore as i32) == (min as i32) - 1 {
+                let mut nuovi = clona_slots(slots);
+                nuovi.insert(0, Slot { carta: carta.clone(), valore, wild: false });
+                if verifica_slots_sequenza(&nuovi, seme) { return Some(nuovi); }
+            }
         }
     }
 
     if carta.is_matta() { return prova_come_matta(); }
     if carta.seme != Some(seme) { return None; }
 
-    if let Some(idx) = slots.iter().position(|s| s.wild && s.valore == valore) {
-        let mut nuovi = clona_slots(slots);
-        let matta = nuovi[idx].carta.clone();
-        nuovi[idx] = Slot { carta: carta.clone(), valore: valore, wild: false };
-        let n_max = nuovi.last().unwrap().valore;
-        let n_min = nuovi[0].valore;
-        if n_max + 1 <= 13 {
-            nuovi.push(Slot { carta: matta.clone(), valore: n_max + 1, wild: true });
-        } else if (n_min as i32) - 1 >= 1 {
-            nuovi.insert(0, Slot { carta: matta.clone(), valore: n_min - 1, wild: true });
-        } else {
-            return None;
+    for &valore in &candidati {
+        if let Some(idx) = slots.iter().position(|s| s.wild && s.valore == valore) {
+            let mut nuovi = clona_slots(slots);
+            let matta = nuovi[idx].carta.clone();
+            nuovi[idx] = Slot { carta: carta.clone(), valore, wild: false };
+            let n_max = nuovi.last().unwrap().valore;
+            let n_min = nuovi[0].valore;
+            if n_max + 1 <= 13 {
+                nuovi.push(Slot { carta: matta.clone(), valore: n_max + 1, wild: true });
+            } else if (n_min as i32) - 1 >= 1 {
+                nuovi.insert(0, Slot { carta: matta.clone(), valore: n_min - 1, wild: true });
+            } else {
+                continue;
+            }
+            if verifica_slots_sequenza(&nuovi, seme) { return Some(nuovi); }
         }
-        if verifica_slots_sequenza(&nuovi, seme) { return Some(nuovi); }
     }
     None
 }
@@ -571,11 +577,18 @@ pub fn prova_legatura(meld: &Meld, carta: &Carta) -> Option<(Vec<Slot>, bool)> {
         MeldTipo::Gruppo => lega_gruppo(&meld.slots, carta),
         MeldTipo::Sequenza => lega_sequenza(&meld.slots, carta),
     }?;
-    let sostituzione = meld.tipo == MeldTipo::Sequenza
-        && slots.len() == meld.slots.len() + 1
-        && slots.iter().filter(|s| s.wild).count() == meld.slots.iter().filter(|s| s.wild).count()
-        && (0..slots.len()).any(|i| meld.slots.get(i).map_or(true, |m| m.carta.id != slots[i].carta.id));
+    let sostituzione = meld.tipo == MeldTipo::Sequenza && !e_estensione(&meld.slots, &slots);
     Some((slots, sostituzione))
+}
+
+/* True se le carte già calate restano un blocco contiguo (in testa o in coda):
+ * la carta è stata solo aggiunta a un'estremità, senza sostituire una matta. */
+fn e_estensione(vecchi: &[Slot], nuovi: &[Slot]) -> bool {
+    if nuovi.len() != vecchi.len() + 1 { return false; }
+    let n = vecchi.len();
+    let testa = vecchi.iter().enumerate().all(|(i, s)| nuovi[i].carta.id == s.carta.id);
+    let coda = vecchi.iter().enumerate().all(|(i, s)| nuovi[nuovi.len() - n + i].carta.id == s.carta.id);
+    testa || coda
 }
 
 /* ============================ SUGGERIMENTI ============================ */
@@ -1392,6 +1405,15 @@ mod ace_multi_tests {
  fn card(id:&str,v:u8)->Carta{Carta::new(id,v,Some(Seme::Cuori),false)}
  fn sequence(vals:&[u8])->Esito{valida_combinazione(&vals.iter().enumerate().map(|(i,v)|card(&format!("s{i}"),*v)).collect::<Vec<_>>()).unwrap()}
  #[test] fn high_ace_no_wrap(){let high=sequence(&[12,13,1]);assert_eq!(high.slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![12,13,14]);let low=sequence(&(1..=13).collect::<Vec<_>>());assert!(lega_sequenza(&low.slots,&card("second_ace",1)).is_none());assert!(lega_sequenza(&sequence(&[10,11,12,13]).slots,&card("high_ace",1)).is_some());let mut two_aces=(1..=13).map(|v|card(&format!("v{v}"),v)).collect::<Vec<_>>();two_aces.push(card("second_ace",1));assert!(valida_combinazione(&two_aces).is_none());}
+ #[test] fn low_ace_extends(){
+  let low=lega_sequenza(&sequence(&[2,3,4]).slots,&card("ace_lo",1)).unwrap();
+  assert_eq!(low.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![1,2,3,4]);
+  assert!(e_estensione(&sequence(&[2,3,4]).slots,&low));
+  assert!(lega_sequenza(&sequence(&[3,4,5]).slots,&card("ace_gap",1)).is_none());
+  let high=lega_sequenza(&sequence(&(2..=13).collect::<Vec<_>>()).slots,&card("ace_hi",1)).unwrap();
+  let mut atteso:Vec<u8>=(2..=13).collect();atteso.push(14);
+  assert_eq!(high.iter().map(|s|s.valore).collect::<Vec<_>>(),atteso);
+ }
  #[test] fn batch_is_atomic_and_reorders(){let mut p=Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(17)});p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=vec![card("h3",3),card("h4",4),card("h5",5),card("keep",9)];p.cala(&["h3".into(),"h4".into(),"h5".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![card("six",6),card("seven",7),card("nine",9),card("ten",10)];let before=p.public_state(0);assert!(p.lega_molte(0,&["six".into(),"nine".into()],2).is_err());assert_eq!(p.public_state(0),before);p.lega_molte(0,&["seven".into(),"six".into()],2).unwrap();assert_eq!(p.stato.melds[2][0].slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![3,4,5,6,7]);assert_eq!(p.stato.mani[0].len(),2);}
 }
 

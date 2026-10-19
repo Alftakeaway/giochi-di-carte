@@ -477,11 +477,13 @@
   }
 
   function legaSequenza(slots, carta) {
-    const nuovi = clonaSlots(slots);
-    const seme = nuovi.filter(s => !s.wild)[0].carta.seme;
-    const min = nuovi[0].valore;
-    const max = nuovi[nuovi.length - 1].valore;
-    const valore=carta.valore===1&&min>1?14:carta.valore;
+    const seme = slots.filter(s => !s.wild)[0].carta.seme;
+    const min = slots[0].valore;
+    const max = slots[slots.length - 1].valore;
+    /* L'asso può andare in basso (A-2-3…) o in alto (…Q-K-A): si provano
+     * entrambe le posizioni, preferendo quella alta come prima. Ogni altra
+     * carta ha un'unica posizione possibile. */
+    const candidati = carta.valore === 1 ? [14, 1] : [carta.valore];
 
     const provaComeMatta = function () {
       const copia = clonaSlots(slots);
@@ -499,13 +501,17 @@
 
     // estensione naturale (vale anche per la pinella del seme al posto del 2)
     if (!isJolly(carta) && carta.seme === seme) {
-      if (valore === max + 1) {
-        nuovi.push({ carta: carta, valore: valore, wild: false });
-        if (verificaSlotsSequenza(nuovi, seme)) return nuovi;
-      }
-      if (valore === min - 1) {
-        nuovi.unshift({ carta: carta, valore: valore, wild: false });
-        if (verificaSlotsSequenza(nuovi, seme)) return nuovi;
+      for (const valore of candidati) {
+        if (valore === max + 1) {
+          const prova = clonaSlots(slots);
+          prova.push({ carta: carta, valore: valore, wild: false });
+          if (verificaSlotsSequenza(prova, seme)) return prova;
+        }
+        if (valore === min - 1) {
+          const prova = clonaSlots(slots);
+          prova.unshift({ carta: carta, valore: valore, wild: false });
+          if (verificaSlotsSequenza(prova, seme)) return prova;
+        }
       }
     }
 
@@ -514,16 +520,18 @@
 
     // SOSTITUZIONE: la carta naturale prende il posto di una matta, che
     // viene spostata a un'estremità restando calata.
-    const idx = nuovi.findIndex(s => s.wild && s.valore === valore);
-    if (idx >= 0) {
+    for (const valore of candidati) {
+      const idx = slots.findIndex(s => s.wild && s.valore === valore);
+      if (idx < 0) continue;
+      const nuovi = clonaSlots(slots);
       const matta = nuovi[idx].carta;
       nuovi[idx] = { carta: carta, valore: valore, wild: false };
       const nMax = nuovi[nuovi.length - 1].valore;
       const nMin = nuovi[0].valore;
       if (nMax + 1 <= 13) nuovi.push({ carta: matta, valore: nMax + 1, wild: true });
       else if (nMin - 1 >= 1) nuovi.unshift({ carta: matta, valore: nMin - 1, wild: true });
-      else return null;
-      return verificaSlotsSequenza(nuovi, seme) ? nuovi : null;
+      else continue;
+      if (verificaSlotsSequenza(nuovi, seme)) return nuovi;
     }
     return null;
   }
@@ -551,10 +559,21 @@
     if (meld.tipo === 'gruppo') slots = legaGruppo(meld.slots, carta);
     else slots = legaSequenza(meld.slots, carta);
     if (!slots) return null;
-    const sostituzione = meld.tipo === 'sequenza' && slots.length === meld.slots.length + 1 &&
-      slots.filter(s => s.wild).length === meld.slots.filter(s => s.wild).length &&
-      slots.some((s, i) => meld.slots[i] && s.carta.id !== meld.slots[i].carta.id);
+    const sostituzione = meld.tipo === 'sequenza' && !eEstensione(meld.slots, slots);
     return { slots: slots, sostituzione: !!sostituzione };
+  }
+
+  /* True se le carte già calate restano un blocco contiguo (in testa o in
+   * coda): in tal caso la carta è stata solo aggiunta a un'estremità e non ha
+   * sostituito nessuna matta. Se invece una matta è stata rimpiazzata (e
+   * spostata all'estremità) il blocco originario risulta interrotto. */
+  function eEstensione(vecchi, nuovi) {
+    if (nuovi.length !== vecchi.length + 1) return false;
+    const ids = nuovi.map(s => s.carta.id);
+    const n = vecchi.length;
+    const testa = vecchi.every((s, i) => ids[i] === s.carta.id);
+    const coda = vecchi.every((s, i) => ids[ids.length - n + i] === s.carta.id);
+    return testa || coda;
   }
 
   function provaLegaturaMultipla(meld, carte) {

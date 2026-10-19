@@ -1,228 +1,50 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-  <base href="/">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0b5d2e">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%230b5d2e'/%3E%3Crect x='10' y='6' width='20' height='28' rx='3.5' fill='%23fdfcf7'/%3E%3Cpath d='M20 14.8c1.8-2.9 5.6-2.4 5.6 1.1 0 2.6-3.4 5-5.6 6.8-2.2-1.8-5.6-4.2-5.6-6.8 0-3.5 3.8-4 5.6-1.1z' fill='%23c62828'/%3E%3C/svg%3E">
-  <title>Giochi di Carte Italiani — Burraco · Briscola · Scopa · Tressette</title>
-  <link rel="stylesheet" href="css/style.css?v=24">
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#102e29">
+ <meta name="description" content="Scopa e Scopone, Briscola, Tressette e Burraco. Scegli il tuo tavolo, gioca contro il computer o condividi una partita.">
+ <title>Giochi di carte italiani — Scegli il tuo tavolo</title>
+ <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23102e29'/%3E%3Cpath d='M20 7C16 13 9 17 9 23a7 7 0 0 0 10 6l-3 5h8l-3-5a7 7 0 0 0 10-6C31 17 24 13 20 7' fill='%23e5b957'/%3E%3C/svg%3E">
+ <link rel="stylesheet" href="menu/style.css?v=1">
+ <script src="menu/menu.js?v=1" defer></script>
 </head>
-<body class="dashboard-body">
-  <main class="dashboard">
-    <header class="dashboard-header">
-      <div class="logo">🃏</div>
-      <h1>Giochi di Carte Italiani</h1>
-      <p class="sottotitolo">Burraco · Briscola · Scopa · Tressette</p>
-    </header>
-
-    <!-- 1. SCELTA GIOCO -->
-    <section class="pannello" id="passo-gioco">
-      <h2>Scegli il gioco</h2>
-      <div class="griglia-giochi" id="griglia-giochi">
-        <button class="carta-gioco" data-gioco="scopa">
-          <span class="icona">🥇</span>
-          <span class="nome">Scopa</span>
-          <span class="desc">Prendi le carte dal tavolo e conquista i 4 punti (Settebello, Denari, Carte, Primiera)</span>
-        </button>
-        <button class="carta-gioco" data-gioco="tressette">
-          <span class="icona">♣</span>
-          <span class="nome">Tressette</span>
-          <span class="desc">Classico a coppie, a perdere e Pizzico con i mazzetti esposti</span>
-        </button>
-        <button class="carta-gioco" data-gioco="briscola">
-          <span class="icona">⚔️</span>
-          <span class="nome">Briscola</span>
-          <span class="desc">Conquista il maggior numero di punti con le prese (120 punti in gioco)</span>
-        </button>
-        <button class="carta-gioco" data-gioco="burraco">
-          <span class="icona">🃏</span>
-          <span class="nome">Burraco</span>
-          <span class="desc">Forma combinazioni e sequenze, fai almeno un Burraco e chiudi a 505, 1005 o 2005 punti</span>
-        </button>
-      </div>
-    </section>
-
-    <!-- 2. SCELTA MAZZO -->
-    <section class="pannello" id="passo-mazzo" hidden>
-      <h2 id="titolo-passomazzo">Mazzo regionale <small>(carte di tutta Italia)</small></h2>
-      <div class="griglia-mazzi" id="griglia-mazzi"></div>
-    </section>
-
-    <!-- 3. SCELTA MODALITÀ -->
-    <section class="pannello" id="passo-modalita" hidden>
-      <h2>Modalità di gioco</h2>
-      <div class="griglia-modalita">
-        <button class="carta-modalita" data-modalita="bot" id="btn-bot">
-          <span class="icona">🤖</span>
-          <span class="nome">Single Player</span>
-          <span class="desc">Gioca contro il computer: IA locale nel tuo browser, nessun server</span>
-        </button>
-        <button class="carta-modalita" data-modalita="p2p" id="btn-p2p">
-          <span class="icona">🌐</span>
-          <span class="nome">Multiplayer P2P</span>
-          <span class="desc">Gioca contro un amico: connessione diretta WebRTC, costo zero</span>
-        </button>
-      </div>
-
-      <!-- sottopannello multiplayer -->
-      <div class="sottopannello" id="pannello-p2p" hidden>
-        <div class="p2p-opzioni">
-          <button class="btn btn-primario" id="btn-crea-stanza">➕ Crea una stanza</button>
-          <div class="separatore">oppure</div>
-          <label for="input-stanza">Codice stanza avversario</label>
-          <div class="riga-input">
-            <input type="text" id="input-stanza" placeholder="carte-xxxxxxxxxx" autocomplete="off">
-            <button class="btn" id="btn-connetti">🔗 Connetti</button>
-          </div>
-          <div class="nota">La connessione è P2P: il codice stanza è solo l'ID di signaling gratuito (PeerJS).</div>
-        </div>
-      </div>
-
-      <div class="riga-azione">
-        <button class="btn btn-primario btn-grande" id="btn-inizia" disabled>▶ Avvia partita</button>
-      </div>
-    </section>
+<body>
+ <a class="skip" href="#giochi">Vai ai giochi</a>
+ <div class="room">
+  <header class="masthead"><a class="brand" href="/" aria-label="Giochi di carte italiani, pagina iniziale"><span class="brand-mark" aria-hidden="true">♠</span><span>Giochi di carte<span class="brand-sub">Il tavolo italiano</span></span></a><button class="text-button" data-dialog="help" disabled>Come si gioca <span aria-hidden="true">?</span></button></header>
+  <main>
+   <div class="welcome"><div><h1>A che giochiamo?</h1><p>Scegli le carte. Al tavolo decidi tu come giocare.</p></div><span class="room-note"><span aria-hidden="true">♣</span> I classici, una mano alla volta.</span></div>
+   <section id="giochi" class="tables" aria-label="Scegli il gioco">
+    <article class="table scopa">
+     <a class="table-link" href="scopa/" data-gioco="scopa" aria-labelledby="title-scopa action-scopa">
+      <div class="card-scene" aria-hidden="true"><img src="scopa/assets/bastoni-01.webp" alt="" width="480" height="793"><img src="scopa/assets/denari-07.webp" alt="" width="480" height="793"><img src="scopa/assets/coppe-10.webp" alt="" width="480" height="793"></div>
+      <div class="game-copy"><span class="players">2 o 4 giocatori</span><h2 id="title-scopa">Scopa</h2><p>La presa giusta.<br>Il settebello da conquistare.</p><span class="variants">Anche Scopone e Scientifico</span><span class="saved" data-save="scopa-napoletana-v1" hidden>Salvataggio disponibile</span><span class="enter" id="action-scopa">Apri il tavolo <span aria-hidden="true">↗</span></span></div>
+     </a><div class="table-foot">Computer o umani sullo stesso dispositivo</div>
+    </article>
+    <article class="table briscola">
+     <a class="table-link" href="briscola/" data-gioco="briscola" aria-labelledby="title-briscola action-briscola">
+      <div class="card-scene" aria-hidden="true"><img src="scopa/assets/spade-01.webp" alt="" width="480" height="793"><img src="scopa/assets/coppe-03.webp" alt="" width="480" height="793"><img src="scopa/assets/denari-10.webp" alt="" width="480" height="793"></div>
+      <div class="game-copy"><span class="players">2 o 4 giocatori</span><h2 id="title-briscola">Briscola</h2><p>Tre carte in mano.<br>Il carico al momento giusto.</p><span class="variants">Uno contro uno o a coppie</span><span class="saved" data-save="briscola-napoletana-v1" hidden>Salvataggio disponibile</span><span class="enter" id="action-briscola">Apri il tavolo <span aria-hidden="true">↗</span></span></div>
+     </a><div class="table-foot">Computer o umani sullo stesso dispositivo</div>
+    </article>
+    <article class="table tressette">
+     <a class="table-link" href="tressette/" data-gioco="tressette" aria-labelledby="title-tressette action-tressette">
+      <div class="card-scene" aria-hidden="true"><img src="scopa/assets/spade-03.webp" alt="" width="480" height="793"><img src="scopa/assets/denari-02.webp" alt="" width="480" height="793"><img src="scopa/assets/coppe-01.webp" alt="" width="480" height="793"></div>
+      <div class="game-copy"><span class="players">2 o 4 giocatori</span><h2 id="title-tressette">Tressette</h2><p>Tre, due, asso.<br>Ogni seme ha la sua storia.</p><span class="variants">Classico, a perdere e Pizzico</span><span class="saved" data-save="tressette-napoletano-v1" hidden>Salvataggio disponibile</span><span class="enter" id="action-tressette">Apri il tavolo <span aria-hidden="true">↗</span></span></div>
+     </a><div class="table-foot">Computer o umani sullo stesso dispositivo</div>
+    </article>
+    <article class="table burraco">
+     <a class="table-link" href="burraco/" data-gioco="burraco" aria-labelledby="title-burraco action-burraco">
+      <div class="card-scene french" aria-hidden="true"><img src="img/francese/cuori_01.jpg" alt="" width="100" height="145"><img src="img/francese/picche_13.jpg" alt="" width="100" height="145"><img src="img/francese/quadri_12.jpg" alt="" width="100" height="145"></div>
+      <div class="game-copy"><span class="players">2 o 4 giocatori</span><h2 id="title-burraco">Burraco</h2><p>Una scala dopo l’altra.<br>Fino alla chiusura.</p><span class="variants">Coppie, computer e tavoli online</span><span class="enter" id="action-burraco">Apri il tavolo <span aria-hidden="true">↗</span></span></div>
+     </a><a class="table-foot online" href="burraco/online.html?server=wss://giochi-di-carte.onrender.com"><span class="online-dot" aria-hidden="true"></span> Gioca con amici online <span aria-hidden="true">↗</span></a>
+    </article>
+   </section>
   </main>
-
-  <script src="js/engine.js?v=24"></script>
-  <script src="js/ui.js?v=24"></script>
-  <script>
-    'use strict';
-    const stato = { gioco: null, mazzo: null, modalita: null };
-
-    const $ = (sel) => document.querySelector(sel);
-    const mostra = (sel, visibile) => { $(sel).hidden = !visibile; };
-
-    /* Scelta gioco */
-    document.querySelectorAll('.carta-gioco').forEach(btn => {
-      btn.addEventListener('click', () => {
-        stato.gioco = btn.dataset.gioco;
-        if (stato.gioco === 'briscola') {
-          location.href = 'briscola/';
-          return;
-        }
-        if (stato.gioco === 'tressette') {
-          location.href = 'tressette/';
-          return;
-        }
-        if (stato.gioco === 'scopa') {
-          location.href = 'scopa/';
-          return;
-        }
-        /* Il Burraco ha una pagina sua (regolamento completo, trascinamento
-           delle carte, avversario a 3 livelli): si apre direttamente. */
-        if (stato.gioco === 'burraco') {
-          location.href = 'burraco/';
-          return;
-        }
-        document.querySelectorAll('.carta-gioco').forEach(b => b.classList.toggle('attiva', b === btn));
-        stato.mazzo = null; // azzera la scelta precedente
-        aggiornaPassoMazzo();
-        mostra('#passo-mazzo', true);
-        window.scrollTo({ top: $('#passo-mazzo').offsetTop - 10, behavior: 'smooth' });
-      });
-    });
-
-    /* Passo mazzo: per Burraco valgono SOLO le carte francesi da poker
-       (2 mazzi da 52 + 4 Jolly = 108 carte). I mazzi regionali italiani
-       si usano esclusivamente per Scopa e Briscola. */
-    function aggiornaPassoMazzo() {
-      const griglia = $('#griglia-mazzi');
-      const titolo = $('#titolo-passomazzo');
-      griglia.innerHTML = '';
-
-      if (stato.gioco === 'burraco') {
-        titolo.innerHTML = 'Mazzo di gioco <small>(carte da poker con Jolly)</small>';
-        const btn = document.createElement('button');
-        btn.className = 'carta-mazzo attiva';
-        btn.dataset.mazzo = 'francese';
-        btn.innerHTML = `
-          <span class="retro-preview retro-preview-immagine" style="background-image:url('img/francese/retro.jpg')"></span>
-          <span class="nome">Carte Francesi</span>
-          <span class="desc">Poker — 2 mazzi da 52 + 4 Jolly (108 carte)</span>`;
-        btn.addEventListener('click', () => {
-          stato.mazzo = 'francese';
-          mostra('#passo-modalita', true);
-          window.scrollTo({ top: $('#passo-modalita').offsetTop - 10, behavior: 'smooth' });
-        });
-        griglia.appendChild(btn);
-        stato.mazzo = 'francese'; // pre-selezionato
-        return;
-      }
-
-      titolo.innerHTML = 'Mazzo regionale <small>(carte di tutta Italia)</small>';
-      Object.keys(MAZZI_ITALIANI || {}).forEach(chiave => {
-        const conf = MAZZI_ITALIANI[chiave];
-        const btn = document.createElement('button');
-        btn.className = 'carta-mazzo';
-        btn.dataset.mazzo = chiave;
-        btn.innerHTML = `
-          ${conf.immagini
-            ? `<span class="retro-preview retro-preview-immagine" style="background-image:url('img/${chiave}/retro.jpg')"></span>`
-            : `<span class="retro-preview ${conf.retro}"></span>`}
-          <span class="nome">${conf.nome}</span>
-          <span class="desc">${conf.regione}</span>`;
-        btn.addEventListener('click', () => {
-          stato.mazzo = chiave;
-          document.querySelectorAll('.carta-mazzo').forEach(b => b.classList.toggle('attiva', b === btn));
-          mostra('#passo-modalita', true);
-          window.scrollTo({ top: $('#passo-modalita').offsetTop - 10, behavior: 'smooth' });
-        });
-        griglia.appendChild(btn);
-      });
-    }
-
-    /* Scelta modalità */
-    document.querySelectorAll('.carta-modalita').forEach(btn => {
-      btn.addEventListener('click', () => {
-        stato.modalita = btn.dataset.modalita;
-        document.querySelectorAll('.carta-modalita').forEach(b => b.classList.toggle('attiva', b === btn));
-        mostra('#pannello-p2p', stato.modalita === 'p2p');
-        $('#btn-inizia').disabled = false;
-      });
-    });
-
-    /* Multiplayer: crea stanza (host) */
-    $('#btn-crea-stanza').addEventListener('click', () => {
-      stato.modalita = 'p2p';
-      stato.ruolo = 'host';
-      $('#btn-inizia').disabled = false;
-      UI.notifica('Quando premi "Avvia partita" ti verrà mostrato il codice stanza da condividere.', 'info', 4000);
-    });
-
-    /* Multiplayer: connetti (guest) */
-    $('#btn-connetti').addEventListener('click', () => {
-      const stanza = $('#input-stanza').value.trim();
-      if (!stanza) { UI.notifica('Inserisci un codice stanza.', 'errore', 2500); return; }
-      stato.modalita = 'p2p';
-      stato.ruolo = 'guest';
-      stato.stanza = stanza;
-      $('#btn-inizia').disabled = false;
-      UI.notifica('Inserisci il nome e premi "Avvia partita".', 'info', 3000);
-    });
-
-    /* Nome giocatore: chiesto solo all'avvio */
-    let nome = 'Giocatore';
-
-    /* Avvio */
-    $('#btn-inizia').addEventListener('click', () => {
-      if (!stato.gioco || !stato.mazzo || !stato.modalita) {
-        UI.notifica('Completa tutti i passaggi.', 'errore', 2500);
-        return;
-      }
-      nome = prompt('Il tuo nome:') || nome;
-      const query = new URLSearchParams({
-        gioco: stato.gioco,
-        mazzo: stato.mazzo,
-        modalita: stato.modalita,
-        ruolo: stato.ruolo || 'bot',
-        stanza: stato.stanza || '',
-        nome
-      });
-      location.href = 'game.html?' + query.toString();
-    });
-  </script>
-</body>
-</html>
+  <footer class="room-footer"><p>Carte napoletane e francesi. Scegli il gioco, trova il tuo ritmo.</p><button class="text-button" data-dialog="credits" disabled>Le carte e i crediti</button></footer>
+ </div>
+ <dialog id="help" aria-labelledby="help-title"><button class="dialog-close" data-close aria-label="Chiudi istruzioni">✕</button><h2 id="help-title">Un posto al tavolo</h2><p>Apri un gioco per scegliere variante, difficoltà e durata della partita.</p><dl><dt>Contro il computer</dt><dd>Scegli il computer per gli altri posti. Scopa, Briscola e Tressette offrono tre difficoltà.</dd><dt>Insieme, sullo stesso dispositivo</dt><dd>Assegna un posto umano a chi è con te. Una schermata copre le carte quando passate il dispositivo.</dd><dt>A distanza</dt><dd>Il Burraco ha un tavolo online dedicato: entra, crea una stanza e condividi il codice. Scopa e Briscola mantengono nelle loro pagine il collegamento alla precedente modalità online a due.</dd><dt>Riprendere una partita</dt><dd>Scopa, Briscola e Tressette salvano la partita in questo browser. Se compare “Salvataggio disponibile”, apri quel tavolo e premi “Riprendi”.</dd></dl><p class="dialog-note">Le regole complete sono disponibili dentro ciascun gioco.</p></dialog>
+ <dialog id="credits" aria-labelledby="credits-title"><button class="dialog-close" data-close aria-label="Chiudi crediti">✕</button><h2 id="credits-title">Le carte del tavolo</h2><p>Le carte napoletane sono di Trocche100, in pubblico dominio su Wikimedia Commons. Le immagini originali sono ridimensionate e convertite in WebP.</p><p><a href="scopa/assets/credits.json" target="_blank" rel="noopener">Fonti e licenze delle carte napoletane</a></p><p>Il Burraco usa il mazzo francese già presente nel progetto. Le immagini dei giochi restano disponibili anche nella pagina di ciascun tavolo.</p></dialog>
+</body></html>

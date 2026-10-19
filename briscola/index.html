@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#234532"><title>Briscola — Il tavolo napoletano</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css?v=1"></head>
+<body>
+ <main id="setup" class="setup">
+  <header class="setup-head"><a href="/">Tutti i giochi</a><button class="quiet" id="help-start">Come si gioca</button></header>
+  <div class="setup-body">
+   <section class="intro"><div class="deck-art" aria-hidden="true"><img src="../scopa/assets/spade-03.webp" alt=""><img src="../scopa/assets/denari-02.webp" alt=""><img src="../scopa/assets/coppe-01.webp" alt=""></div><h1>Briscola<span>Il carico giusto, al momento giusto.</span></h1><p>Tre carte in mano.<br>Centoventi punti sul tavolo.</p><p class="intro-note">Uno contro uno o a coppie.<br>Con le carte napoletane originali.</p></section>
+   <section class="configuration" aria-label="Prepara la partita">
+    <fieldset><legend>Il tuo tavolo</legend><div class="choices" id="variants"><button data-variant="duel" class="chosen" aria-pressed="true"><strong>Briscola a due</strong><small>Uno contro uno</small></button><button data-variant="classic" aria-pressed="false"><strong>Briscola a quattro</strong><small>Due coppie</small></button></div><p class="field-note" id="variant-note"></p></fieldset>
+    <fieldset><legend>Chi si siede</legend><div id="seats" class="seats"></div><p class="field-note">Umani sullo stesso dispositivo oppure computer. Compagni di fronte nel classico.</p></fieldset>
+    <div class="config-pair"><fieldset><legend>Il computer</legend><div class="choices" id="levels"><button data-level="easy" aria-pressed="false">Facile</button><button data-level="normal" class="chosen" aria-pressed="true">Medio</button><button data-level="hard" aria-pressed="false">Difficile</button></div></fieldset><fieldset><legend>Durata</legend><div id="duration" class="choices durations" aria-label="Durata della partita"><button data-duration="r1" aria-pressed="true" class="chosen">1 smazzata</button><button data-duration="r2" aria-pressed="false">2 smazzate</button><button data-duration="r3" aria-pressed="false">3 smazzate</button><button data-duration="r4" aria-pressed="false">4 smazzate</button><button data-duration="r5" aria-pressed="false">5 smazzate</button></div></fieldset></div>
+    <p class="field-note" id="duration-note">Nelle serie vince il totale dei punti delle smazzate scelte.</p>
+    <div class="start-actions"><button class="primary" id="start">Siediti al tavolo</button><button id="resume" hidden>Riprendi</button></div><a class="legacy" href="/game.html?gioco=briscola&amp;modalita=p2p&amp;ruolo=host&amp;mazzo=napoletane">Modalità online a 2 · versione precedente</a><p id="setup-notice" class="field-note" role="status"></p>
+   </section>
+  </div>
+  <footer class="setup-foot"><span>Carte napoletane originali · Trocche100, Wikimedia Commons</span><button class="quiet" id="credits-start">Carte e crediti</button></footer>
+ </main>
+ <main id="game" class="game" hidden>
+  <header class="game-header"><button class="quiet" id="menu" aria-label="Apri menu">☰</button><h1 id="game-title">Briscola</h1><span id="round-label"></span><div id="match-score" class="match-score"></div><button class="quiet" id="fullscreen" aria-label="Schermo intero">⛶</button></header>
+  <section class="play-area" id="arena" aria-label="Tavolo da gioco">
+   <div class="seat opposite" id="opposite"></div><div class="seat west" id="west"></div><div class="seat east" id="east"></div>
+   <div id="trick-zone" class="trick-zone"><div id="trick-info" class="trick-info"></div><div id="trick" class="trick" aria-label="Presa corrente"></div></div>
+   <aside class="trump-zone"><strong id="trump-label"></strong><div class="stock"><div id="exposed-card"></div><img id="deck-back" src="../scopa/assets/retro.webp" alt="Tallone coperto"></div><span id="deck-count"></span></aside>
+   <button id="last-trick" class="quiet last-trick">Ultima presa</button><div id="taken-points" class="taken-points"></div>
+  </section>
+  <section class="hand-zone"><div class="hand-heading"><strong id="hand-label">La tua mano</strong><p id="prompt" role="status" aria-live="polite"></p><div class="hand-tools"><button class="quiet" id="hint">Suggerisci</button><button class="quiet" id="scores">Punteggi</button></div></div><div id="hand" class="hand"></div><div class="move-bar"><span id="move-note"></span><button id="cancel" hidden>Annulla</button><button class="primary" id="confirm" disabled>Gioca la carta</button></div></section>
+ </main>
+ <dialog id="dialog"><div id="dialog-body"></div><button class="dialog-close quiet" aria-label="Chiudi finestra" id="dialog-close">✕</button></dialog>
+ <div id="handover" class="handover" hidden><div><p>Passa il dispositivo a</p><h2 id="handover-name"></h2><p>Le carte in mano restano coperte fino alla conferma.</p><button class="primary" id="show-hand">Mostra la mia mano</button></div></div>
+ <script src="engine.js?v=1"></script><script src="ai.js?v=1"></script><script src="app.js?v=1"></script>
+</body></html>

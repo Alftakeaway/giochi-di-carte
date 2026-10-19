@@ -1,0 +1,6 @@
+(function(root){
+ 'use strict';const E=typeof module!=='undefined'?require('./engine.js'):root.BriscolaEngine;
+ function choose(v,level='normal',rng=Math.random){if(!v.legal.length)return null;if(level==='easy'&&rng()<.65)return v.legal[Math.floor(rng()*v.legal.length)].id;const known=new Set([...v.hand,...v.piles.flat(),...v.trick.map(p=>p.card),...(v.exposed?[v.exposed]:[])].map(c=>c.id)),unseen=E.deck().filter(c=>!known.has(c.id));
+  const scores=v.legal.map(c=>{const plays=[...v.trick,{player:v.player,card:c}],win=E.winner(plays,v.trump),own=win===v.player||(v.variant==='classic'&&win%2===v.player%2),points=plays.reduce((s,p)=>s+E.value(p.card),0),last=plays.length===v.counts.length;let score=(own?points*3:-E.value(c)*2)-E.rank(c)*.35-(c.suit===v.trump?4:0);if(own&&win!==v.player)score+=E.value(c)*2;if(!last&&own){const leader=plays.find(p=>p.player===win),higher=unseen.filter(x=>E.winner([leader,{player:99,card:x}],v.trump)===99).length;score-=higher*(level==='hard'?1.1:.4)}if(!v.trick.length){score-=E.value(c)*1.3;if(c.suit!==v.trump&&E.value(c)===0)score+=5}return {id:c.id,score:score+rng()*.25}});scores.sort((a,b)=>b.score-a.score);return scores[0].id}
+ const api={choose};if(typeof module!=='undefined')module.exports=api;else root.BriscolaAI=api;
+})(typeof window==='undefined'?globalThis:window);

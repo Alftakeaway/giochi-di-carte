@@ -99,6 +99,10 @@
     document.querySelectorAll('.carta-gioco').forEach(btn => {
       btn.addEventListener('click', () => {
         stato.gioco = btn.dataset.gioco;
+        if (stato.gioco === 'briscola') {
+          location.href = 'briscola/';
+          return;
+        }
         if (stato.gioco === 'tressette') {
           location.href = 'tressette/';
           return;

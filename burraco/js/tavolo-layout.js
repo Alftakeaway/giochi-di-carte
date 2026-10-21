@@ -10,7 +10,9 @@
   const rows=[];
   for(const team of root.querySelectorAll('.approved-team')){
    const area=team.querySelector('.approved-rows'), melds=[...area.querySelectorAll('.meld')];
-   for(let i=0;i<2;i++)rows.push({area,items:melds.slice(i*8,i*8+8),index:i});
+   // Use the second row only when occupied; long runs can use the empty space.
+   const usedRows=melds.length>8?2:1;
+   for(let i=0;i<usedRows;i++)rows.push({area,items:melds.slice(i*8,i*8+8),index:i,usedRows});
   }
   const base=innerWidth<=700?74:innerWidth<=1100?84:90;
   const gap=4;let rowGap=94;
@@ -21,16 +23,16 @@
    const capacity=Math.max(8.405,actual);
    cw=Math.min(cw,(row.area.clientWidth-7*gap-4)/capacity);
    // Two complete thirteen-card burrachi, with readable short groups.
-   cw=Math.min(cw,(row.area.clientHeight/2-23)/2.6,row.area.clientHeight/2-121);
+   cw=Math.min(cw,(row.area.clientHeight/row.usedRows-23)/2.6,row.area.clientHeight/row.usedRows-121);
   }
   for(const row of rows){
    const needed=Math.max(23+cw*2.6,121+cw);
-   rowGap=Math.min(rowGap,Math.max(0,row.area.clientHeight-2*needed));
+   if(row.usedRows===2)rowGap=Math.min(rowGap,Math.max(0,row.area.clientHeight-2*needed));
   }
   const hw=base*Math.pow(1.2,3);
   root.style.setProperty('--layout-cw',cw+'px');root.style.setProperty('--layout-hw',hw+'px');
   for(const row of rows){
-   let left=0;const height=(row.area.clientHeight-rowGap)/2;
+   let left=0;const height=(row.area.clientHeight-(row.usedRows-1)*rowGap)/row.usedRows;
    const footprint=row.items.reduce((n,m)=>n+cw*(m.classList.contains('burraco')?1.405:1),0);
    const spacing=Math.max(0,Math.min(4,(row.area.clientWidth-footprint)/Math.max(1,row.items.length-1)));
    for(const m of row.items){

@@ -1,4 +1,6 @@
 /* Layout approved in the separate prototype. Rules and network are unchanged. */
+/* Card ordering stays inside the board, below the result and handover overlays. */
+.approved-board{isolation:isolate}
 .approved-board{height:100dvh!important;display:grid!important;grid-template-rows:54px minmax(0,1fr) 138px!important;gap:4px;padding:0 12px!important;background:radial-gradient(ellipse at center,#1b784b,#13683f 65%,#0c5133);overflow:hidden!important;--layout-cw:76px;--layout-hw:104px}
 .approved-board[hidden]{display:none!important}
 .approved-board .barra-superiore{position:relative;margin:0 -12px;height:54px;padding:4px 16px;background:#083d29;gap:8px}

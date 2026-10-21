@@ -8,7 +8,7 @@
   <title>Burraco Online — umani e computer</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 44'%3E%3Crect width='40' height='44' rx='8' fill='%230a5130'/%3E%3Cpath d='M6 12 L13 19 L20 9 L27 19 L34 12 C34 23 28 30 20 35 C12 30 6 23 6 12 Z' fill='%23e0bb52'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/burraco.css?v=14">
-  <link rel="stylesheet" href="css/tavolo-layout.css?v=1">
+  <link rel="stylesheet" href="css/tavolo-layout.css?v=2">
   <style>
     :root{
       --verde:#0a5130; --verde-2:#0d6b40; --verde-3:#0f8a4f;
@@ -234,7 +234,7 @@ function calaSel(){ if(sel.size>=3){ act({tipo:'cala',ids:[...sel]}); } }
 function scartaSel(){ if(sel.size===1){ act({tipo:'scarta',id:[...sel][0]}); } }
 function act(obj){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'action',action:obj})); else status('Non connesso.','err'); }
 </script>
-<script src="js/tavolo-layout.js?v=4"></script>
+<script src="js/tavolo-layout.js?v=5"></script>
 <script src="js/tavolo-online-layout.js?v=4"></script>
 </body>
 </html>

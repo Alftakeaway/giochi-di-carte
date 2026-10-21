@@ -528,6 +528,11 @@
       nuovi[idx] = { carta: carta, valore: valore, wild: false };
       const nMax = nuovi[nuovi.length - 1].valore;
       const nMin = nuovi[0].valore;
+      // Prefer the same-suit pinella's natural position over another wild use.
+      if (isPinella(matta) && matta.seme === seme && nMin === 3) {
+        const pulita = [{ carta: matta, valore: 2, wild: false }].concat(nuovi);
+        if (verificaSlotsSequenza(pulita, seme)) return pulita;
+      }
       if (nMax + 1 <= 13) nuovi.push({ carta: matta, valore: nMax + 1, wild: true });
       else if (nMin - 1 >= 1) nuovi.unshift({ carta: matta, valore: nMin - 1, wild: true });
       else continue;

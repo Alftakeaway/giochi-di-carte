@@ -534,6 +534,12 @@ fn lega_sequenza(slots: &[Slot], carta: &Carta) -> Option<Vec<Slot>> {
             nuovi[idx] = Slot { carta: carta.clone(), valore, wild: false };
             let n_max = nuovi.last().unwrap().valore;
             let n_min = nuovi[0].valore;
+            // Prefer the same-suit pinella's natural position to a new wild use.
+            if matta.is_pinella() && matta.seme == Some(seme) && n_min == 3 {
+                let mut pulita = nuovi.clone();
+                pulita.insert(0, Slot { carta: matta.clone(), valore: 2, wild: false });
+                if verifica_slots_sequenza(&pulita, seme) { return Some(pulita); }
+            }
             if n_max + 1 <= 13 {
                 nuovi.push(Slot { carta: matta.clone(), valore: n_max + 1, wild: true });
             } else if (n_min as i32) - 1 >= 1 {
@@ -1426,4 +1432,18 @@ mod rounds_rules_tests {
  #[test] fn fixed_one_to_five(){for n in 1..=5{let mut p=game();p.stato.limite_smazzate=Some(n);for i in 0..n {p.stato.pozzetto_preso=vec![true,true];p.stato.chiusa_da=Some(0);p.stato.mani=rep_vec(4,Vec::new());p.stato.totali=vec![10000,0,0,0];calcola_punteggi(&mut p.stato,&p.squadre,4,p.target);assert_eq!(p.stato.partita_finita,i==n-1);assert_eq!(p.smazzata_successiva(),i==n-1);}assert_eq!(p.stato.vincitore,Some(0));}}
  #[test] fn draw_and_cancelled(){let mut p=game();p.stato.limite_smazzate=Some(1);calcola_punteggi(&mut p.stato,&p.squadre,4,p.target);assert_eq!(p.stato.storico.len(),0);assert!(!p.smazzata_successiva());p.stato.pozzetto_preso=vec![true,true];p.stato.mani=rep_vec(4,Vec::new());calcola_punteggi(&mut p.stato,&p.squadre,4,p.target);assert!(p.stato.partita_finita);assert_eq!(p.stato.vincitore,None);assert!(p.smazzata_successiva());assert_eq!(p.public_state(0)["pareggio"],true);}
  #[test] fn duplicate_partner_group_blocked(){let mut p=game();p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=vec![c("a",1,Seme::Cuori),c("b",1,Seme::Picche),c("c",1,Seme::Quadri),c("keep",9,Seme::Cuori)];p.cala(&["a".into(),"b".into(),"c".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![c("d",1,Seme::Cuori),c("e",1,Seme::Picche),c("f",1,Seme::Fiori),c("stay",10,Seme::Cuori)];let ids=vec!["d".into(),"e".into(),"f".into()];assert!(!p.cala_ammissibile(0,&p.stato.mani[0][0..3]));assert!(p.cala(&ids).is_err());p.lega_molte(0,&ids,2).unwrap();assert_eq!(p.stato.melds[2][0].slots.len(),6);}
+}
+
+#[cfg(test)]
+mod pinella_natural_replacement_tests {
+ use super::*;
+ fn c(id:&str,v:u8,s:Seme)->Carta{Carta::new(id,v,Some(s),false)}
+ fn dirty(wild:Carta,min:u8)->Esito{let mut cards=(min..=9).filter(|v|*v!=7).map(|v|c(&format!("n{v}"),v,Seme::Cuori)).collect::<Vec<_>>();cards.push(wild);valida_combinazione(&cards).unwrap()}
+ #[test] fn replacement_moves_same_suit_two_to_natural_position(){
+  for seme in SEMI {let mut cards=[3,4,5,6,8,9].iter().map(|v|c(&format!("n{v}"),*v,seme)).collect::<Vec<_>>();cards.push(c("pinella",2,seme));let old=valida_combinazione(&cards).unwrap();let next=lega_sequenza(&old.slots,&c("seven",7,seme)).unwrap();assert_eq!(next.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![2,3,4,5,6,7,8,9]);assert_eq!(next[0].carta.id,"pinella");assert!(next.iter().all(|s|!s.wild));let cls=classifica_burraco(&next);assert!(cls.pulito);assert!(old.slots.iter().any(|s|s.wild));}
+ }
+ #[test] fn foreign_two_joker_gap_and_duplicate_keep_wild(){
+  for (wild,min) in [(c("foreign",2,Seme::Picche),3),(Carta::new("joker",0,None,true),3),(c("same",2,Seme::Cuori),4),(c("second",2,Seme::Cuori),2)] {let old=dirty(wild,min);let next=lega_sequenza(&old.slots,&c("seven",7,Seme::Cuori)).unwrap();assert_eq!(next.iter().filter(|s|s.wild).count(),1);}
+ }
+ #[test] fn attach_action_updates_bonus(){let mut p=Partita::new(PartitaOpts{giocatori:2,target:2005,seed:Some(4),nomi:None});p.stato.turno=0;p.stato.fase=Fase::Gioco;p.stato.mani[0]=[3,4,5,6,8,9,2].iter().map(|v|c(&format!("n{v}"),*v,Seme::Cuori)).collect();p.stato.mani[0].push(c("seven",7,Seme::Cuori));p.stato.mani[0].push(c("keep",12,Seme::Picche));p.cala(&[3,4,5,6,8,9,2].iter().map(|v|format!("n{v}")).collect::<Vec<_>>()).unwrap();p.lega(0,"seven").unwrap();assert!(p.stato.melds[0][0].pulito);assert_eq!(bonus_burraco(&p.stato.melds[0][0]),200);}
 }

@@ -27,7 +27,7 @@
     spostamento: null,     // carta di una combinazione scelta per essere spostata
     trascinamento: null,   // trascinamento in corso
     sopprimiClic: false,   // evita che il click dopo un drag selezioni una carta
-    ordineMano: 'combinazioni'
+    ordineMano: 'manuale'
   };
 
   const SEME_ORDINE = { cuori: 0, quadri: 1, fiori: 2, picche: 3 };
@@ -119,6 +119,7 @@
    * calare (tris e scale, con le matte al posto giusto), poi le carte
    * sciolte. Serve a vedere a colpo d'occhio cosa si ha in mano. */
   function raggruppaMano(carte) {
+    if (ui.ordineMano === 'manuale') return [{ carte: carte.slice(), tipo: 'resto', punti: 0 }];
     /* «per numero» e «per seme» sono ordinamenti semplici: un unico blocco */
     if (ui.ordineMano === 'numero') {
       return [{ carte: carte.slice().sort(perValoreESeme), tipo: 'resto', punti: 0 }];
@@ -601,7 +602,7 @@
     const inizioBlocco = new Set();
     blocchi.forEach(function (b, bi) {
       b.carte.forEach(function (carta, ci) {
-        const el = creaCartaEl(carta, { titolo: carta.nomeLungo + ' · trascinala su una combinazione' });
+        const el = creaCartaEl(carta, { titolo: carta.nomeLungo + ' · trascinala nella mano o su una combinazione' });
         el.dataset.blocco = String(bi);
         if (ci === 0 && bi > 0) { inizioBlocco.add(nodi.length); el.classList.add('inizio-blocco'); }
         if (b.tipo === 'gruppo' || b.tipo === 'sequenza') el.classList.add('in-combinazione');

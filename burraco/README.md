@@ -230,3 +230,8 @@ rimane compatibile. Il client richiede `multiAttach` prima di inviare più carte
 Pinelle sempre rappresentate con il valore 2 e il seme originale; nessun velo
 viola per i 2. I tooltip spiegano l’eventuale valore sostituito.
 Test: ace-multi.test.cjs, multi-pinella-ui.test.cjs e test Rust corrispondenti.
+
+### Ordine libero della mano
+La modalità iniziale è Manuale. Si possono trascinare singole carte fra qualsiasi altra carta, anche durante la pesca o il turno avversario, senza cambiare lo stato del motore. Le carte nuove si aggiungono in fondo; quelle calate o scartate scompaiono conservando le posizioni delle altre. Numero, Seme e Combinazioni restano scelte esplicite. Alt + freccia sinistra/destra sposta una carta con la tastiera. L'ordine è separato per posto e partita e viene conservato nei render locali e online durante la sessione. Il trascinamento dalla mano alle combinazioni continua a usare le azioni originali e le relative regole; il solo riordino non invia messaggi WebSocket.
+
+Verifiche: `manual-hand-order.test.cjs` (26 carte, 9 di quadri fra 8 e 10, aggiornamenti, pesca, tastiera, turno avversario, legature) e `manual-hand-online.test.cjs` (Render reale, conservazione dell'ordine e nessuna azione di rete per il riordino).

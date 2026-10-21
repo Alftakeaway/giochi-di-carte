@@ -3,7 +3,7 @@
  'use strict';
  const el=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls||'';if(text)e.textContent=text;return e};
  const suits={cuori:'Hearts',quadri:'Diamonds',fiori:'Clubs',picche:'Spades'};
- let order='combinazioni';
+ let order='manuale';
  function card(c,hidden){
   const d=el('div','carta');d.dataset.id=c?.id||'';
   const im=el('img');
@@ -49,10 +49,10 @@
   document.getElementById('punteggi').replaceChildren(...st.totaliSquadra.map((t,i)=>el('div','punteggio-box',(i===st.squadre[seat]?'Voi ':'Loro ')+t)));
   document.getElementById('mano-avversario').replaceChildren();
   const bar=document.getElementById('barra-azioni');const badge=document.getElementById('turno-badge');if(badge)root.querySelector('header').append(badge);bar.replaceChildren();
-  const ord=el('div','ordinamento');ord.id='ordinamento';for(const [v,t] of [['combinazioni','Combinazioni'],['numero','Numero'],['seme','Seme']]){const b=el('button','ord-btn'+(order===v?' attivo':''),t);b.type='button';b.onclick=()=>{order=v;render(last)};ord.append(b)}bar.append(ord);
+  const ord=el('div','ordinamento');ord.id='ordinamento';for(const [v,t] of [['combinazioni','Combinazioni'],['numero','Numero'],['seme','Seme']]){const b=el('button','ord-btn'+(order===v?' attivo':''),t);b.type='button';b.dataset.ordine=v;b.onclick=()=>{order=v;render(last)};ord.append(b)}bar.append(ord);
   const fake={nGioc:st.nGioc,squadre:st.squadre,stato:{...st,mani:st.seats.map(s=>s.seat===seat?s.hand:Array(s.handCount).fill(null)),pozzettoPreso:st.pozzetti.map(p=>p.taken)}};
-  const ui={manoVisibile:seat,selezione:sel,botInCorso:false,attesaConsegna:false};
-  window.BurracoApproved.decorate(fake,ui,{pescaTallone:()=>pesca('tallone'),prendiMonte:()=>pesca('monte'),cala:()=>calaSel(),scarta:()=>scartaSel(),lega:(i,ids,owner)=>attach(i,ids,owner),details:()=>showScores(st)});
+  const ui={ordineMano:order,manoVisibile:seat,selezione:sel,botInCorso:false,attesaConsegna:false};
+  window.BurracoApproved.decorate(fake,ui,{handKey:roomCode+':'+seat,pescaTallone:()=>pesca('tallone'),prendiMonte:()=>pesca('monte'),cala:()=>calaSel(),scarta:()=>scartaSel(),lega:(i,ids,owner)=>attach(i,ids,owner),details:()=>showScores(st)});
  }
  function showScores(st){let dlg=document.getElementById('online-scores');if(!dlg){dlg=el('dialog');dlg.id='online-scores';document.body.append(dlg)}dlg.replaceChildren(el('h2','',st.partitaFinita?(st.pareggio?'Partita in parità':'Partita conclusa'):st.finita?'Smazzata conclusa':'Punteggi'),el('p','',st.totaliSquadra.map((v,i)=>(i===st.squadre[seat]?'Voi: ':'Loro: ')+v).join(' · ')));if(st.finita&&!st.partitaFinita&&st.vincitore==null){const next=el('button','btn','Smazzata successiva');next.onclick=()=>{act({tipo:'next'});dlg.close()};dlg.append(next)}const close=el('button','btn','Chiudi');close.onclick=()=>dlg.close();dlg.append(close);if(st.smazzate)dlg.prepend(el('p','',st.smazzateCompletate+' / '+st.smazzate+' smazzate completate'));if(st.partitaFinita&&!st.pareggio)dlg.prepend(el('p','',st.vincitore===st.squadre[seat]?'Avete vinto la partita!':'Gli avversari vincono la partita.'));dlg.showModal()}
  document.getElementById('btn-menu').onclick=()=>document.body.classList.toggle('show-online-connection');

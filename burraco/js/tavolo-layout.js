@@ -140,6 +140,7 @@
    root.dataset.layoutEvents='true';
    root.addEventListener('click',ev=>{const m=ev.target.closest('.meld');if(!m||root.dataset.lega!=='true')return;const c=current;const owner=Number(m.dataset.giocatore);if(c.p.squadre[owner]!==c.p.squadre[c.ui.manoVisibile])return;const ids=[...c.ui.selezione];if(!ids.length)return;ev.stopImmediatePropagation();root.dataset.lega='';const idx=Number(m.dataset.indice);if(c.options.lega)c.options.lega(idx,ids,owner);else window.__burraco.azione(()=>c.p.legaMolte(idx,ids,owner),'lega');},true);
   }
+  if(window.BurracoHandOrder)window.BurracoHandOrder.decorate(current);
   schedule();
  }
  window.BurracoApproved={decorate,fit:schedule};

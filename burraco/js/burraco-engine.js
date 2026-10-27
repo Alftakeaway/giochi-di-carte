@@ -563,9 +563,25 @@
     let slots = null;
     if (meld.tipo === 'gruppo') slots = legaGruppo(meld.slots, carta);
     else slots = legaSequenza(meld.slots, carta);
-    if (!slots) return null;
+    if (!slots) return provaLegaturaRicalcolata(meld, carta);
     const sostituzione = meld.tipo === 'sequenza' && !eEstensione(meld.slots, slots);
     return { slots: slots, sostituzione: !!sostituzione };
+  }
+
+  /**
+   * Piano B della legatura: se estensione/sostituzione incrementale fallisce,
+   * si ricostruisce la combinazione da zero con tutte le carte (vecchie + nuova),
+   * così la matta può spostarsi dove serve (es. Q(j)-J-10 + 8 -> J-10-9(j)-8).
+   * Usa gli stessi costruttori della calata, quindi non allarga le regole:
+   * accetta solo ciò che sarebbe valido se calato tutto insieme.
+   */
+  function provaLegaturaRicalcolata(meld, carta) {
+    const carte = meld.slots.map(s => s.carta).concat([carta]);
+    let slots = null;
+    if (meld.tipo === 'sequenza') slots = costruisciSequenza(carte);
+    else slots = costruisciGruppo(carte);
+    if (!slots) return null;
+    return { slots: slots, sostituzione: !eEstensione(meld.slots, slots) };
   }
 
   /* True se le carte già calate restano un blocco contiguo (in testa o in

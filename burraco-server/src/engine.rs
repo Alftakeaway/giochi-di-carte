@@ -582,6 +582,27 @@ pub fn prova_legatura(meld: &Meld, carta: &Carta) -> Option<(Vec<Slot>, bool)> {
     let slots = match meld.tipo {
         MeldTipo::Gruppo => lega_gruppo(&meld.slots, carta),
         MeldTipo::Sequenza => lega_sequenza(&meld.slots, carta),
+    };
+    match slots {
+        Some(slots) => {
+            let sostituzione = meld.tipo == MeldTipo::Sequenza && !e_estensione(&meld.slots, &slots);
+            Some((slots, sostituzione))
+        }
+        None => ricalcola_legatura(meld, carta),
+    }
+}
+
+/// Piano B della legatura: se estensione/sostituzione incrementale fallisce,
+/// ricostruisce la combinazione da zero con tutte le carte (vecchie + nuova),
+/// così la matta può spostarsi dove serve (es. Q(j)-J-10 + 8 -> J-10-9(j)-8).
+/// Usa gli stessi costruttori della calata: accetta solo ciò che sarebbe
+/// valido se calato tutto insieme, quindi non allarga le regole.
+fn ricalcola_legatura(meld: &Meld, carta: &Carta) -> Option<(Vec<Slot>, bool)> {
+    let mut carte: Vec<Carta> = meld.slots.iter().map(|s| s.carta.clone()).collect();
+    carte.push(carta.clone());
+    let slots = match meld.tipo {
+        MeldTipo::Gruppo => costruisci_gruppo(&carte),
+        MeldTipo::Sequenza => costruisci_sequenza(&carte),
     }?;
     let sostituzione = meld.tipo == MeldTipo::Sequenza && !e_estensione(&meld.slots, &slots);
     Some((slots, sostituzione))
@@ -1419,6 +1440,16 @@ mod ace_multi_tests {
   let high=lega_sequenza(&sequence(&(2..=13).collect::<Vec<_>>()).slots,&card("ace_hi",1)).unwrap();
   let mut atteso:Vec<u8>=(2..=13).collect();atteso.push(14);
   assert_eq!(high.iter().map(|s|s.valore).collect::<Vec<_>>(),atteso);
+ }
+ #[test] fn ricalcolo_jolly_bloccato(){
+  let mut p=Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(31)});
+  p.stato.turno=0;p.stato.fase=Fase::Gioco;
+  p.stato.mani[0]=vec![Carta::new("jolly",0,None,true),Carta::new("j",11,Some(Seme::Picche),false),Carta::new("t",10,Some(Seme::Picche),false),Carta::new("otto",8,Some(Seme::Picche),false),Carta::new("resto",5,Some(Seme::Cuori),false)];
+  p.cala(&["jolly".into(),"j".into(),"t".into()]).unwrap();
+  assert_eq!(p.stato.melds[0][0].slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![10,11,12]);
+  p.lega_a(0,"otto",0).unwrap();
+  assert_eq!(p.stato.melds[0][0].slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![8,9,10,11]);
+  assert_eq!(p.stato.mani[0].len(),1);
  }
  #[test] fn batch_is_atomic_and_reorders(){let mut p=Partita::new(PartitaOpts{target:2005,nomi:None,giocatori:4,seed:Some(17)});p.stato.turno=2;p.stato.fase=Fase::Gioco;p.stato.mani[2]=vec![card("h3",3),card("h4",4),card("h5",5),card("keep",9)];p.cala(&["h3".into(),"h4".into(),"h5".into()]).unwrap();p.stato.turno=0;p.stato.mani[0]=vec![card("six",6),card("seven",7),card("nine",9),card("ten",10)];let before=p.public_state(0);assert!(p.lega_molte(0,&["six".into(),"nine".into()],2).is_err());assert_eq!(p.public_state(0),before);p.lega_molte(0,&["seven".into(),"six".into()],2).unwrap();assert_eq!(p.stato.melds[2][0].slots.iter().map(|s|s.valore).collect::<Vec<_>>(),vec![3,4,5,6,7]);assert_eq!(p.stato.mani[0].len(),2);}
 }

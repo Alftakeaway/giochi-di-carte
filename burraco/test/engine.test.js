@@ -193,6 +193,17 @@ sezione('Legatura e sostituzione');
   eq(sost.slots.filter(s => s.wild).length, 1, 'la matta resta calata');
   ok(sost.slots.some(s => s.carta.jolly), 'il jolly è ancora nella sequenza');
 
+  // ricalcolo della matta bloccata: Q(j)-J-10 + 8 -> J-10-9(j)-8
+  const mjq = E.validaCombinazione([JOLLY(), J('picche'), N(10, 'picche')]);
+  eq(mjq.slots.map(s => s.valore).join(','), '10,11,12', 'calata Q(j)-J-10: jolly bloccato come Q');
+  const leg8 = E.provaLegatura(mjq, N(8, 'picche'));
+  ok(leg8, 'l\'8 di picche si lega spostando il jolly da Q a 9');
+  eq(leg8 && leg8.slots.map(s => s.valore).join(','), '8,9,10,11', 'nuovi slot 8-9(j)-10-J');
+  ok(leg8 && leg8.sostituzione === true, 'lo spostamento della matta conta come sostituzione');
+  const altro9 = N(9, 'picche');
+  const mjq9 = E.validaCombinazione([JOLLY(), J('picche'), N(10, 'picche'), N(9, 'picche')]);
+  ok(!E.provaLegatura(mjq9, altro9), 'secondo 9 rifiutato (duplicato in sequenza)');
+
   const gruppo = {
     tipo: 'gruppo', seme: null,
     slots: [
